@@ -23,7 +23,7 @@ const parseTime = (timeStr) => {
   return `${hour.toString().padStart(2, '0')}:00`;
 };
 
-// Manual Calendar Component
+// Enhanced Manual Calendar Component
 const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -120,7 +120,7 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
               onPress={() => canGoPrev && navigateMonth('prev')}
               disabled={!canGoPrev}
             >
-              <Text style={calendarStyles.navText}>{'<'}</Text>
+              <Text style={calendarStyles.navText}>Previous</Text>
             </TouchableOpacity>
             
             <Text style={calendarStyles.monthYear}>
@@ -131,7 +131,7 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
               style={calendarStyles.navButton}
               onPress={() => navigateMonth('next')}
             >
-              <Text style={calendarStyles.navText}>{'>'}</Text>
+              <Text style={calendarStyles.navText}>Next</Text>
             </TouchableOpacity>
           </View>
           
@@ -424,7 +424,7 @@ export default function BookNow() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#555" />
+        <ActivityIndicator size="large" color="#2C5AA0" />
         <Text style={styles.loadingText}>Loading shop details...</Text>
       </View>
     );
@@ -435,7 +435,7 @@ export default function BookNow() {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -463,15 +463,36 @@ export default function BookNow() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirm Booking</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Your Booking</Text>
+              <Text style={styles.modalSubtitle}>Please review your appointment details</Text>
+            </View>
             
             <View style={styles.bookingSummary}>
-              <Text style={styles.summaryText}>Barber: {selectedBarber?.name}</Text>
-              <Text style={styles.summaryText}>Date: {selectedDate?.toDateString()}</Text>
-              <Text style={styles.summaryText}>Time: {selectedTimeSlot?.name} ({selectedTimeSlot?.start}-{selectedTimeSlot?.end})</Text>
-              <Text style={styles.summaryText}>Services: {selectedServices.map(s => s.name).join(', ')}</Text>
-              <Text style={styles.summaryText}>Duration: {totalDuration} minutes</Text>
-              <Text style={styles.summaryText}>Total: ₹{totalPrice}</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Barber</Text>
+                <Text style={styles.summaryValue}>{selectedBarber?.name}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Date</Text>
+                <Text style={styles.summaryValue}>{selectedDate?.toDateString()}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Time</Text>
+                <Text style={styles.summaryValue}>{selectedTimeSlot?.name} ({selectedTimeSlot?.start}-{selectedTimeSlot?.end})</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Services</Text>
+                <Text style={styles.summaryValue}>{selectedServices.map(s => s.name).join(', ')}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Duration</Text>
+                <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
+              </View>
+              <View style={[styles.summaryRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={styles.totalValue}>₹{totalPrice}</Text>
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
@@ -495,147 +516,229 @@ export default function BookNow() {
         </View>
       </Modal>
 
-      {/* Main Content */}
-      <View style={styles.shopHeader}>
-        <Text style={styles.shopName}>{shopDetails.name}</Text>
-        <Text style={styles.shopAddress}>{shopDetails.address}</Text>
-        <Text style={styles.shopHours}>Open: {shopDetails.Timing || `${shopDetails.openingTime} - ${shopDetails.closingTime}`}</Text>
+      {/* Header Section */}
+      <View style={styles.headerSection}>
+        <View style={styles.shopInfo}>
+          <Text style={styles.shopName}>{shopDetails.name}</Text>
+          <Text style={styles.shopAddress}>{shopDetails.address}</Text>
+          <View style={styles.timingBadge}>
+            <Text style={styles.timingText}>Open {shopDetails.Timing || `${shopDetails.openingTime} - ${shopDetails.closingTime}`}</Text>
+          </View>
+        </View>
         
-        <View style={styles.progressContainer}>
+        <View style={styles.progressSection}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${(progress.completed / progress.total) * 100}%` }]} />
           </View>
-          <Text style={styles.progressText}>{progress.completed}/{progress.total} steps completed</Text>
+          <Text style={styles.progressText}>Step {progress.completed} of {progress.total}</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
-        {/* Barber Selection */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Select Barber</Text>
-            {selectedBarber && <Text style={styles.checkmark}>✓</Text>}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Step 1: Barber Selection */}
+        <View style={[styles.stepCard, selectedBarber && styles.completedCard]}>
+          <View style={styles.stepHeader}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
+            </View>
+            <View style={styles.stepTitleContainer}>
+              <Text style={styles.stepTitle}>Choose Your Barber</Text>
+              <Text style={styles.stepSubtitle}>Select from our professional barbers</Text>
+            </View>
+            {selectedBarber && (
+              <View style={styles.completedBadge}>
+                <Text style={styles.completedText}>Selected</Text>
+              </View>
+            )}
           </View>
           
           {apiErrors.barbers ? (
-            <Text style={styles.errorText}>Failed to load barbers</Text>
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>Unable to load barbers</Text>
+            </View>
           ) : shopDetails.barbers.length > 0 ? (
-            <View style={styles.barberContainer}>
+            <View style={styles.optionsContainer}>
               {shopDetails.barbers.map(barber => (
                 <TouchableOpacity
                   key={barber.id}
                   style={[
-                    styles.barberItem,
-                    selectedBarber?.id === barber.id && styles.selectedItem
+                    styles.optionCard,
+                    selectedBarber?.id === barber.id && styles.selectedOption
                   ]}
                   onPress={() => setSelectedBarber(barber)}
                 >
-                  <Text style={styles.barberName}>{barber.name}</Text>
-                  <Text style={styles.barberPlace}>{barber.nativePlace}</Text>
+                  <View style={styles.optionContent}>
+                    <Text style={styles.optionTitle}>{barber.name}</Text>
+                    <Text style={styles.optionSubtitle}>From {barber.nativePlace}</Text>
+                  </View>
+                  {selectedBarber?.id === barber.id && (
+                    <View style={styles.selectedIndicator}>
+                      <Text style={styles.selectedCheck}>✓</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <Text style={styles.emptyText}>No barbers available</Text>
+            <Text style={styles.emptyStateText}>No barbers available at the moment</Text>
           )}
         </View>
 
-        {/* Services Selection */}
-        <View style={styles.card}>
+        {/* Step 2: Services Selection */}
+        <View style={[styles.stepCard, selectedServices.length > 0 && styles.completedCard]}>
           <TouchableOpacity 
-            style={styles.cardHeader}
+            style={styles.stepHeader}
             onPress={() => setServicesCollapsed(!servicesCollapsed)}
           >
-            <Text style={styles.cardTitle}>Select Services</Text>
-            <View style={styles.collapseHeader}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
+            </View>
+            <View style={styles.stepTitleContainer}>
+              <Text style={styles.stepTitle}>Select Services</Text>
+              <Text style={styles.stepSubtitle}>
+                {selectedServices.length > 0 
+                  ? `${selectedServices.length} services selected`
+                  : 'Choose from available services'
+                }
+              </Text>
+            </View>
+            <View style={styles.collapseControls}>
               {selectedServices.length > 0 && (
-                <Text style={styles.selectedCount}>{selectedServices.length} selected</Text>
+                <View style={styles.completedBadge}>
+                  <Text style={styles.completedText}>{selectedServices.length}</Text>
+                </View>
               )}
-              <Text style={styles.collapseIcon}>{servicesCollapsed ? '▼' : '▲'}</Text>
+              <Text style={styles.collapseText}>{servicesCollapsed ? 'Show' : 'Hide'}</Text>
             </View>
           </TouchableOpacity>
 
           <Collapsible collapsed={servicesCollapsed}>
             {apiErrors.services ? (
-              <Text style={styles.errorText}>Failed to load services</Text>
+              <View style={styles.errorBox}>
+                <Text style={styles.errorBoxText}>Unable to load services</Text>
+              </View>
             ) : shopDetails.services.length > 0 ? (
-              <View style={styles.servicesGrid}>
+              <View style={styles.optionsContainer}>
                 {shopDetails.services.map(service => (
                   <TouchableOpacity
                     key={service.id}
                     style={[
-                      styles.serviceItem,
-                      selectedServices.some(s => s.id === service.id) && styles.selectedItem
+                      styles.serviceCard,
+                      selectedServices.some(s => s.id === service.id) && styles.selectedOption
                     ]}
                     onPress={() => toggleService(service)}
                   >
-                    <View style={styles.serviceHeader}>
-                      <Text style={styles.serviceName}>{service.name}</Text>
-                      {selectedServices.some(s => s.id === service.id) && (
-                        <Text style={styles.checkmark}>✓</Text>
-                      )}
+                    <View style={styles.serviceContent}>
+                      <View style={styles.serviceInfo}>
+                        <Text style={styles.serviceTitle}>{service.name}</Text>
+                        <Text style={styles.serviceMeta}>{service.duration} minutes</Text>
+                      </View>
+                      <Text style={styles.servicePrice}>₹{service.price}</Text>
                     </View>
-                    <Text style={styles.servicePrice}>₹{service.price}</Text>
-                    <Text style={styles.serviceDuration}>{service.duration} min</Text>
+                    {selectedServices.some(s => s.id === service.id) && (
+                      <View style={styles.selectedIndicator}>
+                        <Text style={styles.selectedCheck}>✓</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
             ) : (
-              <Text style={styles.emptyText}>No services available</Text>
+              <Text style={styles.emptyStateText}>No services available</Text>
             )}
           </Collapsible>
 
           {selectedServices.length > 0 && (
-            <View style={styles.servicesSummary}>
-              <Text style={styles.summaryTitle}>Selected Services</Text>
-              <Text style={styles.summaryText}>
-                {selectedServices.length} services • {totalDuration} min • ₹{totalPrice}
-              </Text>
+            <View style={styles.selectionSummary}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Total Duration</Text>
+                <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Total Cost</Text>
+                <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+              </View>
             </View>
           )}
         </View>
 
-        {/* Date & Time Selection */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Select Date & Time</Text>
-            {selectedDate && selectedTimeSlot && <Text style={styles.checkmark}>✓</Text>}
+        {/* Step 3: Date & Time Selection */}
+        <View style={[styles.stepCard, selectedDate && selectedTimeSlot && styles.completedCard]}>
+          <View style={styles.stepHeader}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <View style={styles.stepTitleContainer}>
+              <Text style={styles.stepTitle}>Pick Date & Time</Text>
+              <Text style={styles.stepSubtitle}>Choose your preferred appointment slot</Text>
+            </View>
+            {selectedDate && selectedTimeSlot && (
+              <View style={styles.completedBadge}>
+                <Text style={styles.completedText}>Set</Text>
+              </View>
+            )}
           </View>
 
           <TouchableOpacity
-            style={[styles.dateButton, selectedDate && styles.selectedButton]}
+            style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]}
             onPress={() => setCalendarVisibility(true)}
           >
-            <Text style={selectedDate ? styles.dateText : styles.placeholderText}>
-              {selectedDate ? selectedDate.toDateString() : "Select date"}
+            <Text style={styles.dateSelectorLabel}>Date</Text>
+            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+              {selectedDate ? selectedDate.toDateString() : "Tap to select date"}
             </Text>
           </TouchableOpacity>
 
           {selectedDate && (
-            <>
-              <Text style={styles.sectionTitle}>Available Time Slots</Text>
-              <View style={styles.timeSlotsContainer}>
+            <View style={styles.timeSlotsSection}>
+              <Text style={styles.sectionLabel}>Available Time Slots</Text>
+              <View style={styles.timeSlotsGrid}>
                 {timeSlots.map(slot => (
                   <TouchableOpacity
                     key={slot.id}
                     style={[
-                      styles.timeSlot,
-                      selectedTimeSlot?.id === slot.id && styles.selectedItem
+                      styles.timeSlotCard,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
                     ]}
                     onPress={() => setSelectedTimeSlot(slot)}
                   >
-                    <Text style={styles.timeSlotName}>{slot.name}</Text>
-                    <Text style={styles.timeSlotHours}>{slot.start} - {slot.end}</Text>
+                    <Text style={[
+                      styles.timeSlotName,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+                    ]}>
+                      {slot.name}
+                    </Text>
+                    <Text style={[
+                      styles.timeSlotHours,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+                    ]}>
+                      {slot.start} - {slot.end}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </>
+            </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Book Now Button */}
+      {/* Enhanced Footer */}
       <View style={styles.footer}>
+        {(selectedServices.length > 0 || selectedDate || selectedBarber) && (
+          <View style={styles.bookingSummaryFooter}>
+            <Text style={styles.footerSummaryText}>
+              {selectedServices.length > 0 && `${selectedServices.length} services`}
+              {selectedServices.length > 0 && selectedDate && ' • '}
+              {selectedDate && selectedDate.toLocaleDateString()}
+              {(selectedServices.length > 0 || selectedDate) && selectedBarber && ' • '}
+              {selectedBarber && selectedBarber.name}
+            </Text>
+            {selectedServices.length > 0 && (
+              <Text style={styles.footerPriceText}>₹{totalPrice}</Text>
+            )}
+          </View>
+        )}
+        
         <TouchableOpacity
           style={[
             styles.bookButton,
@@ -644,9 +747,8 @@ export default function BookNow() {
           onPress={handleBookNow}
           disabled={!selectedBarber || selectedServices.length === 0 || !selectedDate || !selectedTimeSlot}
         >
-          <Text style={styles.bookButtonText}>Book Now</Text>
-          <Text style={styles.bookButtonSubtext}>
-            {selectedServices.length > 0 && `Total: ₹${totalPrice} • ${totalDuration} min`}
+          <Text style={styles.bookButtonText}>
+            {isBooking ? 'Processing...' : 'Book Appointment'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -657,437 +759,658 @@ export default function BookNow() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#64748B',
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
+    backgroundColor: '#F8FAFC',
   },
   errorText: {
     fontSize: 16,
-    color: '#d32f2f',
-    marginBottom: 20,
+    color: '#DC2626',
+    marginBottom: 24,
     textAlign: 'center',
+    lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#d32f2f',
-    padding: 12,
+    backgroundColor: '#2C5AA0',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   retryButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '600',
+    fontSize: 16,
   },
-  shopHeader: {
-    padding: 20,
+  headerSection: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  shopInfo: {
+    marginBottom: 20,
   },
   shopName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 6,
   },
   shopAddress: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 4,
+    color: '#64748B',
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  shopHours: {
-    fontSize: 14,
-    color: '#666',
+  timingBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
   },
-  progressContainer: {
-    marginTop: 16,
+  timingText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  progressSection: {
+    marginTop: 4,
   },
   progressBar: {
-    height: 4,
-    backgroundColor: '#eee',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#333',
+    backgroundColor: '#2C5AA0',
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: '#64748B',
+    marginTop: 8,
     textAlign: 'center',
+    fontWeight: '500',
   },
   scrollContainer: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+  stepCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#E2E8F0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
-  cardHeader: {
+  completedCard: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  stepHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  cardTitle: {
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2C5AA0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  stepTitleContainer: {
+    flex: 1,
+  },
+  stepTitle: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  collapseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  selectedCount: {
-    fontSize: 12,
-    color: '#4CAF50',
-    marginRight: 8,
-    fontWeight: '600',
-  },
-  collapseIcon: {
-    fontSize: 16,
-    color: '#333',
-  },
-  checkmark: {
-    fontSize: 18,
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
-  barberContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  barberItem: {
-    width: '48%',
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-  },
-  barberName: {
-    fontSize: 16,
-    fontWeight: '500',
+    color: '#1E293B',
     marginBottom: 4,
   },
-  barberPlace: {
+  stepSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
   },
-  servicesGrid: {
+  completedBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  completedText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  collapseControls: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
   },
-  serviceItem: {
-    width: '48%',
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-  },
-  serviceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  serviceName: {
-    fontSize: 16,
+  collapseText: {
+    fontSize: 14,
+    color: '#2C5AA0',
     fontWeight: '500',
+  },
+  optionsContainer: {
+    gap: 12,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  selectedOption: {
+    borderColor: '#2C5AA0',
+    backgroundColor: '#EFF6FF',
+  },
+  optionContent: {
     flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  optionSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  selectedIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2C5AA0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCheck: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  serviceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  serviceContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  serviceMeta: {
+    fontSize: 14,
+    color: '#64748B',
   },
   servicePrice: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginLeft: 16,
   },
-  serviceDuration: {
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedItem: {
-    borderColor: '#333',
-    backgroundColor: '#f9f9f9',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    paddingVertical: 16,
-  },
-  servicesSummary: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
+  errorBox: {
+    padding: 16,
+    backgroundColor: '#FEF2F2',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
-  summaryTitle: {
+  errorBoxText: {
+    color: '#DC2626',
+    textAlign: 'center',
     fontSize: 14,
+    fontWeight: '500',
+  },
+  emptyStateText: {
+    textAlign: 'center',
+    color: '#64748B',
+    paddingVertical: 24,
+    fontSize: 14,
+  },
+  selectionSummary: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  summaryPrice: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '700',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+    marginTop: 8,
+    marginBottom: 0,
+  },
+  totalLabel: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  totalValue: {
+    fontSize: 18,
+    color: '#2C5AA0',
+    fontWeight: '700',
+  },
+  dateSelector: {
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
+  },
+  selectedDateSelector: {
+    borderColor: '#2C5AA0',
+    backgroundColor: '#EFF6FF',
+  },
+  dateSelectorLabel: {
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '600',
     marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  summaryText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  dateButton: {
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  selectedButton: {
-    borderColor: '#333',
-    backgroundColor: '#f9f9f9',
-  },
-  dateText: {
+  selectedDateText: {
     fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '600',
   },
   placeholderText: {
     fontSize: 16,
-    color: '#999',
+    color: '#94A3B8',
   },
-  sectionTitle: {
-    fontSize: 16,
-    marginBottom: 12,
-    color: '#666',
+  timeSlotsSection: {
+    marginTop: 4,
   },
-  timeSlotsContainer: {
+  sectionLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  timeSlotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12,
   },
-  timeSlot: {
-    width: '48%',
-    padding: 12,
-    marginBottom: 12,
+  timeSlotCard: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#E2E8F0',
     borderRadius: 8,
-  },
-  timeSlotName: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  timeSlotHours: {
-    fontSize: 14,
-    color: '#666',
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  bookButton: {
-    backgroundColor: '#333',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
+  selectedTimeSlot: {
+    borderColor: '#2C5AA0',
+    backgroundColor: '#2C5AA0',
+  },
+  timeSlotName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  selectedTimeSlotText: {
+    color: '#FFFFFF',
+  },
+  timeSlotHours: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  bookingSummaryFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  footerSummaryText: {
+    fontSize: 14,
+    color: '#64748B',
+    flex: 1,
+  },
+  footerPriceText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  bookButton: {
+    backgroundColor: '#2C5AA0',
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#2C5AA0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#CBD5E1',
+    elevation: 0,
+    shadowOpacity: 0,
   },
   bookButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  bookButtonSubtext: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    marginTop: 4,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   // Modal Styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalContent: {
     width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    marginBottom: 24,
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
   },
   bookingSummary: {
-    marginBottom: 20,
-  },
-  summaryText: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#333',
+    marginBottom: 24,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   modalButton: {
     flex: 1,
-    padding: 12,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#eee',
-    marginRight: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   confirmButton: {
-    backgroundColor: '#333',
-    marginLeft: 10,
+    backgroundColor: '#2C5AA0',
+    elevation: 2,
+    shadowColor: '#2C5AA0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   cancelButtonText: {
-    color: '#333',
+    color: '#475569',
     fontWeight: '600',
+    fontSize: 16,
   },
   confirmButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
 
-// Calendar Styles
+// Enhanced Calendar Styles
 const calendarStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   calendarContainer: {
     width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
     maxHeight: '80%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 15,
+    marginBottom: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#E2E8F0',
   },
   navButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   disabledNav: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F8FAFC',
     opacity: 0.5,
   },
   navText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
   },
   monthYear: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#1E293B',
   },
   daysHeader: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10,
-    paddingBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#F1F5F9',
   },
   dayHeaderText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: '#64748B',
     width: 40,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   dayCell: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 2,
+    marginVertical: 4,
     borderRadius: 20,
   },
   todayCell: {
-    backgroundColor: '#e3f2fd',
-    borderWidth: 1,
-    borderColor: '#2196f3',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 2,
+    borderColor: '#2C5AA0',
   },
   selectedCell: {
-    backgroundColor: '#333',
+    backgroundColor: '#2C5AA0',
+    elevation: 2,
+    shadowColor: '#2C5AA0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   pastCell: {
     opacity: 0.3,
   },
   dayText: {
     fontSize: 16,
-    color: '#333',
+    color: '#1E293B',
     fontWeight: '500',
   },
   todayText: {
-    color: '#2196f3',
-    fontWeight: 'bold',
+    color: '#2C5AA0',
+    fontWeight: '700',
   },
   selectedText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   pastText: {
-    color: '#ccc',
+    color: '#CBD5E1',
   },
   calendarFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 15,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 20,
     alignItems: 'center',
   },
   closeButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 24,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   closeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#475569',
   },
 });

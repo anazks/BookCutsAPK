@@ -58,7 +58,7 @@ export default function Login() {
         response.result.token &&
         !response.result.message
       ) {
-        await AsyncStorage.setItem('accessToken', response.data.token);
+        await AsyncStorage.setItem('accessToken', response.result.token);
         setShowUserTypeModal(true); // Show modal to confirm user type
       } else {
         const errorMessage =
