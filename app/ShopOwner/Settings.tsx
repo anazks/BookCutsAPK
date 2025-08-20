@@ -253,17 +253,6 @@ export default function Settings() {
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       
-      {/* Professional Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Salon Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your business configuration</Text>
-        </View>
-        <View style={styles.headerIcon}>
-          <MaterialIcons name="settings" size={24} color="#4F46E5" />
-        </View>
-      </View>
-
       <ScrollView 
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -542,6 +531,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingTop: 35, // Add top padding to prevent content from touching status bar
   },
   loadingContainer: {
     flex: 1,
@@ -595,7 +585,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F1F5F9', 
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -605,6 +595,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 32,
+    paddingTop: 10, // Additional top padding for scroll content
   },
   section: {
     marginBottom: 24,
