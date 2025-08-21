@@ -135,3 +135,21 @@ export const viewMyShop = async () => {
     throw error?.response?.data || { message: "Failed to fetch shop details" };
   }
 }
+
+export const modifyBarber = async (barberId,data) => {
+  try {
+    const response = await Axios.put(`/shop/updateBarber/${barberId}`,data)
+    return response.data
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to update barber"}
+  }
+}
+
+export const modifyService = async (serviceId,data) => {
+  try {
+    const response = await Axios.put(`/shop/editService/${serviceId}`,data)
+    return response.data
+  } catch (error: any) {
+    throw  error?.response?.data || {message: "Failed to edit service"}
+  }
+}
