@@ -1,6 +1,38 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Keyboard,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 import { addNewShop } from '../../api/Service/Shop';
+
+// District data for Kerala and Tamil Nadu
+const stateDistricts = {
+  Kerala: [
+    "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha", "Kottayam",
+    "Idukki", "Ernakulam", "Thrissur", "Palakkad", "Malappuram",
+    "Kozhikode", "Wayanad", "Kannur", "Kasaragod"
+  ],
+  "Tamil Nadu": [
+    "Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem",
+    "Tirunelveli", "Tiruppur", "Vellore", "Erode", "Thoothukudi",
+    "Dindigul", "Thanjavur", "Ranipet", "Kanchipuram",
+    "Virudhunagar", "Theni", "Nagapattinam", "Tiruvannamalai",
+    "Viluppuram", "Krishnagiri", "Cuddalore", "Karur", "Namakkal",
+    "Dharmapuri", "Pudukkottai", "Sivaganga", "Tirupathur",
+    "Ramanathapuram", "Ariyalur", "Perambalur", "Nilgiris", "Kanyakumari"
+  ]
+};
+
+const states = ["Kerala", "Tamil Nadu"];
 
 export default function AddShop({ onShopAdded }) {
   const [formData, setFormData] = useState({
@@ -8,25 +40,50 @@ export default function AddShop({ onShopAdded }) {
     City: '',
     Mobile: '',
     Timing: '',
-    website: ''
+    website: '',
+    State: '',
+    District: ''
   });
   const [loading, setLoading] = useState(false);
+  const [districts, setDistricts] = useState([]);
+  const [showStateModal, setShowStateModal] = useState(false);
+  const [showDistrictModal, setShowDistrictModal] = useState(false);
 
   const handleChange = (key, value) => {
-    console.log(`Changing ${key} to:`, value); // Debug log
+    console.log(`Changing ${key} to:`, value);
+    
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleStateSelect = (state) => {
+    handleChange('State', state);
+    handleChange('District', ''); // Reset district when state changes
+    
+    // Update available districts based on selected state
+    if (state && stateDistricts[state]) {
+      setDistricts(stateDistricts[state]);
+    } else {
+      setDistricts([]);
+    }
+    setShowStateModal(false);
+  };
+
+  const handleDistrictSelect = (district) => {
+    handleChange('District', district);
+    setShowDistrictModal(false);
+  };
+
   const handleSubmit = async () => {
-    console.log('handleSubmit called!'); // Debug log
-    console.log('Current formData:', formData); // Debug log
+    console.log('handleSubmit called!');
+    console.log('Current formData:', formData);
     
     // Prevent multiple submissions
     if (loading) return;
     
-    // Validation
-    if (!formData.ShopName.trim() || !formData.City.trim() || !formData.Mobile.trim() || !formData.Timing.trim() || !formData.website.trim()) {
-      console.log('Validation failed - missing fields'); // Debug log
+    // Validation - now includes State and District
+    if (!formData.ShopName.trim() || !formData.City.trim() || !formData.Mobile.trim() || 
+        !formData.Timing.trim() || !formData.website.trim() || !formData.State || !formData.District) {
+      console.log('Validation failed - missing fields');
       Alert.alert("Error", "All fields are required");
       return;
     }
@@ -56,7 +113,9 @@ export default function AddShop({ onShopAdded }) {
         City: formData.City.trim(),
         Mobile: formData.Mobile.trim(),
         Timing: formData.Timing.trim(),
-        website: formData.website.trim()
+        website: formData.website.trim(),
+        State: formData.State,
+        District: formData.District
       };
       
       const response = await addNewShop(cleanData);
@@ -72,8 +131,13 @@ export default function AddShop({ onShopAdded }) {
         City: '',
         Mobile: '',
         Timing: '',
-        website: ''
+        website: '',
+        State: '',
+        District: ''
       });
+      
+      // Reset districts list
+      setDistricts([]);
       
       Alert.alert("Success", "Shop added successfully");
       
@@ -89,6 +153,24 @@ export default function AddShop({ onShopAdded }) {
       setLoading(false);
     }
   };
+
+  const renderStateItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.modalItem}
+      onPress={() => handleStateSelect(item)}
+    >
+      <Text style={styles.modalItemText}>{item}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderDistrictItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.modalItem}
+      onPress={() => handleDistrictSelect(item)}
+    >
+      <Text style={styles.modalItemText}>{item}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <ScrollView 
@@ -108,6 +190,45 @@ export default function AddShop({ onShopAdded }) {
           autoCapitalize="words"
           editable={!loading}
         />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>State *</Text>
+        <TouchableOpacity 
+          style={[styles.input, styles.selectInput, formData.State ? styles.inputFilled : null]}
+          onPress={() => {
+            Keyboard.dismiss();
+            setShowStateModal(true);
+          }}
+          disabled={loading}
+        >
+          <Text style={formData.State ? styles.selectText : styles.placeholderText}>
+            {formData.State || 'Select State'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>District *</Text>
+        <TouchableOpacity 
+          style={[
+            styles.input, 
+            styles.selectInput, 
+            formData.District ? styles.inputFilled : null,
+            !formData.State && styles.disabledInput
+          ]}
+          onPress={() => {
+            if (formData.State) {
+              Keyboard.dismiss();
+              setShowDistrictModal(true);
+            }
+          }}
+          disabled={loading || !formData.State}
+        >
+          <Text style={formData.District ? styles.selectText : styles.placeholderText}>
+            {formData.District || (formData.State ? 'Select District' : 'First select a state')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.formGroup}>
@@ -170,6 +291,52 @@ export default function AddShop({ onShopAdded }) {
           {loading ? 'Adding Shop...' : 'Add Shop'}
         </Text>
       </TouchableOpacity>
+
+      {/* State Selection Modal */}
+      <Modal
+        visible={showStateModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowStateModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowStateModal(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select State</Text>
+                <FlatList
+                  data={states}
+                  renderItem={renderStateItem}
+                  keyExtractor={(item, index) => index.toString()}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* District Selection Modal */}
+      <Modal
+        visible={showDistrictModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowDistrictModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowDistrictModal(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select District</Text>
+                <FlatList
+                  data={districts}
+                  renderItem={renderDistrictItem}
+                  keyExtractor={(item, index) => index.toString()}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </ScrollView>
   );
 }
@@ -207,6 +374,18 @@ const styles = StyleSheet.create({
   inputFilled: {
     borderColor: '#FF6B6B',
   },
+  selectInput: {
+    justifyContent: 'center',
+  },
+  selectText: {
+    color: '#333',
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  disabledInput: {
+    backgroundColor: '#f5f5f5',
+  },
   button: {
     backgroundColor: '#FF6B6B',
     padding: 16,
@@ -221,6 +400,33 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: '600',
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    maxHeight: '60%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalItemText: {
     fontSize: 16,
   },
 });
