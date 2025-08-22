@@ -153,3 +153,15 @@ export const modifyService = async (serviceId,data) => {
     throw  error?.response?.data || {message: "Failed to edit service"}
   }
 }
+
+export const deleteBarberAPI = async (barberId) => {
+  try {
+    console.log("barberId:", barberId);
+    const response = await Axios.delete(`/shop/deleteBarber/${barberId}`);
+    console.log('Delete barber response:', response);
+    return response;
+  } catch (error: any) {
+    console.error('Delete barber API error:', error);
+    throw error?.response?.data || { message: "Failed to delete" };
+  }
+};
