@@ -2,7 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import React, { useEffect, useState } from 'react'
 import { Alert, FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { AddBarber, AddService, viewMyBarbers, viewMyService, viewMyShop } from '../api/Service/Shop'
+import { AddBarber, AddService, deleteBarberAPI, modifyBarber, modifyService, viewMyBarbers, viewMyService, viewMyShop } from '../api/Service/Shop'
 
 export default function Settings() {
   const [barbers, setBarbers] = useState([])
@@ -10,9 +10,17 @@ export default function Settings() {
   const [shopData, setShopData] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Edit Service states
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false)
+  const [editingService, setEditingService] = useState(null)
+  const [editServiceName, setEditServiceName] = useState('')
+  const [editServicePrice, setEditServicePrice] = useState('')
+  const [editServiceDuration, setEditServiceDuration] = useState('')
+
   // Modal states
   const [showBarberModal, setShowBarberModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
+  const [showEditBarberModal, setShowEditBarberModal] = useState(false)
   
   // Form states
   const [barberName, setBarberName] = useState('')
@@ -20,6 +28,11 @@ export default function Settings() {
   const [serviceName, setServiceName] = useState('')
   const [servicePrice, setServicePrice] = useState('')
   const [serviceDuration, setServiceDuration] = useState('')
+
+  // Edit barber states
+  const [editingBarber, setEditingBarber] = useState(null)
+  const [editBarberName, setEditBarberName] = useState('')
+  const [editFrom, setEditFrom] = useState('')
 
   // Fetch data on component mount
   useEffect(() => {
@@ -120,30 +133,70 @@ export default function Settings() {
     }
   }
 
-  const deleteBarber = async (id) => {
-    Alert.alert(
-      'Delete Barber',
-      'Are you sure you want to delete this barber?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Call your API to delete barber
-              // await deleteBarberAPI(id)
-              setBarbers(barbers.filter(barber => barber.id !== id))
-              Alert.alert('Success', 'Barber deleted successfully')
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete barber')
-              console.error(error)
-            }
-          }
-        }
-      ]
-    )
+  const editBarber = (barber) => {
+    setEditingBarber(barber)
+    setEditBarberName(barber.BarberName)
+    setEditFrom(barber.From)
+    setShowEditBarberModal(true)
   }
+
+  const updateBarber = async () => {
+    if (!editBarberName.trim() || !editFrom.trim()) {
+      Alert.alert('Error', 'Please fill all fields')
+      return
+    }
+
+    try {
+      const shopId = await AsyncStorage.getItem('shopId')
+      
+      const updatedBarber = {
+        BarberName: editBarberName.trim(),
+        From: editFrom.trim(),
+        shopId: shopId
+      }
+
+      const result = await modifyBarber(editingBarber._id, updatedBarber)
+      console.log("updated barber data", result)
+      
+      // Update the local state
+      setBarbers(barbers.map(barber => 
+        barber._id === editingBarber._id 
+          ? { ...barber, BarberName: editBarberName.trim(), From: editFrom.trim() }
+          : barber
+      ))
+      
+      // Reset form and close modal
+      setEditBarberName('')
+      setEditFrom('')
+      setEditingBarber(null)
+      setShowEditBarberModal(false)
+      Alert.alert('Success', 'Barber updated successfully')
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update barber')
+      console.error(error)
+    }
+  }
+
+const deleteBarber = async (id) => {
+  // Simple browser confirm instead of Alert
+  const confirmed = window.confirm('Are you sure you want to delete this barber?');
+  if (!confirmed) return;
+
+  try {
+    console.log('Deleting barber with ID:', id);
+
+    // Call API
+    const response = await deleteBarberAPI(id);
+    console.log('Delete barber response:', response);
+
+    // Update local state
+    setBarbers(prev => prev.filter(barber => barber._id !== id));
+    console.log('Barber deleted successfully, state updated.');
+  } catch (error) {
+    console.error('Failed to delete barber:', error);
+  }
+};
+
 
   const deleteService = async (id) => {
     Alert.alert(
@@ -156,13 +209,16 @@ export default function Settings() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Call your API to delete service
-              // await deleteServiceAPI(id)
-              setServices(services.filter(service => service.id !== id))
+              console.log('Deleting service with ID:', id)
+              const response = await deleteServiceAPI(id)
+              console.log('Delete service response:', response)
+              
+              // Update local state
+              setServices(services.filter(service => service._id !== id))
               Alert.alert('Success', 'Service deleted successfully')
             } catch (error) {
               Alert.alert('Error', 'Failed to delete service')
-              console.error(error)
+              console.error('Failed to delete service:', error)
             }
           }
         }
@@ -170,14 +226,52 @@ export default function Settings() {
     )
   }
 
-  const editBarber = (id) => {
-    // Implement edit barber functionality
-    console.log('Edit barber:', id)
+  const editService = (service) => {
+    setEditingService(service)
+    setEditServiceName(service.ServiceName)
+    setEditServicePrice(service.Rate.toString())
+    setEditServiceDuration(service.Duration)
+    setShowEditServiceModal(true)
   }
 
-  const editService = (id) => {
-    // Implement edit service functionality
-    console.log('Edit service:', id)
+  const updateService = async () => {
+    if (!editServiceName.trim() || !editServicePrice || !editServiceDuration.trim()) {
+      Alert.alert('Error', 'Please fill all fields')
+      return
+    }
+
+    try {
+      const shopId = await AsyncStorage.getItem('shopId')
+
+      const updatedService = {
+        ServiceName: editServiceName.trim(),
+        Rate: editServicePrice,
+        Duration: editServiceDuration.trim(),
+        shopId: shopId
+      }
+
+      // Call your API here
+      const result = await modifyService(editingService._id, updatedService)
+      console.log("updated service data", result)
+
+      // Update local state
+      setServices(services.map(service => 
+        service._id === editingService._id
+          ? { ...service, ...updatedService }
+          : service
+      ))
+
+      // Reset and close modal
+      setEditServiceName('')
+      setEditServicePrice('')
+      setEditServiceDuration('')
+      setEditingService(null)
+      setShowEditServiceModal(false)
+      Alert.alert('Success', 'Service updated successfully')
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update service')
+      console.error(error)
+    }
   }
 
   const renderBarberItem = ({ item, index }) => (
@@ -194,13 +288,13 @@ export default function Settings() {
       <View style={styles.itemActions}>
         <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
-          onPress={() => editBarber(item.id)}
+          onPress={() => editBarber(item)}
         >
           <Ionicons name="create-outline" size={18} color="#10B981" />
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteBarber(item.id)}
+          onPress={() => deleteBarber(item._id)}
         >
           <Ionicons name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
@@ -222,13 +316,13 @@ export default function Settings() {
       <View style={styles.itemActions}>
         <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
-          onPress={() => editService(item.id)}
+          onPress={() => editService(item)}
         >
           <Ionicons name="create-outline" size={18} color="#10B981" />
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteService(item.id)}
+          onPress={() => deleteService(item._id)}
         >
           <Ionicons name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
@@ -253,17 +347,6 @@ export default function Settings() {
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       
-      {/* Professional Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Salon Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your business configuration</Text>
-        </View>
-        <View style={styles.headerIcon}>
-          <MaterialIcons name="settings" size={24} color="#4F46E5" />
-        </View>
-      </View>
-
       <ScrollView 
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -344,7 +427,7 @@ export default function Settings() {
               <FlatList
                 data={barbers}
                 renderItem={renderBarberItem}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item._id}
                 scrollEnabled={false}
               />
             ) : (
@@ -383,7 +466,7 @@ export default function Settings() {
               <FlatList
                 data={services}
                 renderItem={renderServiceItem}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item._id}
                 scrollEnabled={false}
               />
             ) : (
@@ -452,6 +535,83 @@ export default function Settings() {
                   onPress={addBarber}
                 >
                   <Text style={styles.confirmButtonText}>Add Member</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Barber Modal */}
+      <Modal
+        visible={showEditBarberModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowEditBarberModal(false)
+          setEditingBarber(null)
+          setEditBarberName('')
+          setEditFrom('')
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Team Member</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowEditBarberModal(false)
+                    setEditingBarber(null)
+                    setEditBarberName('')
+                    setEditFrom('')
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter barber's name"
+                  value={editBarberName}
+                  onChangeText={setEditBarberName}
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g., Mumbai, India"
+                  value={editFrom}
+                  onChangeText={setEditFrom}
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowEditBarberModal(false)
+                    setEditingBarber(null)
+                    setEditBarberName('')
+                    setEditFrom('')
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={updateBarber}
+                >
+                  <Text style={styles.confirmButtonText}>Update Member</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -534,14 +694,111 @@ export default function Settings() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Service Modal */}
+      <Modal
+        visible={showEditServiceModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowEditServiceModal(false)
+          setEditingService(null)
+          setEditServiceName('')
+          setEditServicePrice('')
+          setEditServiceDuration('')
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Service</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => {
+                    setShowEditServiceModal(false)
+                    setEditingService(null)
+                    setEditServiceName('')
+                    setEditServicePrice('')
+                    setEditServiceDuration('')
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Service Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g., Haircut"
+                  value={editServiceName}
+                  onChangeText={setEditServiceName}
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                  <Text style={styles.inputLabel}>Price (₹)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="299"
+                    value={editServicePrice}
+                    onChangeText={setEditServicePrice}
+                    keyboardType="numeric"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+
+                <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
+                  <Text style={styles.inputLabel}>Duration</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="30 min"
+                    value={editServiceDuration}
+                    onChangeText={setEditServiceDuration}
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowEditServiceModal(false)
+                    setEditingService(null)
+                    setEditServiceName('')
+                    setEditServicePrice('')
+                    setEditServiceDuration('')
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={updateService}
+                >
+                  <Text style={styles.confirmButtonText}>Update Service</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   )
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingTop: 35, // Add top padding to prevent content from touching status bar
   },
   loadingContainer: {
     flex: 1,
@@ -595,7 +852,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F1F5F9', 
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -605,6 +862,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 32,
+    paddingTop: 10, // Additional top padding for scroll content
   },
   section: {
     marginBottom: 24,

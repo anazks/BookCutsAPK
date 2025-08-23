@@ -109,7 +109,7 @@ const Home = ({ navigation }) => {
             // For example: AsyncStorage.removeItem('userToken');
             
             // Navigate to login screen
-            router.replace('/Screens/Auth/Login'); // Adjust path as needed
+            router.replace('/Screens/User/Login0'); // Adjust path as needed
           }
         }
       ]

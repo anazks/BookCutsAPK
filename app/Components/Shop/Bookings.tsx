@@ -42,7 +42,6 @@ export default function Bookings() {
       
       if (response.success && response.data) {
         const formattedBookings = response.data.map(booking => {
-          // Better user name handling
           const userName = booking.userDetails 
             ? `${booking.userDetails.firstName || ''} ${booking.userDetails.lastName || ''}`.trim()
             : booking.userId?.name || 'Customer';
@@ -81,14 +80,12 @@ export default function Bookings() {
           };
         });
         
-        // Enhanced sorting: completed first, then by date
         formattedBookings.sort((a, b) => {
           if (a.status === 'completed' && b.status !== 'completed') return -1;
           if (b.status === 'completed' && a.status !== 'completed') return 1;
           return b.date - a.date;
         });
         
-        // Enhanced payment summary calculation
         const summary = formattedBookings.reduce((acc, booking) => {
           acc.totalBookings += 1;
           
@@ -145,8 +142,8 @@ export default function Bookings() {
 
   const getStatusColor = (status) => {
     const colors = {
-      completed: '#10B981',
-      confirmed: '#3B82F6',
+      completed: '#059669',
+      confirmed: '#3B82F6', 
       pending: '#F59E0B',
       cancelled: '#EF4444',
       rescheduled: '#8B5CF6'
@@ -154,15 +151,15 @@ export default function Bookings() {
     return colors[status] || '#6B7280';
   };
 
-  const getStatusIcon = (status) => {
-    const icons = {
-      completed: 'check-circle',
-      confirmed: 'event-available',
-      pending: 'schedule',
-      cancelled: 'cancel',
-      rescheduled: 'update'
+  const getStatusBgColor = (status) => {
+    const colors = {
+      completed: '#ECFDF5',
+      confirmed: '#EFF6FF',
+      pending: '#FFFBEB',
+      cancelled: '#FEF2F2',
+      rescheduled: '#F5F3FF'
     };
-    return icons[status] || 'help';
+    return colors[status] || '#F9FAFB';
   };
 
   const toggleExpandBooking = (id) => {
@@ -177,40 +174,54 @@ export default function Bookings() {
     );
   };
 
+  const renderStatCard = (title, value, icon, color = '#3B82F6') => (
+    <View style={styles.statCard}>
+      <View style={styles.statContent}>
+        <View style={styles.statHeader}>
+          <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
+            <MaterialIcons name={icon} size={20} color={color} />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+              {value}
+            </Text>
+            <Text style={styles.statLabel} numberOfLines={2}>
+              {title}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderPaymentSummary = () => (
-    <View style={styles.summaryContainer}>
-      <Text style={styles.summaryTitle}>Business Overview</Text>
-      <View style={styles.summaryCards}>
-        <View style={[styles.summaryCard, styles.earningsCard]}>
-          <View style={styles.summaryIconContainer}>
-            <MaterialIcons name="account-balance-wallet" size={24} color="#10B981" />
-          </View>
-          <Text style={styles.summaryValue}>₹{paymentSummary.totalEarnings.toLocaleString('en-IN')}</Text>
-          <Text style={styles.summaryLabel}>Total Earnings</Text>
-        </View>
-        
-        <View style={[styles.summaryCard, styles.bookingsCard]}>
-          <View style={styles.summaryIconContainer}>
-            <MaterialIcons name="event" size={24} color="#3B82F6" />
-          </View>
-          <Text style={styles.summaryValue}>{paymentSummary.totalBookings}</Text>
-          <Text style={styles.summaryLabel}>Total Bookings</Text>
-        </View>
-        
-        <View style={[styles.summaryCard, styles.completedCard]}>
-          <View style={styles.summaryIconContainer}>
-            <MaterialIcons name="check-circle" size={24} color="#059669" />
-          </View>
-          <Text style={styles.summaryValue}>{paymentSummary.completedBookings}</Text>
-          <Text style={styles.summaryLabel}>Completed</Text>
-        </View>
-        
-        <View style={[styles.summaryCard, styles.pendingCard]}>
-          <View style={styles.summaryIconContainer}>
-            <MaterialIcons name="pending" size={24} color="#F59E0B" />
-          </View>
-          <Text style={styles.summaryValue}>₹{paymentSummary.pendingAmount.toLocaleString('en-IN')}</Text>
-          <Text style={styles.summaryLabel}>Pending Amount</Text>
+    <View style={styles.summarySection}>
+      <View style={styles.statsGrid}>
+        <View style={styles.statsRow}>
+          {renderStatCard(
+            'Total Earnings', 
+            `₹${paymentSummary.totalEarnings.toLocaleString('en-IN')}`, 
+            'account-balance-wallet', 
+            '#059669'
+          )}
+          {renderStatCard(
+            'Total Bookings', 
+            paymentSummary.totalBookings, 
+            'event-note', 
+            '#3B82F6'
+          )}
+          {renderStatCard(
+            'Completed', 
+            paymentSummary.completedBookings, 
+            'check-circle', 
+            '#059669'
+          )}
+          {renderStatCard(
+            'Pending Amount', 
+            `₹${paymentSummary.pendingAmount.toLocaleString('en-IN')}`, 
+            'schedule', 
+            '#F59E0B'
+          )}
         </View>
       </View>
     </View>
@@ -218,141 +229,142 @@ export default function Bookings() {
 
   const renderBookingItem = ({ item, index }) => (
     <TouchableOpacity 
-      style={[
-        styles.bookingCard,
-        { opacity: item.status === 'cancelled' ? 0.7 : 1 }
-      ]}
+      style={styles.bookingCard}
       onPress={() => toggleExpandBooking(item.id)}
-      activeOpacity={0.8}
+      activeOpacity={0.95}
     >
-      <View style={styles.bookingHeader}>
-        <View style={styles.customerInfo}>
-          <View style={styles.customerRow}>
-            <MaterialIcons name="person" size={16} color="#6B7280" />
-            <Text style={styles.customerName}>{item.customer}</Text>
+      {/* Header Section */}
+      <View style={styles.cardHeader}>
+        <View style={styles.customerSection}>
+          <Text style={styles.customerName}>{item.customer}</Text>
+          <View style={styles.serviceRow}>
+            <MaterialIcons name="content-cut" size={14} color="#6B7280" />
+            <Text style={styles.serviceName}>{item.service}</Text>
           </View>
-          <Text style={styles.serviceName}>{item.service}</Text>
-          <View style={styles.bookingMeta}>
-            <MaterialIcons name="access-time" size={14} color="#6B7280" />
-            <Text style={styles.timeText}>
-              {item.formattedDate} • {item.time} - {item.timeSlotEnd}
-            </Text>
-          </View>
-          {item.timeSlotName && (
-            <View style={styles.slotBadge}>
-              <Text style={styles.slotText}>{item.timeSlotName}</Text>
-            </View>
-          )}
         </View>
         
-        <View style={styles.bookingRight}>
+        <View style={styles.priceSection}>
           <Text style={styles.priceText}>₹{item.price.toLocaleString('en-IN')}</Text>
           {item.amountPaid > 0 && item.amountPaid < item.price && (
-            <Text style={styles.paidText}>Paid: ₹{item.amountPaid.toLocaleString('en-IN')}</Text>
+            <Text style={styles.paidAmount}>₹{item.amountPaid} paid</Text>
           )}
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-            <MaterialIcons 
-              name={getStatusIcon(item.status)} 
-              size={12} 
-              color="#FFFFFF" 
-              style={styles.statusIcon} 
-            />
-            <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-          </View>
         </View>
       </View>
 
-      {expandedBooking === item.id && (
-        <View style={styles.bookingDetails}>
-          <View style={styles.detailsHeader}>
-            <Text style={styles.detailsTitle}>Booking Details</Text>
+      {/* Meta Information */}
+      <View style={styles.metaSection}>
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <MaterialIcons name="access-time" size={16} color="#6B7280" />
+            <Text style={styles.metaText}>{item.formattedDate}</Text>
           </View>
-          
+          <View style={styles.metaItem}>
+            <MaterialIcons name="schedule" size={16} color="#6B7280" />
+            <Text style={styles.metaText}>{item.time} - {item.timeSlotEnd}</Text>
+          </View>
+        </View>
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <MaterialIcons name="person-outline" size={16} color="#6B7280" />
+            <Text style={styles.metaText}>{item.staff}</Text>
+          </View>
+          {item.duration && (
+            <View style={styles.metaItem}>
+              <MaterialIcons name="timer" size={16} color="#6B7280" />
+              <Text style={styles.metaText}>{item.duration}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Status Section */}
+      <View style={styles.statusSection}>
+        <View style={[
+          styles.statusBadge, 
+          { 
+            backgroundColor: getStatusBgColor(item.status),
+            borderColor: getStatusColor(item.status)
+          }
+        ]}>
+          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            {item.status.toUpperCase()}
+          </Text>
+        </View>
+        
+        {item.timeSlotName && (
+          <View style={styles.slotBadge}>
+            <Text style={styles.slotText}>{item.timeSlotName}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity 
+          style={styles.expandButton}
+          onPress={() => toggleExpandBooking(item.id)}
+        >
+          <MaterialIcons 
+            name={expandedBooking === item.id ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+            size={20} 
+            color="#9CA3AF" 
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Expanded Details */}
+      {expandedBooking === item.id && (
+        <View style={styles.expandedSection}>
           <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <MaterialIcons name="schedule" size={16} color="#6B7280" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Duration</Text>
-                <Text style={styles.detailValue}>{item.duration}</Text>
-              </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Duration</Text>
+              <Text style={styles.detailValue}>{item.duration}</Text>
             </View>
             
-            <View style={styles.detailItem}>
-              <MaterialIcons name="person-outline" size={16} color="#6B7280" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Staff</Text>
-                <Text style={styles.detailValue}>{item.staff}</Text>
-                {item.barberNativePlace && (
-                  <Text style={styles.detailSubValue}>from {item.barberNativePlace}</Text>
-                )}
-              </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Phone</Text>
+              <Text style={styles.detailValue}>{item.customerPhone}</Text>
             </View>
             
-            <View style={styles.detailItem}>
-              <MaterialIcons name="store" size={16} color="#6B7280" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Shop</Text>
-                <Text style={styles.detailValue}>{item.shopName}</Text>
-                {item.shopCity && (
-                  <Text style={styles.detailSubValue}>{item.shopCity}</Text>
-                )}
-              </View>
-            </View>
-            
-            <View style={styles.detailItem}>
-              <MaterialIcons name="payment" size={16} color="#6B7280" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Payment</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Status</Text>
+              <View style={[
+                styles.paymentStatusBadge,
+                { backgroundColor: item.paymentStatus === 'paid' ? '#ECFDF5' : '#FEF2F2' }
+              ]}>
                 <Text style={[
-                  styles.detailValue,
-                  { color: item.paymentStatus === 'paid' ? '#10B981' : '#EF4444' }
+                  styles.paymentStatusText,
+                  { color: item.paymentStatus === 'paid' ? '#059669' : '#DC2626' }
                 ]}>
                   {item.paymentStatus.toUpperCase()}
                 </Text>
-                <Text style={styles.detailSubValue}>{item.paymentType} payment</Text>
               </View>
             </View>
             
-            {item.customerPhone && (
-              <View style={styles.detailItem}>
-                <MaterialIcons name="phone" size={16} color="#6B7280" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Contact</Text>
-                  <Text style={styles.detailValue}>{item.customerPhone}</Text>
-                </View>
-              </View>
-            )}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Shop</Text>
+              <Text style={styles.detailValue}>{item.shopName}</Text>
+            </View>
             
-            <View style={styles.detailItem}>
-              <MaterialIcons name="event" size={16} color="#6B7280" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Booked On</Text>
-                <Text style={styles.detailValue}>
-                  {item.bookingTimestamp.toLocaleDateString('en-IN')}
-                </Text>
-                <Text style={styles.detailSubValue}>
-                  {item.bookingTimestamp.toLocaleTimeString('en-IN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Text>
-              </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Booked On</Text>
+              <Text style={styles.detailValue}>
+                {item.bookingTimestamp.toLocaleDateString('en-IN')}
+              </Text>
             </View>
           </View>
-          
-          <View style={styles.actionButtons}>
+
+          {/* Action Buttons */}
+          <View style={styles.actionSection}>
             <TouchableOpacity 
-              style={styles.actionButton}
+              style={[styles.actionBtn, styles.primaryBtn]}
               onPress={() => handleViewDetails(item)}
             >
-              <MaterialIcons name="visibility" size={18} color="#3B82F6" />
-              <Text style={styles.actionButtonText}>View Full Details</Text>
+              <MaterialIcons name="visibility" size={16} color="#FFFFFF" />
+              <Text style={styles.primaryBtnText}>View Details</Text>
             </TouchableOpacity>
             
-            {item.customerPhone && (
-              <TouchableOpacity style={[styles.actionButton, styles.callButton]}>
-                <MaterialIcons name="phone" size={18} color="#10B981" />
-                <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Call Customer</Text>
+            {item.customerPhone !== 'N/A' && (
+              <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]}>
+                <MaterialIcons name="phone" size={16} color="#059669" />
+                <Text style={styles.secondaryBtnText}>Call</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -364,11 +376,10 @@ export default function Bookings() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#1F2937" barStyle="light-content" />
+        <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>Loading your bookings...</Text>
-          <Text style={styles.loadingSubtext}>Please wait while we fetch your data</Text>
+          <Text style={styles.loadingText}>Loading bookings...</Text>
         </View>
       </SafeAreaView>
     );
@@ -377,13 +388,12 @@ export default function Bookings() {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#1F2937" barStyle="light-content" />
+        <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
         <View style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={64} color="#EF4444" />
-          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
+          <MaterialIcons name="error-outline" size={48} color="#EF4444" />
+          <Text style={styles.errorTitle}>Something went wrong</Text>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => fetchBookings()}>
-            <MaterialIcons name="refresh" size={20} color="#FFFFFF" />
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -393,10 +403,11 @@ export default function Bookings() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#1F2937" barStyle="light-content" />
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       
       <ScrollView 
         style={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -409,9 +420,8 @@ export default function Bookings() {
         {/* Payment Summary */}
         {renderPaymentSummary()}
 
-        {/* Filter Options */}
+        {/* Filter Section */}
         <View style={styles.filterSection}>
-          <Text style={styles.filterTitle}>Filter Bookings</Text>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -427,8 +437,8 @@ export default function Bookings() {
               <TouchableOpacity
                 key={filter.key}
                 style={[
-                  styles.filterButton,
-                  activeFilter === filter.key && styles.activeFilter
+                  styles.filterChip,
+                  activeFilter === filter.key && styles.activeFilterChip
                 ]}
                 onPress={() => setActiveFilter(filter.key)}
               >
@@ -436,19 +446,8 @@ export default function Bookings() {
                   styles.filterText,
                   activeFilter === filter.key && styles.activeFilterText
                 ]}>
-                  {filter.label}
+                  {filter.label} ({filter.count})
                 </Text>
-                <View style={[
-                  styles.filterCount,
-                  activeFilter === filter.key && styles.activeFilterCount
-                ]}>
-                  <Text style={[
-                    styles.filterCountText,
-                    activeFilter === filter.key && styles.activeFilterCountText
-                  ]}>
-                    {filter.count}
-                  </Text>
-                </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -456,27 +455,21 @@ export default function Bookings() {
 
         {/* Bookings List */}
         <View style={styles.bookingsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {activeFilter === 'all' ? 'All Bookings' : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}
-            </Text>
-            <Text style={styles.sectionCount}>({filteredBookings.length})</Text>
-          </View>
-          
           <FlatList
             data={filteredBookings}
             renderItem={renderBookingItem}
             keyExtractor={item => item.id}
             scrollEnabled={false}
             showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <MaterialIcons name="event-busy" size={64} color="#D1D5DB" />
+                <MaterialIcons name="event-busy" size={48} color="#D1D5DB" />
                 <Text style={styles.emptyTitle}>No bookings found</Text>
                 <Text style={styles.emptyText}>
                   {activeFilter === 'all' 
-                    ? "You don't have any bookings yet. Your first booking will appear here." 
-                    : `You don't have any ${activeFilter} bookings at the moment.`}
+                    ? "Your bookings will appear here once customers start booking." 
+                    : `No ${activeFilter} bookings at the moment.`}
                 </Text>
               </View>
             }
@@ -490,7 +483,7 @@ export default function Bookings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -499,369 +492,363 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 18,
-    color: '#1F2937',
-    fontWeight: '600',
-  },
-  loadingSubtext: {
-    marginTop: 8,
-    fontSize: 14,
+    fontSize: 16,
     color: '#6B7280',
-    textAlign: 'center',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 24,
   },
   errorTitle: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#1F2937',
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 16,
-    color: '#EF4444',
+    fontSize: 14,
+    color: '#6B7280',
     marginTop: 8,
     textAlign: 'center',
-    lineHeight: 24,
   },
   retryButton: {
-    marginTop: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
     backgroundColor: '#3B82F6',
-    borderRadius: 12,
+    borderRadius: 8,
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
-  summaryContainer: {
-    margin: 16,
-    backgroundColor: '#FFFFFF',
+  
+  // Summary Section
+  summarySection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  summaryCards: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  summaryCard: {
-    width: (width - 80) / 4,
+
+  statsRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start', // was 'center'
+},
+
+// Keep card content starting at the top
+statCard: {
+  alignItems: 'center',
+  justifyContent: 'flex-start', // add this
+  flex: 1,
+  paddingHorizontal: 8,
+},
+
+  statHeader: {
     alignItems: 'center',
-    paddingVertical: 12,
   },
-  summaryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  summaryValue: {
+  statInfo: {
+    alignItems: 'center',
+  },
+  statValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1F2937',
     marginBottom: 4,
     textAlign: 'center',
   },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
+  statLabel: {
+  fontSize: 11,
+  color: '#6B7280',
+  fontWeight: '500',
+  textAlign: 'center',
+  lineHeight: 14,
+  minHeight: 28, // add this
+},
+statContent: {
+  alignItems: 'center',
+},
+
+  // Filter Section
   filterSection: {
     marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   filterContainer: {
-    paddingVertical: 4,
+    paddingRight: 16,
   },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  filterChip: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    marginRight: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginRight: 8,
   },
-  activeFilter: {
+  activeFilterChip: {
     backgroundColor: '#3B82F6',
     borderColor: '#3B82F6',
   },
   filterText: {
-    color: '#6B7280',
-    fontWeight: '600',
     fontSize: 14,
-    marginRight: 6,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   activeFilterText: {
     color: '#FFFFFF',
-  },
-  filterCount: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  activeFilterCount: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  filterCountText: {
-    fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
   },
-  activeFilterCountText: {
-    color: '#FFFFFF',
-  },
+
+  // Bookings Section
   bookingsSection: {
     marginHorizontal: 16,
     marginBottom: 20,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  sectionCount: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
+  
+  // Booking Card
   bookingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  bookingHeader: {
+  
+  // Card Header
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    minHeight: 60, // Ensure consistent height
   },
-  customerInfo: {
+  customerSection: {
     flex: 1,
-  },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 16, // Add right margin to prevent touching
   },
   customerName: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1F2937',
-    marginLeft: 8,
+    marginBottom: 6,
+    flexWrap: 'wrap',
   },
-  serviceName: {
-    fontSize: 15,
-    color: '#4B5563',
-    marginBottom: 12,
-    fontWeight: '500',
-  },
-  bookingMeta: {
+  serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    flexWrap: 'wrap',
   },
-  timeText: {
+  serviceName: {
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 6,
     fontWeight: '500',
+    flex: 1,
+    flexWrap: 'wrap',
   },
-  slotBadge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  slotText: {
-    fontSize: 12,
-    color: '#3B82F6',
-    fontWeight: '600',
-  },
-  bookingRight: {
+  priceSection: {
     alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    minWidth: 80, // Ensure consistent width
   },
   priceText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 4,
   },
-  paidText: {
+  paidAmount: {
     fontSize: 12,
-    color: '#10B981',
-    marginBottom: 8,
+    color: '#059669',
+    marginTop: 2,
     fontWeight: '500',
   },
-  statusBadge: {
+
+  // Meta Section
+  metaSection: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 16,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 16,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 0,
+    minWidth: 0, // Allow shrinking
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+
+  // Status Section
+  statusSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusIcon: {
-    marginRight: 4,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
-  bookingDetails: {
+  slotBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  slotText: {
+    fontSize: 11,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  expandButton: {
+    padding: 4,
+  },
+
+  // Expanded Section
+  expandedSection: {
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  detailsHeader: {
-    marginBottom: 16,
-  },
-  detailsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
   detailsGrid: {
     marginBottom: 16,
   },
-  detailItem: {
+  detailRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    paddingBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
   },
-  detailContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
   detailLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '500',
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#1F2937',
     fontWeight: '600',
-    marginBottom: 2,
   },
-  detailSubValue: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontWeight: '400',
+  paymentStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  actionButtons: {
+  paymentStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Action Section
+  actionSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 12,
   },
-  actionButton: {
+  actionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    flex: 0.48,
+    borderRadius: 10,
+    gap: 6,
   },
-  callButton: {
+  primaryBtn: {
+    backgroundColor: '#3B82F6',
+  },
+  secondaryBtn: {
     backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
-  actionButtonText: {
-    color: '#3B82F6',
-    fontSize: 14,
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 6,
   },
+  secondaryBtnText: {
+    color: '#059669',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 48,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 32,
     marginTop: 8,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#1F2937',
     fontWeight: '600',
-    marginTop: 16,
-    textAlign: 'center',
+    marginTop: 12,
   },
   emptyText: {
     fontSize: 14,
     color: '#9CA3AF',
-    marginTop: 8,
+    marginTop: 4,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
+    paddingHorizontal: 32,
+    lineHeight: 20,
   },
 });

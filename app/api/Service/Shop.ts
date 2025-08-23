@@ -135,3 +135,33 @@ export const viewMyShop = async () => {
     throw error?.response?.data || { message: "Failed to fetch shop details" };
   }
 }
+
+export const modifyBarber = async (barberId,data) => {
+  try {
+    const response = await Axios.put(`/shop/updateBarber/${barberId}`,data)
+    return response.data
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to update barber"}
+  }
+}
+
+export const modifyService = async (serviceId,data) => {
+  try {
+    const response = await Axios.put(`/shop/editService/${serviceId}`,data)
+    return response.data
+  } catch (error: any) {
+    throw  error?.response?.data || {message: "Failed to edit service"}
+  }
+}
+
+export const deleteBarberAPI = async (barberId) => {
+  try {
+    console.log("barberId:", barberId);
+    const response = await Axios.delete(`/shop/deleteBarber/${barberId}`);
+    console.log('Delete barber response:', response);
+    return response;
+  } catch (error: any) {
+    console.error('Delete barber API error:', error);
+    throw error?.response?.data || { message: "Failed to delete" };
+  }
+};

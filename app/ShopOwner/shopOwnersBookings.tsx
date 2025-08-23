@@ -1,42 +1,35 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import Bookings from '../Components/Shop/Bookings';
 
-export default function ShopOwnersBookings() {  // Fixed component name to PascalCase
+export default function ShopOwnersBookings() {
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.header}>
-        <Text style={styles.headerText}>My Bookings</Text>
-      </View>
-      
-      <View style={styles.bookingsContainer}>
-        <Bookings />
-      </View>
-    </ScrollView>
+    <View style={styles.safeArea}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.bookingsContainer}>
+          <Bookings />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // 👈 fixes status bar overlap
+  },
+  container: {
+    flex: 1,
   },
   contentContainer: {
-    paddingBottom: 20, // Adds padding at the bottom for better scrolling
-  },
-  header: {
-    padding: 16,
-    paddingBottom: 8, // Reduced bottom padding for tighter layout
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    paddingBottom: 20,
   },
   bookingsContainer: {
-    paddingHorizontal: 16, // Added horizontal padding for better spacing
+    paddingHorizontal: 0,
   },
 });
