@@ -2,7 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import React, { useEffect, useState } from 'react'
 import { Alert, FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { AddBarber, AddService, deleteBarberAPI, modifyBarber, modifyService, viewMyBarbers, viewMyService, viewMyShop } from '../api/Service/Shop'
+import { AddBarber, AddService, deleteBarberAPI, deleteServiceAPI, modifyBarber, modifyService, viewMyBarbers, viewMyService, viewMyShop } from '../api/Service/Shop'
 
 export default function Settings() {
   const [barbers, setBarbers] = useState([])
@@ -178,53 +178,67 @@ export default function Settings() {
   }
 
 const deleteBarber = async (id) => {
-  // Simple browser confirm instead of Alert
-  const confirmed = window.confirm('Are you sure you want to delete this barber?');
-  if (!confirmed) return;
+  Alert.alert(
+    "Delete Barber",
+    "Are you sure you want to delete this barber?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            console.log("Deleting barber with ID:", id);
+            const response = await deleteBarberAPI(id);
+            console.log("Delete barber response:", response);
 
-  try {
-    console.log('Deleting barber with ID:', id);
+            // Update local state
+            setBarbers((prevBarbers) =>
+              prevBarbers.filter((barber) => barber._id !== id)
+            );
 
-    // Call API
-    const response = await deleteBarberAPI(id);
-    console.log('Delete barber response:', response);
-
-    // Update local state
-    setBarbers(prev => prev.filter(barber => barber._id !== id));
-    console.log('Barber deleted successfully, state updated.');
-  } catch (error) {
-    console.error('Failed to delete barber:', error);
-  }
+            Alert.alert("Success", "Barber deleted successfully!");
+          } catch (error) {
+            console.error("Failed to delete barber:", error);
+            Alert.alert("Error", "Failed to delete barber");
+          }
+        },
+      },
+    ]
+  );
 };
 
+const deleteService = async (id) => {
+  Alert.alert(
+    "Delete Service",
+    "Are you sure you want to delete this service?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            console.log("Deleting service with ID:", id);
+            const response = await deleteServiceAPI(id);
+            console.log("Delete service response:", response);
 
-  const deleteService = async (id) => {
-    Alert.alert(
-      'Delete Service',
-      'Are you sure you want to delete this service?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('Deleting service with ID:', id)
-              const response = await deleteServiceAPI(id)
-              console.log('Delete service response:', response)
-              
-              // Update local state
-              setServices(services.filter(service => service._id !== id))
-              Alert.alert('Success', 'Service deleted successfully')
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete service')
-              console.error('Failed to delete service:', error)
-            }
+            // Update local state
+            setServices((prevServices) =>
+              prevServices.filter((service) => service._id !== id)
+            );
+
+            Alert.alert("Success", "Service deleted successfully!");
+          } catch (error) {
+            console.error("Failed to delete service:", error);
+            Alert.alert("Error", "Failed to delete service");
           }
-        }
-      ]
-    )
-  }
+        },
+      },
+    ]
+  );
+};
+
 
   const editService = (service) => {
     setEditingService(service)
@@ -1134,3 +1148,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 })
+

@@ -165,3 +165,15 @@ export const deleteBarberAPI = async (barberId) => {
     throw error?.response?.data || { message: "Failed to delete" };
   }
 };
+
+export const deleteServiceAPI  = async (serviceId) => {
+  try {
+    console.log("serviceId:", serviceId);
+    const response = await Axios.delete(`/shop/deleteService/${serviceId}`);
+    console.log('Delete service response:', response);
+    return response;
+  } catch (error: any) {
+      console.error('Delete barber API error:', error);
+      throw error?.response?.data || { message: "Failed to delete" };
+  }
+}
