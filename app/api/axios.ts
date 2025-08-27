@@ -7,7 +7,7 @@ const axiosInstance = axios.create({
     // baseURL: ' https://aca5eeb8242d.ngrok-free.app/api/',
   // baseURL: 'http://localhost:3002/api/',
 
-  baseURL: 'https://715987797a4b.ngrok-free.app/api/',
+  baseURL: 'https://775e25e1c797.ngrok-free.app/api/',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
