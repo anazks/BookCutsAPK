@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Google from 'expo-auth-session/providers/google';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,131 +19,30 @@ import {
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LoginShopUser } from '../../api/Service/Shop';
+import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
+
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('password'); // 'password' or 'otp'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [otpMobile, setOtpMobile] = useState(''); // Changed from otpEmail to otpMobile
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ---------------- Google Auth Session ----------------
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: '805182446508-18n07foli0hv1e8qmqkncp35i027ul5s.apps.googleusercontent.com',
-    // Add additional configuration for better compatibility
-    scopes: ['openid', 'profile', 'email'],
-    additionalParameters: {},
-    customParameters: {},
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      handleGoogleAuthSuccess(response);
-    } else if (response?.type === 'error') {
-      console.error('Google Auth Error:', response.error);
-      Alert.alert('Authentication Error', 'Google authentication failed. Please try again.');
-    }
-  }, [response]);
-
-  const handleGoogleAuthSuccess = async (authResponse) => {
-    try {
-      setLoading(true);
-      const { id_token, access_token } = authResponse.params;
-      
-      console.log('Google ID Token:', id_token);
-      console.log('Access Token:', access_token);
-      
-      // Fetch user info from Google
-      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
-      
-      const userInfo = await userInfoResponse.json();
-      console.log('User Info:', userInfo);
-      
-      // TODO: Send the id_token and userInfo to your backend for verification
-      // For now, we'll simulate a successful login
-      const googleLoginData = {
-        email: userInfo.email,
-        name: userInfo.name,
-        googleId: userInfo.id,
-        idToken: id_token,
-        loginType: 'google'
-      };
-      
-      // Replace this with your actual Google login API call
-      const loginResponse = await handleGoogleLogin(googleLoginData);
-      
-      if (loginResponse.success && loginResponse.result.token) {
-        await AsyncStorage.setItem('accessToken', loginResponse.result.token);
-        Alert.alert('Success', 'Google login successful!', [
-          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
-        ]);
-      } else {
-        Alert.alert('Login Error', loginResponse.message || 'Google login failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Google Auth handling error:', error);
-      Alert.alert('Error', 'Failed to process Google authentication. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Mock function - replace with your actual Google login API call
-  const handleGoogleLogin = async (googleLoginData) => {
-    // This should be replaced with your actual API call
-    // return await GoogleLoginShopUser(googleLoginData);
-    
-    // Mock response for now
-    return {
-      success: true,
-      result: {
-        token: 'mock_google_token_' + Date.now()
-      },
-      message: 'Google login successful'
-    };
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      if (!request) {
-        Alert.alert('Error', 'Google authentication is not ready. Please try again.');
-        return;
-      }
-      
-      setLoading(true);
-      const result = await promptAsync();
-      
-      // The response will be handled in the useEffect
-      console.log('Prompt result:', result);
-    } catch (error) {
-      console.error('Google Sign-In Error:', error);
-      Alert.alert('Error', 'Failed to initiate Google sign-in. Please try again.');
-      setLoading(false);
-    }
-  };
-
   // ---------------- Normal login functions ----------------
   const handleLogin = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'password' && (!email || !password)) {
+      if (!email || !password) {
         Alert.alert('Error', 'Please enter both email and password');
         setLoading(false);
         return;
       }
 
-      if (activeTab === 'otp' && (!phone || !otp)) {
-        Alert.alert('Error', 'Please enter both phone number and OTP');
-        setLoading(false);
-        return;
-      }
-
-      const loginData = activeTab === 'password' ? { email, password } : { phone, otp };
+      const loginData = { email, password };
       const response = await LoginShopUser(loginData);
 
       if (response.success && response.result.token) {
@@ -163,23 +61,52 @@ export default function Login() {
     }
   };
 
+  // ---------------- OTP login functions ----------------
   const handleSendOtp = async () => {
-    if (!phone) {
-      Alert.alert('Error', 'Please enter your phone number');
+    if (!otpMobile) {
+      Alert.alert('Error', 'Please enter your mobile number');
       return;
     }
+    
     setLoading(true);
     try {
-      const otpResponse = { success: true }; // Mock
+      const otpResponse = await otpLogin({ mobileNo: otpMobile }); // Changed from email to mobileNo
+      
       if (otpResponse.success) {
         setOtpSent(true);
         Alert.alert('OTP Sent', 'OTP has been sent to your mobile number');
       } else {
-        Alert.alert('Error', 'Failed to send OTP. Please try again.');
+        Alert.alert('Error', otpResponse.message || 'Failed to send OTP. Please try again.');
       }
     } catch (error) {
       console.error('OTP error:', error);
       Alert.alert('Error', 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpMobile || !otp) {
+      Alert.alert('Error', 'Please enter both mobile number and OTP');
+      return;
+    }
+
+    setLoading(true);
+        try {
+      const verifyResponse = await verifyOtp({ mobileNo: otpMobile, otp }); // Changed from email to mobileNo
+
+      if (verifyResponse.success && verifyResponse.token) {
+        await AsyncStorage.setItem('accessToken', verifyResponse.token);
+        Alert.alert('Success', 'Login successful!', [
+          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
+        ]);
+      } else {
+        Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -215,7 +142,7 @@ export default function Login() {
               onPress={() => setActiveTab('otp')}
             >
               <Text style={[styles.tabText, activeTab === 'otp' && styles.activeTabText]}>
-                OTP Login
+                Mobile OTP
               </Text>
             </TouchableOpacity>
           </View>
@@ -269,12 +196,11 @@ export default function Login() {
                 <Icon name="phone" size={20} color="#FF6B6B" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Phone Number"
+                  placeholder="Mobile Number"
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                  maxLength={10}
+                  value={otpMobile}
+                  onChangeText={setOtpMobile}
                 />
               </View>
               {otpSent && (
@@ -293,8 +219,8 @@ export default function Login() {
               )}
               <TouchableOpacity 
                 style={[styles.otpButton, loading && styles.disabledButton]} 
-                onPress={otpSent ? handleLogin : handleSendOtp} 
-                disabled={loading || (otpSent ? !otp : !phone)}
+                onPress={otpSent ? handleVerifyOtp : handleSendOtp} 
+                disabled={loading || (otpSent ? !otp : !otpMobile)}
               >
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.otpButtonText}>{otpSent ? 'Verify OTP' : 'Send OTP'}</Text>}
               </TouchableOpacity>
@@ -305,25 +231,6 @@ export default function Login() {
               )}
             </View>
           )}
-
-          {/* Google Login */}
-          <TouchableOpacity
-            style={[styles.googleButton, loading && styles.disabledButton]}
-            onPress={handleGoogleSignIn}
-            disabled={!request || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#333" />
-            ) : (
-              <>
-                <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg' }}
-                  style={styles.googleIcon}
-                />
-                <Text style={styles.googleButtonText}>Sign in with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account?</Text>
@@ -364,26 +271,6 @@ const styles = StyleSheet.create({
   otpButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   resendOtp: { alignSelf: 'center' },
   resendOtpText: { color: '#FF6B6B', fontSize: 14 },
-  googleButton: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginTop: 20,
-  },
-  googleIcon: { 
-    width: 20, 
-    height: 20, 
-    marginRight: 10 
-  },
-  googleButtonText: { 
-    color: '#333', 
-    fontSize: 16 
-  },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
   footerText: { color: '#666', fontSize: 14, marginRight: 5 },
   footerLink: { color: '#FF6B6B', fontSize: 14, fontWeight: '600' },
