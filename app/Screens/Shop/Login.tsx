@@ -70,7 +70,11 @@ export default function Login() {
     
     setLoading(true);
     try {
-      const otpResponse = await otpLogin({ mobileNo: otpMobile }); // Changed from email to mobileNo
+      const payload = { mobileNo: otpMobile, role: "shopper" };
+      console.log("Sending to backend:", payload);  // 👈 Debug log
+
+      const otpResponse = await otpLogin(payload); // Changed from email to mobileNo
+
       
       if (otpResponse.success) {
         setOtpSent(true);
@@ -79,6 +83,7 @@ export default function Login() {
         Alert.alert('Error', otpResponse.message || 'Failed to send OTP. Please try again.');
       }
     } catch (error) {
+      
       console.error('OTP error:', error);
       Alert.alert('Error', 'Failed to send OTP. Please try again.');
     } finally {
@@ -94,7 +99,9 @@ export default function Login() {
 
     setLoading(true);
         try {
-      const verifyResponse = await verifyOtp({ mobileNo: otpMobile, otp }); // Changed from email to mobileNo
+      const payload = { mobileNo: otpMobile, otp, role: "shopper" };
+      console.log("Sending to backend:", payload);    
+      const verifyResponse = await verifyOtp(payload); // Changed from email to mobileNo
 
       if (verifyResponse.success && verifyResponse.token) {
         await AsyncStorage.setItem('accessToken', verifyResponse.token);

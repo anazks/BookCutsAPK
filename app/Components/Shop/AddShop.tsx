@@ -3,7 +3,9 @@ import {
   Alert,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,7 +44,8 @@ export default function AddShop({ onShopAdded }) {
     Timing: '',
     website: '',
     State: '',
-    District: ''
+    District: '',
+    Pincode: ''
   });
   const [loading, setLoading] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -80,9 +83,10 @@ export default function AddShop({ onShopAdded }) {
     // Prevent multiple submissions
     if (loading) return;
     
-    // Validation - now includes State and District
+    // Validation - now includes State, District, and Pincode
     if (!formData.ShopName.trim() || !formData.City.trim() || !formData.Mobile.trim() || 
-        !formData.Timing.trim() || !formData.website.trim() || !formData.State || !formData.District) {
+        !formData.Timing.trim() || !formData.website.trim() || !formData.State || 
+        !formData.District || !formData.Pincode.trim()) {
       console.log('Validation failed - missing fields');
       Alert.alert("Error", "All fields are required");
       return;
@@ -102,6 +106,13 @@ export default function AddShop({ onShopAdded }) {
       return;
     }
 
+    // Pincode validation (Indian pincode - 6 digits)
+    const pincodeRegex = /^[1-9][0-9]{5}$/;
+    if (!pincodeRegex.test(formData.Pincode.trim())) {
+      Alert.alert("Error", "Please enter a valid 6-digit pincode");
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -115,7 +126,8 @@ export default function AddShop({ onShopAdded }) {
         Timing: formData.Timing.trim(),
         website: formData.website.trim(),
         State: formData.State,
-        District: formData.District
+        District: formData.District,
+        Pincode: formData.Pincode.trim()
       };
       
       const response = await addNewShop(cleanData);
@@ -133,7 +145,8 @@ export default function AddShop({ onShopAdded }) {
         Timing: '',
         website: '',
         State: '',
-        District: ''
+        District: '',
+        Pincode: ''
       });
       
       // Reset districts list
@@ -173,175 +186,197 @@ export default function AddShop({ onShopAdded }) {
   );
 
   return (
-    <ScrollView 
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingView}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <Text style={styles.heading}>Add New Shop</Text>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.heading}>Add New Shop</Text>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Shop Name *</Text>
-        <TextInput
-          placeholder="Enter shop name"
-          style={[styles.input, formData.ShopName ? styles.inputFilled : null]}
-          onChangeText={(value) => handleChange('ShopName', value)}
-          value={formData.ShopName}
-          autoCapitalize="words"
-          editable={!loading}
-        />
-      </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Shop Name *</Text>
+          <TextInput
+            placeholder="Enter shop name"
+            style={[styles.input, formData.ShopName ? styles.inputFilled : null]}
+            onChangeText={(value) => handleChange('ShopName', value)}
+            value={formData.ShopName}
+            autoCapitalize="words"
+            editable={!loading}
+          />
+        </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>State *</Text>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>State *</Text>
+          <TouchableOpacity 
+            style={[styles.input, styles.selectInput, formData.State ? styles.inputFilled : null]}
+            onPress={() => {
+              Keyboard.dismiss();
+              setShowStateModal(true);
+            }}
+            disabled={loading}
+          >
+            <Text style={formData.State ? styles.selectText : styles.placeholderText}>
+              {formData.State || 'Select State'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>District *</Text>
+          <TouchableOpacity 
+            style={[
+              styles.input, 
+              styles.selectInput, 
+              formData.District ? styles.inputFilled : null,
+              !formData.State && styles.disabledInput
+            ]}
+            onPress={() => {
+              if (formData.State) {
+                Keyboard.dismiss();
+                setShowDistrictModal(true);
+              }
+            }}
+            disabled={loading || !formData.State}
+          >
+            <Text style={formData.District ? styles.selectText : styles.placeholderText}>
+              {formData.District || (formData.State ? 'Select District' : 'First select a state')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>City *</Text>
+          <TextInput
+            placeholder="Enter city"
+            style={[styles.input, formData.City ? styles.inputFilled : null]}
+            onChangeText={(value) => handleChange('City', value)}
+            value={formData.City}
+            autoCapitalize="words"
+            editable={!loading}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Pincode *</Text>
+          <TextInput
+            placeholder="Enter 6-digit pincode"
+            style={[styles.input, formData.Pincode ? styles.inputFilled : null]}
+            keyboardType="number-pad"
+            onChangeText={(value) => handleChange('Pincode', value.replace(/[^0-9]/g, ''))}
+            value={formData.Pincode}
+            maxLength={6}
+            editable={!loading}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Mobile Number *</Text>
+          <TextInput
+            placeholder="Enter 10-digit mobile number"
+            style={[styles.input, formData.Mobile ? styles.inputFilled : null]}
+            keyboardType="phone-pad"
+            onChangeText={(value) => handleChange('Mobile', value.replace(/\D/g, ''))}
+            value={formData.Mobile}
+            maxLength={10}
+            editable={!loading}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Business Hours *</Text>
+          <TextInput
+            placeholder="e.g., 9:00 AM - 8:00 PM"
+            style={[styles.input, formData.Timing ? styles.inputFilled : null]}
+            onChangeText={(value) => handleChange('Timing', value)}
+            value={formData.Timing}
+            editable={!loading}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Website URL *</Text>
+          <TextInput
+            placeholder="https://www.example.com"
+            style={[styles.input, formData.website ? styles.inputFilled : null]}
+            keyboardType="url"
+            onChangeText={(value) => handleChange('website', value)}
+            value={formData.website}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+          />
+        </View>
+
         <TouchableOpacity 
-          style={[styles.input, styles.selectInput, formData.State ? styles.inputFilled : null]}
-          onPress={() => {
-            Keyboard.dismiss();
-            setShowStateModal(true);
-          }}
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleSubmit}
+          activeOpacity={0.8}
           disabled={loading}
         >
-          <Text style={formData.State ? styles.selectText : styles.placeholderText}>
-            {formData.State || 'Select State'}
+          <Text style={styles.buttonText}>
+            {loading ? 'Adding Shop...' : 'Add Shop'}
           </Text>
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>District *</Text>
-        <TouchableOpacity 
-          style={[
-            styles.input, 
-            styles.selectInput, 
-            formData.District ? styles.inputFilled : null,
-            !formData.State && styles.disabledInput
-          ]}
-          onPress={() => {
-            if (formData.State) {
-              Keyboard.dismiss();
-              setShowDistrictModal(true);
-            }
-          }}
-          disabled={loading || !formData.State}
+        {/* State Selection Modal */}
+        <Modal
+          visible={showStateModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowStateModal(false)}
         >
-          <Text style={formData.District ? styles.selectText : styles.placeholderText}>
-            {formData.District || (formData.State ? 'Select District' : 'First select a state')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableWithoutFeedback onPress={() => setShowStateModal(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Select State</Text>
+                  <FlatList
+                    data={states}
+                    renderItem={renderStateItem}
+                    keyExtractor={(item, index) => index.toString()}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>City *</Text>
-        <TextInput
-          placeholder="Enter city"
-          style={[styles.input, formData.City ? styles.inputFilled : null]}
-          onChangeText={(value) => handleChange('City', value)}
-          value={formData.City}
-          autoCapitalize="words"
-          editable={!loading}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Mobile Number *</Text>
-        <TextInput
-          placeholder="Enter 10-digit mobile number"
-          style={[styles.input, formData.Mobile ? styles.inputFilled : null]}
-          keyboardType="phone-pad"
-          onChangeText={(value) => handleChange('Mobile', value.replace(/\D/g, ''))}
-          value={formData.Mobile}
-          maxLength={10}
-          editable={!loading}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Business Hours *</Text>
-        <TextInput
-          placeholder="e.g., 9:00 AM - 8:00 PM"
-          style={[styles.input, formData.Timing ? styles.inputFilled : null]}
-          onChangeText={(value) => handleChange('Timing', value)}
-          value={formData.Timing}
-          editable={!loading}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Website URL *</Text>
-        <TextInput
-          placeholder="https://www.example.com"
-          style={[styles.input, formData.website ? styles.inputFilled : null]}
-          keyboardType="url"
-          onChangeText={(value) => handleChange('website', value)}
-          value={formData.website}
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!loading}
-        />
-      </View>
-
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleSubmit}
-        activeOpacity={0.8}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Adding Shop...' : 'Add Shop'}
-        </Text>
-      </TouchableOpacity>
-
-      {/* State Selection Modal */}
-      <Modal
-        visible={showStateModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowStateModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowStateModal(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select State</Text>
-                <FlatList
-                  data={states}
-                  renderItem={renderStateItem}
-                  keyExtractor={(item, index) => index.toString()}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* District Selection Modal */}
-      <Modal
-        visible={showDistrictModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowDistrictModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowDistrictModal(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select District</Text>
-                <FlatList
-                  data={districts}
-                  renderItem={renderDistrictItem}
-                  keyExtractor={(item, index) => index.toString()}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-    </ScrollView>
+        {/* District Selection Modal */}
+        <Modal
+          visible={showDistrictModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowDistrictModal(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setShowDistrictModal(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Select District</Text>
+                  <FlatList
+                    data={districts}
+                    renderItem={renderDistrictItem}
+                    keyExtractor={(item, index) => index.toString()}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   container: {
     backgroundColor: '#ffffff',
     padding: 24,

@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from "expo-location";
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+
+
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +28,10 @@ const Home = ({ navigation }) => {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [selectedCity, setSelectedCity] = useState('India');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState(null);
+
+
 
   // List of cities for dropdown
   const cities = [
@@ -49,6 +56,46 @@ const Home = ({ navigation }) => {
     'Visakhapatnam',
     'Pimpri-Chinchwad'
   ];
+
+   const getLocation = async () => {
+  try {
+    // Ask for permission
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Allow location access in settings.");
+      return;
+    }
+
+    // Get current position
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Highest,
+    });
+
+    // Save raw coords in state
+    setLocation(loc);
+    console.log("Current Location:", loc.coords);
+
+    // Convert coords → address
+    const reverseGeocode = await Location.reverseGeocodeAsync({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+
+    if (reverseGeocode.length > 0) {
+      const addr = reverseGeocode[0];
+      setAddress(addr);
+      const parts = addr.formattedAddress.split(",").map(p => p.trim());
+      const locality = parts[3];
+      console.log("Locality:", locality); // Kadavanthara
+      setSelectedCity(locality)
+      console.log("Address:", addr);
+      
+    }
+  } catch (error) {
+    console.error("Error getting location:", error);
+  }
+};
+
 
   // API call to fetch all shops
   const getShops = async () => {
@@ -82,9 +129,9 @@ const Home = ({ navigation }) => {
       if (response && response.success) {
         setUserProfile(response.user);
         // Set selected city from user profile
-        if (response.user && response.user.city) {
-          setSelectedCity(response.user.city);
-        }
+        // if (response.user && response.user.city) {
+        //   setSelectedCity(response.user.city);
+        // }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -129,6 +176,7 @@ const Home = ({ navigation }) => {
   useEffect(() => {
     getShops();
     getProfile();
+    getLocation()
   }, []);
 
   // Filter shops by selected city

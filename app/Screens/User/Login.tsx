@@ -77,6 +77,11 @@ export default function Login() {
     }
   };
 
+  const handleOTPLogin = () => {
+    // Navigate to OTP login screen or implement OTP login logic
+    router.push('/Screens/User/OTPLogin');
+  };
+
   const handleUserTypeSelection = (isShopOwner) => {
     setShowUserTypeModal(false);
     if (isShopOwner) {
@@ -138,7 +143,7 @@ export default function Login() {
                     placeholderTextColor="#94A3B8"
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    autoCorrect={false}
+                    autoCorrect={false} 
                     value={email}
                     onChangeText={setEmail}
                     editable={!isLoading}
@@ -199,6 +204,19 @@ export default function Login() {
                     <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
                   </>
                 )}
+              </TouchableOpacity>
+
+              {/* Login using OTP Button */}
+              <TouchableOpacity
+                style={[
+                  styles.otpLoginButton,
+                  isLoading && styles.loginButtonDisabled
+                ]}
+                onPress={() => router.push('/Screens/User/LoginOtp')}
+                disabled={isLoading}
+              >
+                <Text style={styles.otpLoginButtonText}>Login using OTP</Text>
+                <MaterialIcons name="sms" size={20} color="#FFFFFF" />
               </TouchableOpacity>
 
               {/* Divider */}
@@ -448,7 +466,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -459,6 +477,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  otpLoginButton: {
+    backgroundColor: '#FF6B6B',
+    height: 52,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  otpLoginButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',

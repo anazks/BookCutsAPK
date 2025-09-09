@@ -1,3 +1,5 @@
+import { router } from 'expo-router';
+
 import React, { useState } from 'react';
 import {
   Alert,
@@ -11,18 +13,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { userRegister } from '../../api/Service/User';
-import { router } from 'expo-router';
+import { otpLogin } from '../../api/Service/ShoperOwner';
 
 export default function Register({ navigation }) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
-    mobileNo: '',
-    city: '',
-    password: '',
-    confirmPassword: ''
+    mobileNo: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,24 +29,10 @@ export default function Register({ navigation }) {
     
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
     if (!formData.mobileNo.trim()) {
       newErrors.mobileNo = 'Mobile number is required';
     } else if (!/^\d{10}$/.test(formData.mobileNo)) {
       newErrors.mobileNo = 'Mobile number must be 10 digits';
-    }
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -61,7 +44,6 @@ export default function Register({ navigation }) {
       ...formData,
       [name]: value
     });
-    // Clear error when user types
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -76,24 +58,28 @@ export default function Register({ navigation }) {
     setIsSubmitting(true);
     
     try {
-      // Here you would typically make your API call to register the user
-      console.log('Registration data:', {
-        ...formData,
-        role: 'user' // Default role as per your schema
-      });
-      
-      // Simulate API call
-      let response= await userRegister(formData)
-      // await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      Alert.alert(
-        response.data || response.message,
-        'Your account has been created successfully!',
-        [{ text: 'OK', onPress: () =>router.push('/Screens/User/Login')}]
-      );
+      const payload = { ...formData, role: 'user' };  // ✅ Add role=user here
+      console.log("Sending OTP request:", payload);
+
+      const response = await otpLogin(payload);
+
+      if (response.success) {
+        Alert.alert('OTP Sent', 'Please verify OTP to complete registration', [
+           {
+            text: 'OK',
+            onPress: () => router.push({
+              pathname: '/Screens/User/VerifyOtp',
+              params: { ...payload }   // ✅ Pass form data to verify screen
+            })
+          }
+        ]);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to send OTP. Try again.');
+      }
     } catch (error) {
+      console.error("OTP request failed:", error);
       Alert.alert(
-        'Registration Failed',
+        'Error',
         error.message || 'Something went wrong. Please try again.'
       );
     } finally {
@@ -141,20 +127,6 @@ export default function Register({ navigation }) {
             />
             {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
 
-            {/* Email */}
-            <Text style={styles.label}>Email*</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="Enter your email"
-              placeholderTextColor="#999"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(text) => handleInputChange('email', text)}
-              maxLength={100}
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
             {/* Mobile Number */}
             <Text style={styles.label}>Mobile Number*</Text>
             <View style={styles.mobileInputContainer}>
@@ -173,41 +145,6 @@ export default function Register({ navigation }) {
             </View>
             {errors.mobileNo && <Text style={styles.errorText}>{errors.mobileNo}</Text>}
 
-            {/* City */}
-            <Text style={styles.label}>City*</Text>
-            <TextInput
-              style={[styles.input, errors.city && styles.inputError]}
-              placeholder="Enter your city"
-              placeholderTextColor="#999"
-              value={formData.city}
-              onChangeText={(text) => handleInputChange('city', text)}
-            />
-            {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-
-            {/* Password */}
-            <Text style={styles.label}>Password*</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Create password (min 8 characters)"
-              placeholderTextColor="#999"
-              secureTextEntry={true}
-              value={formData.password}
-              onChangeText={(text) => handleInputChange('password', text)}
-            />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-
-            {/* Confirm Password */}
-            <Text style={styles.label}>Confirm Password*</Text>
-            <TextInput
-              style={[styles.input, errors.confirmPassword && styles.inputError]}
-              placeholder="Confirm your password"
-              placeholderTextColor="#999"
-              secureTextEntry={true}
-              value={formData.confirmPassword}
-              onChangeText={(text) => handleInputChange('confirmPassword', text)}
-            />
-            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-
             {/* Register Button */}
             <TouchableOpacity 
               style={[styles.registerButton, isSubmitting && styles.registerButtonDisabled]}
@@ -215,7 +152,7 @@ export default function Register({ navigation }) {
               disabled={isSubmitting}
             >
               <Text style={styles.registerButtonText}>
-                {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                {isSubmitting ? 'Sending OTP...' : 'Create Account'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -233,44 +170,19 @@ export default function Register({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 40,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  keyboardAvoidingView: { flex: 1 },
+  scrollContainer: { flexGrow: 1, paddingBottom: 40 },
   header: {
     marginBottom: 20,
     paddingHorizontal: 24,
     marginTop: Platform.OS === 'android' ? 40 : 20,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  form: {
-    paddingHorizontal: 24,
-  },
-  label: {
-    fontSize: 14,
-    color: '#34495e',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#2c3e50', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#7f8c8d', textAlign: 'center', paddingHorizontal: 20 },
+  form: { paddingHorizontal: 24 },
+  label: { fontSize: 14, color: '#34495e', marginBottom: 8, fontWeight: '500' },
   input: {
     height: 50,
     borderWidth: 1,
@@ -281,20 +193,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
-  inputError: {
-    borderColor: '#e74c3c',
-  },
-  errorText: {
-    color: '#e74c3c',
-    fontSize: 12,
-    marginBottom: 12,
-    marginTop: -4,
-  },
-  mobileInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
+  inputError: { borderColor: '#e74c3c' },
+  errorText: { color: '#e74c3c', fontSize: 12, marginBottom: 12, marginTop: -4 },
+  mobileInputContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   countryCode: {
     height: 50,
     justifyContent: 'center',
@@ -306,10 +207,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 8,
     backgroundColor: '#f9f9f9',
   },
-  countryCodeText: {
-    fontSize: 16,
-    color: '#34495e',
-  },
+  countryCodeText: { fontSize: 16, color: '#34495e' },
   mobileInput: {
     flex: 1,
     borderTopLeftRadius: 0,
@@ -330,26 +228,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  registerButtonDisabled: {
-    backgroundColor: '#bdc3c7',
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  footerText: {
-    color: '#7f8c8d',
-    fontSize: 14,
-  },
-  loginText: {
-    color: '#3498db',
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  registerButtonDisabled: { backgroundColor: '#bdc3c7' },
+  registerButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
+  footerText: { color: '#7f8c8d', fontSize: 14 },
+  loginText: { color: '#3498db', fontSize: 14, fontWeight: '500' },
 });
