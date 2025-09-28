@@ -1,11 +1,11 @@
 import Axios from '../axios';
 
-
+ 
 
 export const getAllShops = async () => {
   try {
     const response = await Axios.get('/shop/ViewAllShop');
-    console.log("Response from getAllShops:", response);
+    console.log("Response from getAllShops:", JSON.stringify(response,null,2));
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Registration failed" };
@@ -177,3 +177,22 @@ export const deleteServiceAPI  = async (serviceId) => {
       throw error?.response?.data || { message: "Failed to delete" };
   }
 }
+
+  export const findNearestShops = async (coordinates) => {
+  try {
+    console.log(coordinates, "in shop.ts");
+    const { latitude, longtitude } = coordinates; // fixed typo
+    const lat = latitude;
+    const lng = longtitude; // API expects 'lng'
+    console.log(lng,"lng")
+
+    const shops = await Axios.get('/shop/findNearByShops', {
+      params: { lat, lng }, // fixed 'lgn' -> 'lng'
+    });
+
+    return shops.data; // usually return .data instead of full response
+  } catch (error) {
+    console.error("Error fetching nearest shops:", error);
+    throw error;
+  }
+};

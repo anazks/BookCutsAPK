@@ -45,7 +45,8 @@ export default function AddShop({ onShopAdded }) {
     website: '',
     State: '',
     District: '',
-    Pincode: ''
+    Pincode: '',
+    ExactLocation: ''
   });
   const [loading, setLoading] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -83,10 +84,10 @@ export default function AddShop({ onShopAdded }) {
     // Prevent multiple submissions
     if (loading) return;
     
-    // Validation - now includes State, District, and Pincode
+    // Validation - now includes State, District, Pincode, and ExactLocation
     if (!formData.ShopName.trim() || !formData.City.trim() || !formData.Mobile.trim() || 
         !formData.Timing.trim() || !formData.website.trim() || !formData.State || 
-        !formData.District || !formData.Pincode.trim()) {
+        !formData.District || !formData.Pincode.trim() || !formData.ExactLocation.trim()) {
       console.log('Validation failed - missing fields');
       Alert.alert("Error", "All fields are required");
       return;
@@ -127,7 +128,8 @@ export default function AddShop({ onShopAdded }) {
         website: formData.website.trim(),
         State: formData.State,
         District: formData.District,
-        Pincode: formData.Pincode.trim()
+        Pincode: formData.Pincode.trim(),
+        ExactLocation: formData.ExactLocation.trim()
       };
       
       const response = await addNewShop(cleanData);
@@ -146,7 +148,8 @@ export default function AddShop({ onShopAdded }) {
         website: '',
         State: '',
         District: '',
-        Pincode: ''
+        Pincode: '',
+        ExactLocation: ''
       });
       
       // Reset districts list
@@ -258,6 +261,21 @@ export default function AddShop({ onShopAdded }) {
             value={formData.City}
             autoCapitalize="words"
             editable={!loading}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Exact Location *</Text>
+          <TextInput
+            placeholder="Enter exact address/landmark"
+            style={[styles.input, styles.textArea, formData.ExactLocation ? styles.inputFilled : null]}
+            onChangeText={(value) => handleChange('ExactLocation', value)}
+            value={formData.ExactLocation}
+            autoCapitalize="words"
+            editable={!loading}
+            multiline={true}
+            numberOfLines={3}
+            textAlignVertical="top"
           />
         </View>
 
@@ -405,6 +423,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     backgroundColor: 'transparent',
+  },
+  textArea: {
+    minHeight: 60,
+    paddingTop: 12,
   },
   inputFilled: {
     borderColor: '#FF6B6B',

@@ -2,8 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from "expo-location";
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-
-
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +15,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { getAllShops } from '../api/Service/Shop';
+
+// Import the API service functions
+import { findNearestShops } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
 
 const Home = ({ navigation }) => {
@@ -30,10 +30,11 @@ const Home = ({ navigation }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [location, setLocation] = useState(null);
   const [address, setAddress] = useState(null);
+  const [coordinates, setCoordinates] = useState({
+    latitude: 0,
+    longtitude: 0
+  });
 
-
-
-  // List of cities for dropdown
   const cities = [
     'All Cities',
     'Kochi',
@@ -57,88 +58,90 @@ const Home = ({ navigation }) => {
     'Pimpri-Chinchwad'
   ];
 
-   const getLocation = async () => {
-  try {
-    // Ask for permission
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "Allow location access in settings.");
+  const getLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Allow location access in settings.");
+        setLoading(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+      });
+
+      setLocation(loc);
+      console.log("Current Location:", loc.coords);
+
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const addr = reverseGeocode[0];
+        setAddress(addr);
+        const locality = addr.city || addr.subregion || 'India';
+        console.log("Locality:", locality);
+        setSelectedCity(locality);
+        console.log("Address:", addr);
+      }
+
+      setCoordinates({
+        latitude: loc.coords.latitude,
+        longtitude: loc.coords.longitude
+      });
+
+    } catch (error) {
+      console.error("Error getting location:", error);
+      setError("Failed to get your location. Please check your settings.");
+      setLoading(false);
+    }
+  };
+
+  const findNearestShopApi = async () => {
+    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+      console.log("Coordinates not available yet. Skipping API call.");
       return;
     }
 
-    // Get current position
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Highest,
-    });
-
-    // Save raw coords in state
-    setLocation(loc);
-    console.log("Current Location:", loc.coords);
-
-    // Convert coords → address
-    const reverseGeocode = await Location.reverseGeocodeAsync({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-    });
-
-    if (reverseGeocode.length > 0) {
-      const addr = reverseGeocode[0];
-      setAddress(addr);
-      const parts = addr.formattedAddress.split(",").map(p => p.trim());
-      const locality = parts[3];
-      console.log("Locality:", locality); // Kadavanthara
-      setSelectedCity(locality)
-      console.log("Address:", addr);
-      
-    }
-  } catch (error) {
-    console.error("Error getting location:", error);
-  }
-};
-
-
-  // API call to fetch all shops
-  const getShops = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const result = await getAllShops();
-      console.log("Shops Response:", result);
+      const result = await findNearestShops(coordinates);
+      console.log("Nearby shops API response:", result);
+      
       if (result && result.success) {
-        setShops(result.data);
+        setShops(result.shops);
+        setError(null);
       } else {
-        console.log("Error fetching shops:", result);
+        console.log("Error fetching nearby shops:", result);
+        setError("Failed to fetch nearby shops. Please try again.");
       }
     } catch (error) {
-      console.error("Error fetching shops:", error);
-      Alert.alert(
-        "Error", 
-        "Failed to load shops. Please check your connection and try again.",
-        [{ text: "OK" }]
-      );
+      console.error("Error fetching nearby shops:", error);
+      setError("Failed to load shops. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch user profile
   const getProfile = async () => {
+    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+      return;
+    }
+    
     try {
-      const response = await getmyProfile();
+      const response = await getmyProfile(coordinates);
       console.log("User Profile Response:", response);
       if (response && response.success) {
         setUserProfile(response.user);
-        // Set selected city from user profile
-        // if (response.user && response.user.city) {
-        //   setSelectedCity(response.user.city);
-        // }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
   };
 
-  // Handle logout
   const handleLogout = () => {
     Alert.alert(
       "Logout",
@@ -152,51 +155,72 @@ const Home = ({ navigation }) => {
           text: "Logout",
           style: "destructive",
           onPress: () => {
-            // Clear any stored authentication data here
-            // For example: AsyncStorage.removeItem('userToken');
-            
-            // Navigate to login screen
-            router.replace('/Screens/User/Login0'); // Adjust path as needed
+            router.replace('/Screens/User/Login0');
           }
         }
       ]
     );
   };
 
-  // Handle city selection
   const handleCitySelect = (city) => {
     setSelectedCity(city);
     setShowCityDropdown(false);
-    
-    // You can add logic here to filter shops by city
-    // or make a new API call with city filter
+    // In a real app, you would make an API call to filter by this city
     console.log('Selected city:', city);
   };
 
+  const handleRefresh = () => {
+    getLocation(); // This will trigger the useEffect to refetch shops
+  };
+
+  const handleSearchPress = () => {
+    router.push('/Screens/User/Search');
+  };
+
+  const handleNotificationsPress = () => {
+    router.push('/Screens/User/Notifications');
+  };
+
+  const handleProfilePress = () => {
+    router.push('/Screens/User/Profile');
+  };
+
+  const handleSeeAllPress = (section) => {
+    router.push({
+      pathname: '/Screens/User/AllShops',
+      params: { section, city: selectedCity }
+    });
+  };
+
+  // 1. Get location on component mount
   useEffect(() => {
-    getShops();
-    getProfile();
-    getLocation()
+    getLocation();
   }, []);
 
-  // Filter shops by selected city
+  // 2. Call APIs when coordinates are available
+  useEffect(() => {
+    if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
+      findNearestShopApi();
+      getProfile();
+    }
+  }, [coordinates]);
+
+
   const getFilteredShops = () => {
     if (selectedCity === 'All Cities' || selectedCity === 'India') {
       return shops;
     }
-    
-    return shops.filter(shop => 
+
+    return shops.filter(shop =>
       shop.City?.toLowerCase().includes(selectedCity.toLowerCase()) ||
       shop.city?.toLowerCase().includes(selectedCity.toLowerCase())
     );
   };
 
-  // Enhanced transform function to handle all shop data structures
   const transformShopData = (apiShops) => {
     return apiShops.map((shop, index) => {
       let shopName = 'Unknown Shop';
-      
-      // Priority: ShopName > firstName + lastName > fallback
+
       if (shop.ShopName && shop.ShopName.trim()) {
         shopName = shop.ShopName.trim();
       } else if (shop.firstName || shop.lastName) {
@@ -225,62 +249,55 @@ const Home = ({ navigation }) => {
     });
   };
 
-  // Get popular shops (first 8 shops to show more)
   const getPopularShops = () => {
     const filteredShops = getFilteredShops();
     const transformedShops = transformShopData(filteredShops);
     return transformedShops.slice(0, 8);
   };
 
-  // Get top rated shops (show more variety)
   const getTopRatedShops = () => {
     const filteredShops = getFilteredShops();
     const transformedShops = transformShopData(filteredShops);
-    
-    // First, get shops from preferred cities
-    const preferredCityShops = transformedShops.filter(shop => 
-      ['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city => 
+
+    const preferredCityShops = transformedShops.filter(shop =>
+      ['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city =>
         shop.city.toLowerCase().includes(city.toLowerCase())
       )
     );
-    
-    // Then get remaining shops
-    const otherShops = transformedShops.filter(shop => 
-      !['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city => 
+
+    const otherShops = transformedShops.filter(shop =>
+      !['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city =>
         shop.city.toLowerCase().includes(city.toLowerCase())
       )
     );
-    
-    // Combine and take first 8 (or all if less than 8)
+
     const combinedShops = [...preferredCityShops, ...otherShops];
     return combinedShops.slice(0, Math.min(8, combinedShops.length));
   };
 
-  // Get all shops for a comprehensive view
   const getAllTransformedShops = () => {
     const filteredShops = getFilteredShops();
     return transformShopData(filteredShops);
   };
 
-  // Sample trending designs data
   const trendingDesigns = [
-    { 
-      id: '1', 
-      name: 'Fade Cut', 
+    {
+      id: '1',
+      name: 'Fade Cut',
       popularity: '92%',
-      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
-    { 
-      id: '2', 
-      name: 'Pompadour', 
+    {
+      id: '2',
+      name: 'Pompadour',
       popularity: '87%',
-      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
-    { 
-      id: '3', 
-      name: 'Undercut', 
+    {
+      id: '3',
+      name: 'Undercut',
       popularity: '89%',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
   ];
 
@@ -291,40 +308,12 @@ const Home = ({ navigation }) => {
     { id: '4', name: 'Styling', icon: 'brush', color: '#9B59B6' },
   ];
 
-  // Handle shop card press
   const handleShopPress = (shop) => {
     console.log('Shop pressed:', shop);
     router.push({
-      pathname: '/Screens/User/BookNow',
+      // pathname: '/Screens/User/BookNow',
+      pathname: '/Screens/User/BarberShopFeed',
       params: { shop_id: shop.id }
-    });
-  };
-
-  // Handle refresh
-  const handleRefresh = () => {
-    getShops();
-  };
-
-  // Handle search press
-  const handleSearchPress = () => {
-    router.push('/Screens/User/Search');
-  };
-
-  // Handle profile press
-  const handleProfilePress = () => {
-    router.push('/Screens/User/Profile');
-  };
-
-  // Handle notifications press
-  const handleNotificationsPress = () => {
-    router.push('/Screens/User/Notifications');
-  };
-
-  // Handle see all press
-  const handleSeeAllPress = (section) => {
-    router.push({
-      pathname: '/Screens/User/AllShops',
-      params: { section, city: selectedCity }
     });
   };
 
@@ -344,7 +333,6 @@ const Home = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       
-      {/* Navigation Header */}
       <View style={styles.navContainer}>
         <View style={styles.navContent}>
           <View style={styles.headerLeft}>
@@ -373,14 +361,14 @@ const Home = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.notificationButton}
-              // onPress={handleNotificationsPress }
+              onPress={handleNotificationsPress}
             >
               <Ionicons name="notifications-outline" size={24} color="#333" />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.profileButton}
-              // onPress={handleProfilePress}
+              onPress={handleProfilePress}
             >
               <Image 
                 source={{ 
@@ -393,7 +381,6 @@ const Home = ({ navigation }) => {
         </View>
       </View>
 
-      {/* City Dropdown Modal */}
       <Modal
         visible={showCityDropdown}
         transparent={true}
@@ -448,7 +435,6 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Logout Modal */}
       <Modal
         visible={showLogoutModal}
         transparent={true}
@@ -489,7 +475,6 @@ const Home = ({ navigation }) => {
       </Modal>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Welcome Section with Dynamic Name */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
             Hello, {userProfile ? userProfile.firstName : 'there'}! 👋
@@ -502,7 +487,6 @@ const Home = ({ navigation }) => {
           )}
         </View>
 
-        {/* Search Bar */}
         <TouchableOpacity 
           style={styles.searchContainer}
           onPress={handleSearchPress}
@@ -516,7 +500,6 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={24} color="#FF6B6B" />
@@ -527,7 +510,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Quick Services */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Services</Text>
@@ -544,7 +526,6 @@ const Home = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Popular Shops Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -596,7 +577,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Top Rated Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -651,7 +631,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* All Shops Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -697,7 +676,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Trending Designs Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Trending Styles</Text>
@@ -733,7 +711,6 @@ const Home = ({ navigation }) => {
           />
         </View>
 
-        {/* Special Offer */}
         <View style={styles.specialOfferContainer}>
           <View style={styles.specialOffer}>
             <View style={styles.offerContent}>
@@ -756,7 +733,6 @@ const Home = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>

@@ -29,7 +29,7 @@ export default function ShopOwnerHome() {
     const fetchProfile = async () => {
       try {
         const response = await getMyProfile();
-        console.log("Profile data fetched:", response);
+        console.log("Profile data fetched:", JSON.stringify(response));
         if (response.success && response.data) {
 
           setProfileData(response.data);
@@ -71,7 +71,7 @@ export default function ShopOwnerHome() {
         </View>
         <TouchableOpacity 
           style={styles.profileButton}
-        
+          onPress={() => router.push('/Screens/Shop/ProfileScreen')}
         >
           <MaterialIcons name="account-circle" size={32} color="#FF6B6B" />
         </TouchableOpacity>
