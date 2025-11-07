@@ -187,7 +187,7 @@ const Home = ({ navigation }) => {
 
   const handleSeeAllPress = (section) => {
     router.push({
-      pathname: '/Screens/User/AllShops',
+      pathname: '/Screens/User/SeeAllShops',
       params: { section, city: selectedCity }
     });
   };

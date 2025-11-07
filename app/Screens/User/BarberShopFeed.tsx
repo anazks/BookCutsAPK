@@ -66,83 +66,6 @@ const BarberShopFeed = () => {
     }
   ];
 
-  // Static media data (Unchanged)
-  const mediaData = [
-    {
-      id: '1',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Classic Fade Cut'
-    },
-    {
-      id: '2',
-      type: 'video',
-      uri: 'https://images.unsplash.com/photo-1622286346003-c3b4c1da6d66?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Beard Trimming Process'
-    },
-    {
-      id: '3',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Modern Pompadour'
-    },
-    {
-      id: '4',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1619113045935-d5c71e3470b6?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Hair Styling'
-    },
-    {
-      id: '5',
-      type: 'video',
-      uri: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Hot Towel Treatment'
-    },
-    {
-      id: '6',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Classic Undercut'
-    },
-    // Duplicate data to show more feed items
-    {
-      id: '7',
-      type: 'video',
-      uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Hair Wash Service'
-    },
-    {
-      id: '8',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Mustache Trimming'
-    },
-    {
-      id: '9',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Modern Cut'
-    },
-    {
-      id: '10',
-      type: 'video',
-      uri: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Fade Technique'
-    },
-    {
-      id: '11',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1622286346003-c3b4c1da6d66?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Precision Cut'
-    },
-    {
-      id: '12',
-      type: 'image',
-      uri: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      caption: 'Style Finish'
-    }
-  ];
-
   // Fetch shop data from API (Unchanged)
   const fetchShopData = async () => {
     if (!shop_id) {
@@ -154,8 +77,7 @@ const BarberShopFeed = () => {
     try {
       setLoading(true);
       const response = await getShopById(shop_id);
-      console.log('Shop API response:', response);
-
+      console.log(JSON.stringify(response, null, 2))
       if (response && response.success && response.data && response.data.length > 0) {
         setShopData(response.data[0]);  // take the first shop
         setError(null);
@@ -223,74 +145,82 @@ const BarberShopFeed = () => {
     setSelectedMedia(null);
   };
 
-  // 🗑️ DELETED: renderMediaItem for the grid is removed
+  // ✨ UPDATED: renderFeedItem for the vertical feed using API media
+  const renderFeedItem = (item) => {
+    // Handle broken URL reconstruction (first media item in JSON)
+    let imageUrl = item.url;
+    if (!imageUrl && typeof item === 'object' && !Array.isArray(item)) {
+      // Reconstruct from indexed characters (exclude _id)
+      const urlChars = Object.keys(item)
+        .filter(key => !isNaN(parseInt(key)) && key !== '_id')
+        .map(key => item[key])
+        .join('');
+      imageUrl = urlChars;
+    }
 
-  // ✨ NEW: renderFeedItem for the vertical feed
-  const renderFeedItem = (item) => (
-    <View style={styles.feedItemContainer} key={item.id}>
-      
-      {/* Feed Item Header (Profile-like) */}
-      <View style={styles.feedHeader}>
-        <View style={styles.feedAvatar} />
-        <View style={styles.feedUserInfo}>
-          <Text style={styles.feedShopName}>{shopData.ShopName || 'Barber Shop'}</Text>
-          <Text style={styles.feedCaptionPreview} numberOfLines={1}>{item.caption}</Text>
-        </View>
-        <TouchableOpacity style={styles.feedMoreButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#333" />
-        </TouchableOpacity>
-      </View>
+    const caption = item.title || item.description || 'No caption';
 
-      {/* Media Content (Image/Video) */}
-      <TouchableOpacity
-        style={styles.feedMedia}
-        onPress={() => handleMediaPress(item)}
-        activeOpacity={0.9}
-      >
-        <Image
-          source={{ uri: item.uri }}
-          style={styles.feedImage}
-          resizeMode="cover" // Cover is better for full-width feed
-        />
-        {/* Video Play Icon Overlay */}
-        {item.type === 'video' && (
-          <View style={styles.videoFeedOverlay}>
-            <Ionicons name="play" size={32} color="#FFF" />
+    return (
+      <View style={styles.feedItemContainer} key={item._id || item.id}>
+        
+        {/* Feed Item Header (Profile-like) */}
+        <View style={styles.feedHeader}>
+          <View style={styles.feedAvatar} />
+          <View style={styles.feedUserInfo}>
+            <Text style={styles.feedShopName}>{shopData.ShopName || 'Barber Shop'}</Text>
+            <Text style={styles.feedCaptionPreview} numberOfLines={1}>{caption}</Text>
           </View>
-        )}
-      </TouchableOpacity>
-
-      {/* Feed Actions */}
-      {/* <View style={styles.feedActions}>
-        <View style={styles.feedActionRow}>
-          <TouchableOpacity style={styles.feedActionButton}>
-            <Ionicons name="heart-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.feedActionButton}>
-            <Ionicons name="chatbubble-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.feedActionButton}>
-            <Ionicons name="send-outline" size={24} color="#333" />
+          <TouchableOpacity style={styles.feedMoreButton}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#333" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.feedActionButton}>
-          <Ionicons name="bookmark-outline" size={24} color="#333" />
+
+        {/* Media Content (Image/Video) */}
+        <TouchableOpacity
+          style={styles.feedMedia}
+          onPress={() => handleMediaPress({ uri: imageUrl, caption, type: 'image' })}
+          activeOpacity={0.9}
+        >
+          <Image
+            source={{ uri: imageUrl }} // Use reconstructed or direct URL
+            style={styles.feedImage}
+            resizeMode="cover" // Cover is better for full-width feed
+          />
+          {/* No video overlay since API media are images */}
         </TouchableOpacity>
-      </View> */}
-      
-      {/* Caption/Description */}
-      {/* <View style={styles.feedCaptionContainer}>
-        <Text style={styles.feedCaptionText}>
-          <Text style={styles.feedCaptionUser}>{shopData.ShopName || 'Barber Shop'}</Text>
-          {' '}
-          {item.caption}
-        </Text>
-        <TouchableOpacity>
-          <Text style={styles.feedViewComments}>View all comments</Text>
-        </TouchableOpacity>
-      </View> */}
-    </View>
-  );
+
+        {/* Feed Actions */}
+        {/* <View style={styles.feedActions}>
+          <View style={styles.feedActionRow}>
+            <TouchableOpacity style={styles.feedActionButton}>
+              <Ionicons name="heart-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.feedActionButton}>
+              <Ionicons name="chatbubble-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.feedActionButton}>
+              <Ionicons name="send-outline" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.feedActionButton}>
+            <Ionicons name="bookmark-outline" size={24} color="#333" />
+          </TouchableOpacity>
+        </View> */}
+        
+        {/* Caption/Description */}
+        {/* <View style={styles.feedCaptionContainer}>
+          <Text style={styles.feedCaptionText}>
+            <Text style={styles.feedCaptionUser}>{shopData.ShopName || 'Barber Shop'}</Text>
+            {' '}
+            {caption}
+          </Text>
+          <TouchableOpacity>
+            <Text style={styles.feedViewComments}>View all comments</Text>
+          </TouchableOpacity>
+        </View> */}
+      </View>
+    );
+  };
 
   const renderOfferCard = ({ item }) => (
     <View style={[styles.offerCard, { backgroundColor: item.gradient[0] }]}>
@@ -399,9 +329,16 @@ const BarberShopFeed = () => {
           />
         </View>
 
-        {/* Media Feed - New Vertical Layout */}
+        {/* Media Feed - New Vertical Layout - UPDATED: Use shopData.media */}
         <View style={styles.feedListContainer}>
-          {mediaData.map(renderFeedItem)}
+          {(shopData.media || []).length > 0 ? (
+            shopData.media.map(renderFeedItem)
+          ) : (
+            <View style={styles.emptyFeedContainer}>
+              <Ionicons name="image-outline" size={48} color="#CCC" />
+              <Text style={styles.emptyFeedText}>No media available yet</Text>
+            </View>
+          )}
         </View>
 
         {/* Bottom spacing for floating button */}
@@ -745,8 +682,8 @@ const styles = StyleSheet.create({
   feedMedia: {
     width: '100%',
     aspectRatio: 1, // Common for Instagram media
-    position: 'relative',
-    backgroundColor: '#F0F0F0',
+    position: 'relative', 
+    backgroundColor: '#F0F0F0', 
   },
   feedImage: {
     width: '100%',
@@ -792,6 +729,17 @@ const styles = StyleSheet.create({
   feedViewComments: {
     fontSize: 14,
     color: '#888',
+  },
+  
+  // NEW: Empty Feed State
+  emptyFeedContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyFeedText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 12,
   },
   
   // Grid styles are now unused/removed from the implementation but kept below for comparison if needed

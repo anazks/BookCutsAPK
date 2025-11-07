@@ -1,17 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// 👇 Replace this with your machine's IP address
-// Android Emulator: 'http://10.0.2.2:3002/api/'
-// iOS Simulator or real device: 'http://192.168.29.81:3002/api/'
-const BASE_URL = 'http://10.18.120.39:3002/api/';     
+const BASE_URL = 'http://192.168.29.81:3002/api';     
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000,
+  // ❌ Don't set Content-Type here - let axios handle it based on data type
 });
 
 // 🔹 Request interceptor: attach token + log request
@@ -23,11 +18,17 @@ axiosInstance.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
 
+      // ✅ Only set Content-Type to JSON if it's not FormData
+      if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json';
+      }
+      // If it IS FormData, axios will automatically set the correct Content-Type with boundary
+
       console.log('➡️ Axios Request:', {
         method: config.method?.toUpperCase(),
         url: config.baseURL + config.url,
         headers: config.headers,
-        data: config.data,
+        dataType: config.data instanceof FormData ? 'FormData' : 'JSON',
       });
 
       return config;
