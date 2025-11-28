@@ -14,11 +14,10 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams,router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { getShopById } from '../../api/Service/Shop';
 
 const { width: screenWidth } = Dimensions.get('window');
-// const itemWidth = (screenWidth - 6) / 3; // 🗑️ DELETED: Not needed for single-column feed
 
 const BarberShopFeed = () => {
   const { shop_id } = useLocalSearchParams();
@@ -30,7 +29,7 @@ const BarberShopFeed = () => {
   const offerScrollRef = useRef(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
 
-  // Static offers data - can be replaced with API data later (Unchanged)
+  // Static offers data
   const offers = [
     {
       id: '1',
@@ -66,7 +65,7 @@ const BarberShopFeed = () => {
     }
   ];
 
-  // Fetch shop data from API (Unchanged)
+  // Fetch shop data from API
   const fetchShopData = async () => {
     if (!shop_id) {
       setError('Shop ID not provided');
@@ -79,7 +78,7 @@ const BarberShopFeed = () => {
       const response = await getShopById(shop_id);
       console.log(JSON.stringify(response, null, 2))
       if (response && response.success && response.data && response.data.length > 0) {
-        setShopData(response.data[0]);  // take the first shop
+        setShopData(response.data[0]);
         setError(null);
       } else {
         setError('Failed to fetch shop data');
@@ -93,7 +92,7 @@ const BarberShopFeed = () => {
     }
   };
 
-  // Auto-scroll offers banner (Unchanged)
+  // Auto-scroll offers banner
   useEffect(() => {
     const interval = setInterval(() => {
       if (offerScrollRef.current && offers.length > 0) {
@@ -109,12 +108,12 @@ const BarberShopFeed = () => {
           console.log('Auto-scroll error:', error);
         }
       }
-    }, 3000); // Auto-scroll every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [currentOfferIndex, offers.length]);
 
-  // Fetch shop data on component mount (Unchanged)
+  // Fetch shop data on component mount
   useEffect(() => {
     fetchShopData();
   }, [shop_id]);
@@ -126,16 +125,15 @@ const BarberShopFeed = () => {
 
   const handleBookNow = () => {
     console.log('Book Now pressed for:', shopData?.ShopName || 'Unknown Shop');
-        router.push({
-          pathname: '/Screens/User/BookNow',
-          params: { shop_id: shop_id }
-  })
-}
-
+    router.push({
+      pathname: '/Screens/User/BookNow',
+      params: { shop_id: shop_id }
+    })
+  };
 
   const handleCallPress = () => {
     if (shopData?.Mobile) {
-      const phoneNumber = shopData.Mobile.replace(/\D/g, ''); // Remove all non-digit characters
+      const phoneNumber = shopData.Mobile.toString().replace(/\D/g, '');
       Linking.openURL(`tel:${phoneNumber}`).catch(err => console.error('Failed to open phone app:', err));
     }
   };
@@ -145,12 +143,10 @@ const BarberShopFeed = () => {
     setSelectedMedia(null);
   };
 
-  // ✨ UPDATED: renderFeedItem for the vertical feed using API media
+  // Render feed item for the vertical feed
   const renderFeedItem = (item) => {
-    // Handle broken URL reconstruction (first media item in JSON)
     let imageUrl = item.url;
     if (!imageUrl && typeof item === 'object' && !Array.isArray(item)) {
-      // Reconstruct from indexed characters (exclude _id)
       const urlChars = Object.keys(item)
         .filter(key => !isNaN(parseInt(key)) && key !== '_id')
         .map(key => item[key])
@@ -162,8 +158,6 @@ const BarberShopFeed = () => {
 
     return (
       <View style={styles.feedItemContainer} key={item._id || item.id}>
-        
-        {/* Feed Item Header (Profile-like) */}
         <View style={styles.feedHeader}>
           <View style={styles.feedAvatar} />
           <View style={styles.feedUserInfo}>
@@ -175,49 +169,17 @@ const BarberShopFeed = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Media Content (Image/Video) */}
         <TouchableOpacity
           style={styles.feedMedia}
           onPress={() => handleMediaPress({ uri: imageUrl, caption, type: 'image' })}
           activeOpacity={0.9}
         >
           <Image
-            source={{ uri: imageUrl }} // Use reconstructed or direct URL
+            source={{ uri: imageUrl }}
             style={styles.feedImage}
-            resizeMode="cover" // Cover is better for full-width feed
+            resizeMode="cover"
           />
-          {/* No video overlay since API media are images */}
         </TouchableOpacity>
-
-        {/* Feed Actions */}
-        {/* <View style={styles.feedActions}>
-          <View style={styles.feedActionRow}>
-            <TouchableOpacity style={styles.feedActionButton}>
-              <Ionicons name="heart-outline" size={24} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.feedActionButton}>
-              <Ionicons name="chatbubble-outline" size={24} color="#333" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.feedActionButton}>
-              <Ionicons name="send-outline" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.feedActionButton}>
-            <Ionicons name="bookmark-outline" size={24} color="#333" />
-          </TouchableOpacity>
-        </View> */}
-        
-        {/* Caption/Description */}
-        {/* <View style={styles.feedCaptionContainer}>
-          <Text style={styles.feedCaptionText}>
-            <Text style={styles.feedCaptionUser}>{shopData.ShopName || 'Barber Shop'}</Text>
-            {' '}
-            {caption}
-          </Text>
-          <TouchableOpacity>
-            <Text style={styles.feedViewComments}>View all comments</Text>
-          </TouchableOpacity>
-        </View> */}
       </View>
     );
   };
@@ -276,7 +238,26 @@ const BarberShopFeed = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header - Remains in ScrollView to allow full scrolling */}
+        {/* ✨ NEW: Profile Image Section */}
+        <View style={styles.profileSection}>
+          <View style={styles.profileImageContainer}>
+            {shopData.ProfileImage ? (
+              <Image
+                source={{ uri: shopData.ProfileImage }}
+                style={styles.profileImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <Text style={styles.placeholderText}>
+                  {shopData.ShopName?.charAt(0) || 'S'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.headerContent}>
             <View style={styles.shopInfo}>
@@ -292,7 +273,7 @@ const BarberShopFeed = () => {
                   <Text style={styles.openText}>Open</Text>
                 </View>
                 <Text style={styles.locationText} numberOfLines={1}>
-                  <Ionicons name="location-outline" size={14} color="#888" />  {shopData.ExactLocation}  {shopData.City  || 'Unknown City'}
+                  <Ionicons name="location-outline" size={14} color="#888" />  {shopData.ExactLocation}  {shopData.City || 'Unknown City'}
                 </Text>
               </View>
 
@@ -329,7 +310,7 @@ const BarberShopFeed = () => {
           />
         </View>
 
-        {/* Media Feed - New Vertical Layout - UPDATED: Use shopData.media */}
+        {/* Media Feed */}
         <View style={styles.feedListContainer}>
           {(shopData.media || []).length > 0 ? (
             shopData.media.map(renderFeedItem)
@@ -341,11 +322,10 @@ const BarberShopFeed = () => {
           )}
         </View>
 
-        {/* Bottom spacing for floating button */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Floating Book Now Button (Unchanged) */}
+      {/* Floating Book Now Button */}
       <TouchableOpacity
         style={styles.floatingBookButton}
         onPress={handleBookNow}
@@ -355,7 +335,7 @@ const BarberShopFeed = () => {
         <Ionicons name="calendar" size={20} color="#FFF" />
       </TouchableOpacity>
 
-      {/* Media Modal - remains the same (Unchanged) */}
+      {/* Media Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -370,7 +350,6 @@ const BarberShopFeed = () => {
           />
 
           <View style={styles.modalContent}>
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedMedia?.caption || 'Media Preview'}
@@ -383,7 +362,6 @@ const BarberShopFeed = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Media Display */}
             <View style={styles.modalMediaContainer}>
               {selectedMedia && (
                 <>
@@ -393,7 +371,6 @@ const BarberShopFeed = () => {
                     resizeMode="contain"
                   />
 
-                  {/* Video Play Button */}
                   {selectedMedia.type === 'video' && (
                     <TouchableOpacity
                       style={styles.modalPlayButton}
@@ -408,7 +385,6 @@ const BarberShopFeed = () => {
               )}
             </View>
 
-            {/* Modal Actions */}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalActionButton}>
                 <Ionicons name="heart-outline" size={20} color="#FF6B6B" />
@@ -438,7 +414,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
 
-  // Loading and Error States (Unchanged)
+  // Loading and Error States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -477,15 +453,62 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Header Styles (Moved into ScrollView, padding top adjusted slightly)
+  // ✨ NEW: Profile Section Styles
+  profileSection: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 60,
+    paddingBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    position: 'relative',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: '#FF6B6B',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  profileImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FF6B6B',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  placeholderText: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Header Styles
   headerContainer: {
     backgroundColor: '#FFFFFF',
-    paddingTop: 50, // To clear the status bar
+    paddingTop: 15,
     paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
-    // Removed shadow/elevation to let the feed items scroll up to the top naturally
   },
   headerContent: {
     flexDirection: 'row',
@@ -568,7 +591,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // Offers Banner Styles (Unchanged)
+  // Offers Banner Styles
   offersBannerContainer: {
     backgroundColor: '#FFF',
     paddingVertical: 16,
@@ -634,15 +657,15 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  // Scroll Container Styles (Adjusted for feed layout)
+  // Scroll Container Styles
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // Ensure space for the floating button
+    paddingBottom: 100,
   },
   
-  // NEW: Feed Item Styles (Instagram-like)
+  // Feed Item Styles
   feedListContainer: {
     backgroundColor: '#FFF',
   },
@@ -681,7 +704,7 @@ const styles = StyleSheet.create({
   },
   feedMedia: {
     width: '100%',
-    aspectRatio: 1, // Common for Instagram media
+    aspectRatio: 1,
     position: 'relative', 
     backgroundColor: '#F0F0F0', 
   },
@@ -689,49 +712,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  videoFeedOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  feedActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  feedActionRow: {
-    flexDirection: 'row',
-  },
-  feedActionButton: {
-    padding: 8,
-    marginRight: 4,
-  },
-  feedCaptionContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  feedCaptionText: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  feedCaptionUser: {
-    fontWeight: '700',
-  },
-  feedViewComments: {
-    fontSize: 14,
-    color: '#888',
-  },
   
-  // NEW: Empty Feed State
+  // Empty Feed State
   emptyFeedContainer: {
     alignItems: 'center',
     paddingVertical: 40,
@@ -741,16 +723,8 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 12,
   },
-  
-  // Grid styles are now unused/removed from the implementation but kept below for comparison if needed
-  // gridContainer: { flex: 1, backgroundColor: '#FFF', paddingTop: 2, },
-  // gridRow: { justifyContent: 'space-between', marginBottom: 2, },
-  // mediaGridItem: { backgroundColor: '#F0F0F0', position: 'relative', marginBottom: 2, },
-  // gridImage: { width: '100%', height: '100%', },
-  // videoGridOverlay: { /* ... */ },
-  // mediaTypeBadge: { /* ... */ },
 
-  // Floating Button (Unchanged)
+  // Floating Button
   floatingBookButton: {
     position: 'absolute',
     bottom: 30,
@@ -776,7 +750,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 
-  // Modal Styles (Unchanged)
+  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',
@@ -855,7 +829,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Spacing (Unchanged)
+  // Spacing
   bottomSpacing: {
     height: 20,
   },

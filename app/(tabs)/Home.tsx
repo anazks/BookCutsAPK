@@ -109,7 +109,7 @@ const Home = ({ navigation }) => {
     try {
       setLoading(true);
       const result = await findNearestShops(coordinates);
-      console.log("Nearby shops API response:", result);
+      console.log("Nearby shops API response:",JSON.stringify(result, null, 2));
       
       if (result && result.success) {
         setShops(result.shops);
