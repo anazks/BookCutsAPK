@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Modal,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllShops } from '../api/Service/Shop';
 
 // Color palette
@@ -31,25 +34,45 @@ const colors = {
   border: '#e5e7eb',
 };
 
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const BookNow = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [selectedCity, setSelectedCity] = useState('All');
-  const [selectedService, setSelectedService] = useState('All');
   const [sortBy, setSortBy] = useState('name');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [allShops, setAllShops] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const handleCardPress = (shop) => {
+    console.log('Card pressed:', shop);
+    router.push({
+      pathname: '/Screens/User/BarberShopFeed',
+      params: { shop_id: shop.id }
+    });
+  };
 
-
-   const handleBooking = (shop) => {
-      console.log('Shop pressed:', shop);
-      router.push({
-        pathname: '/Screens/User/BookNow',
-        params: { shop_id: shop.id }
-      });
-    };
+  const handleBooking = (shop) => {
+    console.log('Book button pressed:', shop);
+    router.push({
+      pathname: '/Screens/User/BookNow',
+      params: { shop_id: shop.id }
+    });
+  };
   
   // Transform API data to match our component structure
   const transformShopData = (apiData) => {
@@ -70,13 +93,12 @@ const BookNow = ({ navigation }) => {
         mobile: mobile,
         timing: timing,
         website: website,
-        services: ['Haircut', 'Face wash'],
         price: '₹500-1500',
-        distance: `${(Math.random() * 5 + 0.5).toFixed(1)} km`,
-        image: `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
+        coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
+        image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
         isOpen: Math.random() > 0.3,
         discount: Math.random() > 0.6 ? `${Math.floor(Math.random() * 20) + 10}% OFF` : null,
-        serviceType: 'Vehicle Service',
+        serviceType: 'Barber Shop',
       };
     });
   };
@@ -87,11 +109,11 @@ const BookNow = ({ navigation }) => {
       setError(null);
       const result = await getAllShops();
       
-      if (result && result.success && result.data) {
-        const transformedData = transformShopData(result.data);
+      if (result && result.success) {
+        const transformedData = result.data ? transformShopData(result.data) : [];
         setAllShops(transformedData);
       } else {
-        setError('Failed to fetch shops');
+        setError(result.message || 'Failed to fetch shops');
         console.log("Error fetching shops:", result);
       }
     } catch (error) {
@@ -106,29 +128,82 @@ const BookNow = ({ navigation }) => {
     fetchShops();
   }, []);
 
-  // Get unique cities from the data
-  const cities = useMemo(() => {
-    const uniqueCities = [...new Set(allShops.map(shop => shop.city))];
-    return ['All', ...uniqueCities.sort()];
-  }, [allShops]);
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
 
-  const serviceTypes = ['All', 'Wheel Alignment', 'Tire Service', 'Full Service', 'Quick Check'];
+      let location = await Location.getCurrentPositionAsync({});
+      setUserLocation(location);
+    })();
+  }, []);
+
+  // Get unique cities from the data (case-insensitive)
+  const getUniqueCities = useMemo(() => {
+    const cityMap = new Map();
+    allShops.forEach(shop => {
+      const trimmed = shop.city.trim();
+      if (trimmed) {
+        const lower = trimmed.toLowerCase();
+        if (!cityMap.has(lower)) {
+          cityMap.set(lower, trimmed);
+        }
+      }
+    });
+    return Array.from(cityMap.values()).sort();
+  }, [allShops]);
+  
+  const cities = useMemo(() => ['All', ...getUniqueCities], [getUniqueCities]);
+
+  const shopsWithDistance = useMemo(() => {
+    if (!userLocation || !allShops.length) {
+      return allShops.map(shop => ({
+        ...shop,
+        distance: 'N/A',
+        distanceKm: Infinity
+      }));
+    }
+
+    const userLat = userLocation.coords.latitude;
+    const userLon = userLocation.coords.longitude;
+
+    return allShops.map(shop => {
+      if (!shop.coordinates || shop.coordinates.length < 2) {
+        return {
+          ...shop,
+          distance: 'N/A',
+          distanceKm: Infinity
+        };
+      }
+
+      const shopLat = shop.coordinates[1];
+      const shopLon = shop.coordinates[0];
+      const distanceKm = calculateDistance(userLat, userLon, shopLat, shopLon);
+
+      return {
+        ...shop,
+        distance: `${distanceKm.toFixed(1)} km`,
+        distanceKm
+      };
+    });
+  }, [userLocation, allShops]);
   
   const sortOptions = [
-    { key: 'name', label: 'Name A-Z', icon: 'text' },
-    { key: 'rating', label: 'Highest Rated', icon: 'star' },
-    { key: 'distance', label: 'Nearest First', icon: 'location' },
-    { key: 'reviews', label: 'Most Reviewed', icon: 'chatbubbles' },
+    { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
+    { key: 'distance', label: 'Nearest First', icon: 'location-outline' },
   ];
 
   // Filter and sort shops
   const filteredAndSortedShops = useMemo(() => {
-    let filtered = allShops.filter(shop => {
+    let filtered = shopsWithDistance.filter(shop => {
       const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
-      const serviceMatch = selectedService === 'All' || shop.services.some(service => 
-        service.toLowerCase().includes(selectedService.toLowerCase())
-      );
-      return cityMatch && serviceMatch;
+      const searchMatch = !searchQuery || 
+        shop.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        shop.city.toLowerCase().includes(searchQuery.toLowerCase());
+      return cityMatch && searchMatch;
     });
 
     // Sort the filtered results
@@ -136,42 +211,32 @@ const BookNow = ({ navigation }) => {
       switch (sortBy) {
         case 'name':
           return a.name.localeCompare(b.name);
-        case 'rating':
-          return b.rating - a.rating;
         case 'distance':
-          return parseFloat(a.distance) - parseFloat(b.distance);
-        case 'reviews':
-          return b.reviews - a.reviews;
+          return a.distanceKm - b.distanceKm;
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [selectedCity, selectedService, sortBy, allShops]);
+  }, [selectedCity, sortBy, shopsWithDistance, searchQuery]);
 
   const renderShopCard = ({ item }) => (
-    <TouchableOpacity style={styles.shopCard} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.shopCard} activeOpacity={0.8} onPress={() => handleCardPress(item)}>
       <View style={styles.shopImageContainer}>
         <Image source={{ uri: item.image }} style={styles.shopImage} />
-        {item.discount && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{item.discount}</Text>
-          </View>
-        )}
-        <View style={[styles.statusBadge, { backgroundColor: item.isOpen ? colors.secondary : colors.danger }]}>
-          <Text style={styles.statusText}>{item.isOpen ? 'Open' : 'Closed'}</Text>
-        </View>
       </View>
 
       <View style={styles.shopInfo}>
+        {/* Header: Name and Service Type */}
         <View style={styles.shopHeader}>
           <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
           <View style={styles.serviceBadge}>
-            <Text style={styles.serviceText}>Auto Service</Text>
+            <Text style={styles.serviceText}>{item.serviceType}</Text>
           </View>
         </View>
 
+        {/* Rating and Distance Row - Secondary Hierarchy */}
         <View style={styles.ratingDistanceRow}>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color={colors.accent} />
@@ -184,6 +249,7 @@ const BookNow = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Location and Timing Row */}
         <View style={styles.cityTimeRow}>
           <View style={styles.cityContainer}>
             <Ionicons name="business-outline" size={14} color={colors.primary} />
@@ -192,6 +258,7 @@ const BookNow = ({ navigation }) => {
           <Text style={styles.timeText}>{item.timing}</Text>
         </View>
 
+        {/* Contact Row */}
         <View style={styles.contactRow}>
           <View style={styles.phoneContainer}>
             <Ionicons name="call-outline" size={14} color={colors.secondary} />
@@ -199,34 +266,23 @@ const BookNow = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={styles.servicesContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {item.services.slice(0, 3).map((service, index) => (
-              <View key={index} style={[styles.serviceTag, { backgroundColor: colors.primary + '15' }]}>
-                <Text style={[styles.serviceTagText, { color: colors.primary }]}>{service}</Text>
-              </View>
-            ))}
-            {item.services.length > 3 && (
-              <View style={[styles.serviceTag, { backgroundColor: colors.text.light + '20' }]}>
-                <Text style={[styles.serviceTagText, { color: colors.text.secondary }]}>
-                  +{item.services.length - 3} more
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-
+        {/* Bottom Row: Full-width CTA */}
         <View style={styles.bottomRow}>
-          <Text style={styles.priceText}>{item.price}</Text>
-          <TouchableOpacity style={styles.bookButton} 
-            onPress={()=>handleBooking(item)}
-          >
+          <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(item)}>
             <Text style={styles.bookButtonText}>Book Service</Text>
             <Ionicons name="arrow-forward" size={16} color="#ffffff" />
           </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
+  );
+
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="search-outline" size={64} color={colors.text.light} />
+      <Text style={styles.emptyTitle}>No barber shops found</Text>
+      <Text style={styles.emptyText}>Try adjusting your filters or search criteria</Text>
+    </View>
   );
 
   const FilterModal = () => (
@@ -249,14 +305,17 @@ const BookNow = ({ navigation }) => {
             <Text style={styles.filterTitle}>City</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.filterOptionsRow}>
-                {cities.map((city) => (
+                {cities.map((city, index) => (
                   <TouchableOpacity
-                    key={city}
+                    key={`${city}-${index}`}
                     style={[
                       styles.filterOption,
                       selectedCity === city && styles.filterOptionActive
                     ]}
-                    onPress={() => setSelectedCity(city)}
+                    onPress={() => {
+                      setSelectedCity(city);
+                      setShowFilters(false);
+                    }}
                   >
                     <Text style={[
                       styles.filterOptionText,
@@ -269,47 +328,6 @@ const BookNow = ({ navigation }) => {
               </View>
             </ScrollView>
           </View>
-
-          <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>Service Type</Text>
-            <View style={styles.filterOptionsRow}>
-              {serviceTypes.map((service) => (
-                <TouchableOpacity
-                  key={service}
-                  style={[
-                    styles.filterOption,
-                    selectedService === service && styles.filterOptionActive
-                  ]}
-                  onPress={() => setSelectedService(service)}
-                >
-                  <Text style={[
-                    styles.filterOptionText,
-                    selectedService === service && styles.filterOptionTextActive
-                  ]}>
-                    {service}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => {
-                setSelectedCity('All');
-                setSelectedService('All');
-              }}
-            >
-              <Text style={styles.clearButtonText}>Clear All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.applyButton}
-              onPress={() => setShowFilters(false)}
-            >
-              <Text style={styles.applyButtonText}>Apply Filters</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </Modal>
@@ -319,110 +337,118 @@ const BookNow = ({ navigation }) => {
     <Modal
       visible={showSortModal}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={() => setShowSortModal(false)}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowSortModal(false)}
-      >
+      <View style={styles.modalOverlay}>
         <View style={styles.sortModal}>
-          <Text style={styles.sortModalTitle}>Sort By</Text>
-          {sortOptions.map((option) => (
-            <TouchableOpacity
-              key={option.key}
-              style={[
-                styles.sortOption,
-                sortBy === option.key && styles.sortOptionActive
-              ]}
-              onPress={() => {
-                setSortBy(option.key);
-                setShowSortModal(false);
-              }}
-            >
-              <Ionicons 
-                name={option.icon} 
-                size={20} 
-                color={sortBy === option.key ? colors.primary : colors.text.secondary} 
-              />
-              <Text style={[
-                styles.sortOptionText,
-                sortBy === option.key && styles.sortOptionTextActive
-              ]}>
-                {option.label}
-              </Text>
-              {sortBy === option.key && (
-                <Ionicons name="checkmark" size={20} color={colors.primary} />
-              )}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Sort By</Text>
+            <TouchableOpacity onPress={() => setShowSortModal(false)}>
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
-          ))}
+          </View>
+
+          <View style={styles.sortOptionsContainer}>
+            {sortOptions.map((option) => (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.sortOption,
+                  sortBy === option.key && styles.sortOptionActive
+                ]}
+                onPress={() => {
+                  setSortBy(option.key);
+                  setShowSortModal(false);
+                }}
+              >
+                <Ionicons 
+                  name={option.icon} 
+                  size={20} 
+                  color={sortBy === option.key ? colors.primary : colors.text.secondary} 
+                />
+                <Text style={[
+                  styles.sortOptionText,
+                  sortBy === option.key && styles.sortOptionTextActive
+                ]}>
+                  {option.label}
+                </Text>
+                {sortBy === option.key && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+      <View style={styles.container}>
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading Shops ...</Text>
+          <Text style={styles.loadingText}>Loading Barber Shops ...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
+      <View style={styles.container}>
+        <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
           <Ionicons name="alert-circle" size={64} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={fetchShops}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        {/* <Text style={styles.headerTitle}>Wheel Alignment Services</Text> */}
-        {/* <TouchableOpacity>
-          <Ionicons name="search" size={24} color={colors.text.primary} />
-        </TouchableOpacity> */}
-      </View>
-
-      {/* Filter and Sort Bar */}
-      <View style={styles.filterSortBar}>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="filter" size={18} color={colors.primary} />
-          <Text style={styles.filterButtonText}>Filters</Text>
-          {(selectedCity !== 'All' || selectedService !== 'All') && (
-            <View style={styles.activeFilterDot} />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.sortButton}
-          onPress={() => setShowSortModal(true)}
-        >
-          <Ionicons name="swap-vertical" size={18} color={colors.primary} />
-          <Text style={styles.sortButtonText}>Sort</Text>
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
+      {/* Header with Search Bar and Filter/Sort Buttons */}
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={colors.text.secondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search barber shops..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={colors.text.light}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+              <Ionicons name="close" size={20} color={colors.text.secondary} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilters(true)}
+          >
+            <Ionicons name="filter" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.sortButton}
+            onPress={() => setShowSortModal(true)}
+          >
+            <Ionicons name="swap-vertical" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Results Count */}
       <View style={styles.resultsCount}>
         <Text style={styles.resultsText}>
-          {filteredAndSortedShops.length} service centers found
+          {filteredAndSortedShops.length} barber shops found
         </Text>
       </View>
 
@@ -433,13 +459,14 @@ const BookNow = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.shopList}
+        ListEmptyComponent={renderEmptyComponent}
         refreshing={loading}
         onRefresh={fetchShops}
       />
 
       <FilterModal />
       <SortModal />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -484,7 +511,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -492,61 +518,51 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 44,
+    marginRight: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
     color: colors.text.primary,
   },
-  filterSortBar: {
+  clearSearch: {
+    padding: 4,
+  },
+  headerActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: 'center',
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
-    position: 'relative',
-  },
-  filterButtonText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  activeFilterDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    backgroundColor: colors.danger,
-    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  sortButtonText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resultsCount: {
     paddingHorizontal: 20,
@@ -559,7 +575,24 @@ const styles = StyleSheet.create({
   },
   shopList: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 100, // Added padding to prevent overlap with bottom navigation bar
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginTop: 4,
+    textAlign: 'center',
   },
   shopCard: {
     backgroundColor: colors.surface,
@@ -577,48 +610,21 @@ const styles = StyleSheet.create({
   },
   shopImage: {
     width: '100%',
-    height: 180,
+    height: 160, // Slightly reduced height for compactness
     backgroundColor: colors.border,
   },
-  discountBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: colors.danger,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  discountText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '500',
-  },
   shopInfo: {
-    padding: 16,
+    padding: 12, // Reduced padding for less vertical space
   },
   shopHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 8, // Reduced margin
   },
   shopName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder for primary hierarchy
     color: colors.text.primary,
     flex: 1,
     marginRight: 8,
@@ -638,7 +644,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8, // Reduced margin
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -668,7 +674,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8, // Reduced margin
   },
   cityContainer: {
     flexDirection: 'row',
@@ -685,7 +691,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   contactRow: {
-    marginBottom: 12,
+    marginBottom: 12, // Reduced margin
   },
   phoneContainer: {
     flexDirection: 'row',
@@ -697,36 +703,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
-  servicesContainer: {
-    marginBottom: 16,
-  },
-  serviceTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  serviceTagText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
   bottomRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.secondary,
   },
   bookButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1, // Full width for attractiveness
+    justifyContent: 'center',
   },
   bookButtonText: {
     color: '#ffffff',
@@ -740,6 +730,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterModal: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    maxHeight: '70%',
+  },
+  sortModal: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -772,7 +770,6 @@ const styles = StyleSheet.create({
   filterOptionsRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    flexWrap: 'wrap',
   },
   filterOption: {
     backgroundColor: colors.background,
@@ -780,7 +777,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    marginBottom: 8,
   },
   filterOptionActive: {
     backgroundColor: colors.primary,
@@ -793,72 +789,29 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '500',
   },
-  modalActions: {
-    flexDirection: 'row',
+  sortOptionsContainer: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  clearButton: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: colors.text.secondary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  applyButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginLeft: 8,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sortModal: {
-    backgroundColor: colors.surface,
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
-    alignSelf: 'center',
-    minWidth: 250,
-    marginTop: '50%',
-  },
-  sortModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 16,
-    textAlign: 'center',
   },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   sortOptionActive: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary + '10',
   },
   sortOptionText: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text.primary,
     marginLeft: 12,
     flex: 1,
   },
   sortOptionTextActive: {
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
 

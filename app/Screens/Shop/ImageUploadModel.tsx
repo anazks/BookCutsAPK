@@ -101,7 +101,7 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
         Alert.alert('Success', 'Image uploaded successfully!');
         
         if (onSave) {
-          onSave(response.data);
+          onSave();
         }
         
         handleClose();

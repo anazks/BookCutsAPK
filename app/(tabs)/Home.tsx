@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from "expo-location";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -142,25 +143,33 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: () => {
-            router.replace('/Screens/User/Login0');
+ const handleLogout = () => {
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel"
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // Remove accessToken + shopId
+            await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+
+            // Redirect after removing token
+            router.replace('/Screens/User/Login');
+          } catch (error) {
+            console.error("Logout Error:", error);
           }
         }
-      ]
-    );
-  };
+      }
+    ]
+  );
+};
 
   const handleCitySelect = (city) => {
     setSelectedCity(city);
@@ -218,61 +227,46 @@ const Home = ({ navigation }) => {
   };
 
   const transformShopData = (apiShops) => {
-    return apiShops.map((shop, index) => {
+    return apiShops.map((shop) => {
       let shopName = 'Unknown Shop';
 
       if (shop.ShopName && shop.ShopName.trim()) {
         shopName = shop.ShopName.trim();
-      } else if (shop.firstName || shop.lastName) {
-        const firstName = shop.firstName ? shop.firstName.trim() : '';
-        const lastName = shop.lastName ? shop.lastName.trim() : '';
-        shopName = `${firstName} ${lastName}`.trim();
-        if (!shopName) {
-          shopName = 'Unknown Shop';
-        }
+      }
+
+      let imageUrl = shop.ProfileImage;
+      if (!imageUrl && shop.media && Array.isArray(shop.media) && shop.media.length > 0) {
+        const firstMedia = shop.media[0];
+        imageUrl = typeof firstMedia === 'string' ? firstMedia : firstMedia?.url;
       }
 
       return {
-        id: shop._id || shop.shopId || index.toString(),
+        id: shop._id,
         name: shopName,
         rating: '4.5',
         services: 'Haircut, Beard, Styling',
         price: '$25-45',
-        distance: `${(Math.random() * 2 + 0.5).toFixed(1)} km`,
-        city: shop.City || shop.city || 'Unknown City',
+        distance: `${(shop.distance / 1000).toFixed(1)} km`,
+        city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am - 8pm',
-        mobile: shop.Mobile || shop.mobileNo || '',
+        mobile: shop.Mobile || '',
         website: shop.website || '',
-        email: shop.email || '',
-        image: `https://images.unsplash.com/photo-${1595476108010 + (index * 1000)}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`
+        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop'
       };
     });
   };
 
   const getPopularShops = () => {
     const filteredShops = getFilteredShops();
-    const transformedShops = transformShopData(filteredShops);
+    const sortedByDistance = [...filteredShops].sort((a, b) => a.distance - b.distance);
+    const transformedShops = transformShopData(sortedByDistance);
     return transformedShops.slice(0, 8);
   };
 
   const getTopRatedShops = () => {
     const filteredShops = getFilteredShops();
     const transformedShops = transformShopData(filteredShops);
-
-    const preferredCityShops = transformedShops.filter(shop =>
-      ['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city =>
-        shop.city.toLowerCase().includes(city.toLowerCase())
-      )
-    );
-
-    const otherShops = transformedShops.filter(shop =>
-      !['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city =>
-        shop.city.toLowerCase().includes(city.toLowerCase())
-      )
-    );
-
-    const combinedShops = [...preferredCityShops, ...otherShops];
-    return combinedShops.slice(0, Math.min(8, combinedShops.length));
+    return transformedShops.slice(0, Math.min(8, transformedShops.length));
   };
 
   const getAllTransformedShops = () => {

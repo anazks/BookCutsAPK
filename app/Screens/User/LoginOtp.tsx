@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -16,7 +15,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
 
 export default function LoginOtp() {
@@ -34,9 +33,9 @@ export default function LoginOtp() {
 
     setLoading(true);
     try {
-       const payload = { mobileNo: otpMobile, role: "user" };
-            console.log("Sending to backend:", payload);  // 👈 Debug log
-            const otpResponse = await otpLogin(payload); // Changed from email to mobileNo
+      const payload = { mobileNo: otpMobile, role: "user" };
+      console.log("Sending to backend:", payload);
+      const otpResponse = await otpLogin(payload);
 
       if (otpResponse.success) {
         setOtpSent(true);
@@ -61,8 +60,8 @@ export default function LoginOtp() {
 
     setLoading(true);
     try {
-       const payload = { mobileNo: otpMobile, otp ,role: "user" };
-            console.log("Sending to backend:", payload); 
+      const payload = { mobileNo: otpMobile, otp, role: "user" };
+      console.log("Sending to backend:", payload);
       const verifyResponse = await verifyOtp(payload);
 
       if (verifyResponse.success && verifyResponse.token) {
@@ -83,71 +82,148 @@ export default function LoginOtp() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png' }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.title}>welcome to your account</Text>
-            <Text style={styles.subtitle}>Login with Mobile OTP</Text>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
+        {/* Animated Background */}
+        <View style={styles.backgroundShapes}>
+          <View style={[styles.shape, styles.shape1]} />
+          <View style={[styles.shape, styles.shape2]} />
+          <View style={[styles.shape, styles.shape3]} />
+          <View style={[styles.shape, styles.shape4]} />
+        </View>
+
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoIcon}>
+                <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
+              </View>
+            </View>
+            
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>OTP Login</Text>
+              <Text style={styles.subtitleText}>Enter your mobile number to continue</Text>
+            </View>
           </View>
 
           {/* OTP Form */}
           <View style={styles.formContainer}>
+            {/* Mobile Number Input */}
             <View style={styles.inputContainer}>
-              <Icon name="phone" size={20} color="#FF6B6B" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Mobile Number"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-                value={otpMobile}
-                onChangeText={setOtpMobile}
-              />
-            </View>
-            {otpSent && (
-              <View style={styles.inputContainer}>
-                <Icon name="sms" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="phone" size={22} color="#FF6B6B" />
+                </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter OTP"
-                  placeholderTextColor="#999"
-                  keyboardType="number-pad"
-                  value={otp}
-                  onChangeText={setOtp}
-                  maxLength={6}
+                  placeholder="Mobile number"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                  value={otpMobile}
+                  onChangeText={setOtpMobile}
+                  editable={!loading}
                 />
               </View>
+            </View>
+
+            {/* OTP Input - Only show after OTP is sent */}
+            {otpSent && (
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <MaterialIcons name="sms" size={22} color="#FF6B6B" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter 6-digit OTP"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    value={otp}
+                    onChangeText={setOtp}
+                    maxLength={6}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
             )}
+
+            {/* Send/Verify OTP Button */}
             <TouchableOpacity
-              style={[styles.otpButton, loading && styles.disabledButton]}
+              style={[
+                styles.otpButton,
+                (loading || (otpSent ? !otp : !otpMobile)) && styles.otpButtonDisabled
+              ]}
               onPress={otpSent ? handleVerifyOtp : handleSendOtp}
               disabled={loading || (otpSent ? !otp : !otpMobile)}
             >
               {loading ? (
-                <ActivityIndicator color="#FFF" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.otpButtonText}>{otpSent ? 'Verify OTP' : 'Send OTP'}</Text>
+                <View style={styles.buttonContent}>
+                  <Text style={styles.otpButtonText}>
+                    {otpSent ? 'Verify OTP' : 'Send OTP'}
+                  </Text>
+                  <MaterialIcons 
+                    name={otpSent ? 'verified-user' : 'arrow-forward'} 
+                    size={22} 
+                    color="#FFFFFF" 
+                  />
+                </View>
               )}
             </TouchableOpacity>
+
+            {/* Resend OTP Link */}
             {otpSent && (
-              <TouchableOpacity style={styles.resendOtp} onPress={handleSendOtp} disabled={loading}>
-                <Text style={styles.resendOtpText}>Resend OTP</Text>
-              </TouchableOpacity>
+              <View style={styles.resendContainer}>
+                <Text style={styles.resendText}>Didn't receive the code? </Text>
+                <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
+                  <Text style={styles.resendLink}>Resend OTP</Text>
+                </TouchableOpacity>
+              </View>
             )}
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              disabled={loading}
+            >
+              <MaterialIcons name="arrow-back" size={20} color="#FF6B6B" />
+              <Text style={styles.backButtonText}>Back to Login</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Footer */}
+          {/* Footer Links */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => router.push('/Screens/Shop/Register')}>
-              <Text style={styles.footerLink}>Register</Text>
-            </TouchableOpacity>
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/Screens/User/Register')}
+                disabled={loading}
+              >
+                <Text style={styles.linkText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Are you a shop owner? </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/Screens/Shop/Login')}
+                disabled={loading}
+              >
+                <Text style={styles.linkText}>Login here</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -156,38 +232,207 @@ export default function LoginOtp() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  keyboardAvoid: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 25, paddingBottom: 20 },
-  logoContainer: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
-  logo: { width: 80, height: 80, marginBottom: 15 },
-  title: { fontSize: 24, fontWeight: '700', color: '#FF6B6B', marginBottom: 5 },
-  subtitle: { fontSize: 14, color: '#666' },
-  formContainer: { marginTop: 10 },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, height: 50, color: '#333', fontSize: 15 },
-  otpButton: {
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  backgroundShapes: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  shape: {
+    position: 'absolute',
+    borderRadius: 100,
+  },
+  shape1: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#FFE5E5',
+    top: -150,
+    right: -100,
+    opacity: 0.5,
+  },
+  shape2: {
+    width: 200,
+    height: 200,
+    backgroundColor: '#FFE5E5',
+    bottom: -50,
+    left: -100,
+    opacity: 0.4,
+  },
+  shape3: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#FFF0F0',
+    top: '45%',
+    right: -75,
+    opacity: 0.6,
+  },
+  shape4: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#FFE5E5',
+    top: '20%',
+    left: -50,
+    opacity: 0.3,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  headerSection: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  logoContainer: {
+    marginBottom: 32,
+  },
+  logoIcon: {
+    width: 90,
+    height: 90,
+    borderRadius: 28,
     backgroundColor: '#FF6B6B',
-    borderRadius: 8,
-    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  disabledButton: { opacity: 0.7 },
-  otpButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  resendOtp: { alignSelf: 'center' },
-  resendOtpText: { color: '#FF6B6B', fontSize: 14 },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  footerText: { color: '#666', fontSize: 14, marginRight: 5 },
-  footerLink: { color: '#FF6B6B', fontSize: 14, fontWeight: '600' }
+  welcomeContainer: {
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -1,
+    marginBottom: 8,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '400',
+  },
+  formContainer: {
+    paddingHorizontal: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#F1F5F9',
+    height: 60,
+  },
+  inputIconContainer: {
+    width: 50,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#0F172A',
+    paddingRight: 16,
+    fontWeight: '500',
+  },
+  otpButton: {
+    backgroundColor: '#FF6B6B',
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  otpButtonDisabled: {
+    opacity: 0.6,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  otpButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 8,
+    letterSpacing: 0.5,
+  },
+  resendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  resendText: {
+    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  resendLink: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    height: 60,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FFE5E5',
+    marginBottom: 32,
+  },
+  backButtonText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  linkText: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });

@@ -7,9 +7,7 @@ import {
   Alert,
   Dimensions,
   KeyboardAvoidingView,
-  Modal,
   Platform,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -19,7 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { userLogin } from '../../api/Service/User';
+import { userLogin } from '@/app/api/Service/User';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,7 +26,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showUserTypeModal, setShowUserTypeModal] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -59,7 +56,7 @@ export default function Login() {
         !response.result.message
       ) {
         await AsyncStorage.setItem('accessToken', response.result.token);
-        setShowUserTypeModal(true); // Show modal to confirm user type
+        router.replace('/(tabs)/Home');
       } else {
         const errorMessage =
           response.result?.message || response.message || 'Invalid login details.';
@@ -77,20 +74,6 @@ export default function Login() {
     }
   };
 
-  const handleOTPLogin = () => {
-    // Navigate to OTP login screen or implement OTP login logic
-    router.push('/Screens/User/OTPLogin');
-  };
-
-  const handleUserTypeSelection = (isShopOwner) => {
-    setShowUserTypeModal(false);
-    if (isShopOwner) {
-      router.push('../shop/login');
-    } else {
-      router.replace('/(tabs)/Home');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -99,204 +82,158 @@ export default function Login() {
         style={styles.keyboardAvoidingView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
-        {/* Background Design Elements */}
+        {/* Animated Background */}
         <View style={styles.backgroundShapes}>
           <View style={[styles.shape, styles.shape1]} />
           <View style={[styles.shape, styles.shape2]} />
           <View style={[styles.shape, styles.shape3]} />
+          <View style={[styles.shape, styles.shape4]} />
         </View>
 
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoIcon}>
-              <MaterialIcons name="content-cut" size={32} color="#FFFFFF" />
-            </View>
-            <Text style={styles.logoText}>BookMyCuts</Text>
-            <Text style={styles.taglineText}>Your perfect cut awaits</Text>
-          </View>
-          
-          <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
-            <Text style={styles.loginText}>Sign in to your account</Text>
-          </View>
-        </View>
-
-        {/* Scrollable Content */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoIcon}>
+                <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
+              </View>
+            </View>
+            
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>Welcome Back!</Text>
+              <Text style={styles.subtitleText}>Sign in to continue your journey</Text>
+            </View>
+          </View>
+
           {/* Login Form */}
           <View style={styles.formContainer}>
-            <View style={styles.form}>
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="email" size={20} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false} 
-                    value={email}
-                    onChangeText={setEmail}
-                    editable={!isLoading}
-                  />
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="email" size={22} color="#FF6B6B" />
                 </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false} 
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!isLoading}
+                />
               </View>
+            </View>
 
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="lock" size={20} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#94A3B8"
-                    secureTextEntry={!isPasswordVisible}
-                    value={password}
-                    onChangeText={setPassword}
-                    editable={!isLoading}
-                  />
-                  <TouchableOpacity
-                    style={styles.visibilityToggle}
-                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                    disabled={isLoading}
-                  >
-                    <Ionicons 
-                      name={isPasswordVisible ? 'eye-off' : 'eye'} 
-                      size={20} 
-                      color="#FF6B6B" 
-                    />
-                  </TouchableOpacity>
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="lock" size={22} color="#FF6B6B" />
                 </View>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="Password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!isPasswordVisible}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.visibilityToggle}
+                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  disabled={isLoading}
+                >
+                  <Ionicons 
+                    name={isPasswordVisible ? 'eye-off' : 'eye'} 
+                    size={22} 
+                    color="#64748B" 
+                  />
+                </TouchableOpacity>
               </View>
+            </View>
 
-              <TouchableOpacity 
-                style={styles.forgotPassword} 
-                disabled={isLoading}
-                onPress={() => router.push('/forgot-password')}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.forgotPassword} 
+              disabled={isLoading}
+              onPress={() => router.push('/forgot-password')}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
 
-              {/* Login Button */}
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  isLoading && styles.loginButtonDisabled
-                ]}
-                onPress={handleLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.loginButtonText}>Sign In</Text>
-                    <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-                  </>
-                )}
-              </TouchableOpacity>
+            {/* Login Button */}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                isLoading && styles.loginButtonDisabled
+              ]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <View style={styles.loginButtonContent}>
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <MaterialIcons name="arrow-forward" size={22} color="#FFFFFF" />
+                </View>
+              )}
+            </TouchableOpacity>
 
-              {/* Login using OTP Button */}
-              <TouchableOpacity
-                style={[
-                  styles.otpLoginButton,
-                  isLoading && styles.loginButtonDisabled
-                ]}
-                onPress={() => router.push('/Screens/User/LoginOtp')}
-                disabled={isLoading}
-              >
-                <Text style={styles.otpLoginButtonText}>Login using OTP</Text>
-                <MaterialIcons name="sms" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-              {/* Divider */}
-              <View style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
+            {/* Login using OTP Button */}
+            <TouchableOpacity
+              style={[
+                styles.otpLoginButton,
+                isLoading && styles.loginButtonDisabled
+              ]}
+              onPress={() => router.push('/Screens/User/LoginOtp')}
+              disabled={isLoading}
+            >
+              <View style={styles.otpButtonContent}>
+                <MaterialIcons name="sms" size={22} color="#FF6B6B" />
+                <Text style={styles.otpLoginButtonText}>Login with OTP</Text>
               </View>
+            </TouchableOpacity>
+          </View>
 
-              {/* Shop Owner Button */}
+          {/* Footer Links */}
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity
-                style={styles.shopOwnerButton}
+                onPress={() => router.push('/Screens/User/Register')}
+                disabled={isLoading}
+              >
+                <Text style={styles.linkText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Are you a shop owner? </Text>
+              <TouchableOpacity
                 onPress={() => router.push('/Screens/Shop/Login')}
                 disabled={isLoading}
               >
-                <MaterialIcons name="store" size={20} color="#FF6B6B" />
-                <Text style={styles.shopOwnerButtonText}>Continue as Shop Owner</Text>
+                <Text style={styles.linkText}>Login here</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/Screens/User/Register')}
-              disabled={isLoading}
-            >
-              <Text style={styles.signupText}>Create Account</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
-
-        {/* User Type Confirmation Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showUserTypeModal}
-          onRequestClose={() => setShowUserTypeModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIconContainer}>
-                  <MaterialIcons name="help-outline" size={32} color="#FF6B6B" />
-                </View>
-                <Text style={styles.modalTitle}>Account Type Confirmation</Text>
-                <Text style={styles.modalSubtitle}>Please confirm your account type to continue</Text>
-              </View>
-              
-              <View style={styles.modalButtonContainer}>
-                <Pressable
-                  style={[styles.modalButton, styles.customerButton]}
-                  onPress={() => handleUserTypeSelection(false)}
-                >
-                  <View style={styles.modalButtonContent}>
-                    <MaterialIcons name="person" size={24} color="#64748B" />
-                    <View style={styles.modalButtonTextContainer}>
-                      <Text style={styles.modalButtonTitle}>Customer</Text>
-                      <Text style={styles.modalButtonSubtitle}>Book appointments & services</Text>
-                    </View>
-                  </View>
-                </Pressable>
-                
-                <Pressable
-                  style={[styles.modalButton, styles.shopOwnerModalButton]}
-                  onPress={() => handleUserTypeSelection(true)}
-                >
-                  <View style={styles.modalButtonContent}>
-                    <MaterialIcons name="store" size={24} color="#FFFFFF" />
-                    <View style={styles.modalButtonTextContainer}>
-                      <Text style={[styles.modalButtonTitle, { color: '#FFFFFF' }]}>Shop Owner</Text>
-                      <Text style={[styles.modalButtonSubtitle, { color: '#FFFFFF', opacity: 0.9 }]}>Manage your salon business</Text>
-                    </View>
-                  </View>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -305,7 +242,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -320,79 +257,39 @@ const styles = StyleSheet.create({
   },
   shape: {
     position: 'absolute',
-    borderRadius: 50,
-    opacity: 0.05,
+    borderRadius: 100,
   },
   shape1: {
-    width: 200,
-    height: 200,
-    backgroundColor: '#FF6B6B',
-    top: -100,
-    right: -50,
+    width: 300,
+    height: 300,
+    backgroundColor: '#FFE5E5',
+    top: -150,
+    right: -100,
+    opacity: 0.5,
   },
   shape2: {
-    width: 150,
-    height: 150,
-    backgroundColor: '#FF6B6B',
-    bottom: 100,
-    left: -75,
+    width: 200,
+    height: 200,
+    backgroundColor: '#FFE5E5',
+    bottom: -50,
+    left: -100,
+    opacity: 0.4,
   },
   shape3: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#FFF0F0',
+    top: '45%',
+    right: -75,
+    opacity: 0.6,
+  },
+  shape4: {
     width: 100,
     height: 100,
-    backgroundColor: '#FF6B6B',
-    top: '40%',
-    right: -50,
-  },
-  headerSection: {
-    paddingTop: 40,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 18,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.8,
-    marginBottom: 6,
-  },
-  taglineText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '400',
-  },
-  welcomeContainer: {
-    alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.6,
-    marginBottom: 6,
-  },
-  loginText: {
-    fontSize: 15,
-    color: '#64748B',
-    fontWeight: '400',
+    backgroundColor: '#FFE5E5',
+    top: '20%',
+    left: -50,
+    opacity: 0.3,
   },
   scrollContainer: {
     flex: 1,
@@ -401,111 +298,118 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 40,
   },
-  formContainer: {
-    marginTop: 32,
+  headerSection: {
+    paddingTop: 60,
     paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 48,
   },
-  form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
+  logoContainer: {
+    marginBottom: 32,
+  },
+  logoIcon: {
+    width: 90,
+    height: 90,
+    borderRadius: 28,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
-  inputContainer: {
-    marginBottom: 20,
+  welcomeContainer: {
+    alignItems: 'center',
   },
-  label: {
-    fontSize: 14,
-    color: '#374151',
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -1,
     marginBottom: 8,
-    fontWeight: '600',
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '400',
+  },
+  formContainer: {
+    paddingHorizontal: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderColor: '#F1F5F9',
+    height: 60,
   },
-  inputIcon: {
-    marginLeft: 16,
-    marginRight: 12,
+  inputIconContainer: {
+    width: 50,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
-    height: 52,
     fontSize: 16,
     color: '#0F172A',
     paddingRight: 16,
+    fontWeight: '500',
   },
   passwordInput: {
     paddingRight: 0,
   },
   visibilityToggle: {
-    padding: 16,
+    padding: 18,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
-    marginTop: -4,
+    marginBottom: 28,
+    marginTop: 4,
   },
   forgotPasswordText: {
     color: '#FF6B6B',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   loginButton: {
     backgroundColor: '#FF6B6B',
-    height: 52,
-    borderRadius: 12,
-    flexDirection: 'row',
+    height: 60,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
     shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   loginButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     marginRight: 8,
-  },
-  otpLoginButton: {
-    backgroundColor: '#FF6B6B',
-    height: 52,
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  otpLoginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 8,
+    letterSpacing: 0.5,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 24,
   },
   dividerLine: {
     flex: 1,
@@ -514,120 +418,47 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 16,
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 14,
     fontWeight: '500',
   },
-  shopOwnerButton: {
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
-    height: 52,
-    borderRadius: 12,
-    flexDirection: 'row',
+  otpLoginButton: {
+    backgroundColor: '#FEF2F2',
+    height: 60,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: '#FFE5E5',
+    marginBottom: 32,
   },
-  shopOwnerButtonText: {
+  otpButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  otpLoginButtonText: {
     color: '#FF6B6B',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    marginTop: 16,
-  },
-  footerText: {
-    color: '#64748B',
-    fontSize: 16,
-  },
-  signupText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
-  },
-  modalHeader: {
     alignItems: 'center',
-    paddingTop: 32,
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-  },
-  modalIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#FEF2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  modalButtonContainer: {
     paddingHorizontal: 24,
     gap: 16,
   },
-  modalButton: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  customerButton: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-  },
-  shopOwnerModalButton: {
-    backgroundColor: '#FF6B6B',
-  },
-  modalButtonContent: {
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  modalButtonTextContainer: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  modalButtonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  modalButtonSubtitle: {
-    fontSize: 14,
+  footerText: {
     color: '#64748B',
-    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  linkText: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

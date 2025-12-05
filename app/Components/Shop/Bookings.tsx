@@ -111,14 +111,38 @@ export default function Bookings() {
         
         setBookings(formattedBookings);
         setPaymentSummary(summary);
+      } else if (response.success && (!response.data || response.data.length === 0)) {
+        // Success but empty data: treat as no bookings (no error, just empty list)
+        setBookings([]);
+        setPaymentSummary({
+          totalEarnings: 0,
+          totalBookings: 0,
+          paidBookings: 0,
+          pendingAmount: 0,
+          completedBookings: 0
+        });
       } else {
-        throw new Error(response.message || 'Failed to fetch bookings');
+        // !success: handle based on status code
+        let errorMsg = 'Failed to fetch bookings';
+        if (response.statusCode === 404) {
+          errorMsg = 'Something went wrong. Please check your connection and try again.';
+        } else if (response.statusCode === 500) {
+          errorMsg = 'Server error. Please try again later.';
+        } else if (response.message) {
+          errorMsg = response.message;
+        }
+        setError(errorMsg);
+        console.error('API Error:', response);
+        if (!isRefresh) {
+          Alert.alert('Error', errorMsg);
+        }
       }
     } catch (err) {
-      setError(err.message);
+      const errorMsg = err.message || 'An unexpected error occurred';
+      setError(errorMsg);
       console.error('Error fetching bookings:', err);
       if (!isRefresh) {
-        Alert.alert('Error', 'Failed to load bookings. Please try again.');
+        Alert.alert('Error', errorMsg);
       }
     } finally {
       setLoading(false);
@@ -465,7 +489,7 @@ export default function Bookings() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <MaterialIcons name="event-busy" size={48} color="#D1D5DB" />
-                <Text style={styles.emptyTitle}>No bookings found</Text>
+                <Text style={styles.emptyTitle}>No bookings yet</Text>
                 <Text style={styles.emptyText}>
                   {activeFilter === 'all' 
                     ? "Your bookings will appear here once customers start booking." 

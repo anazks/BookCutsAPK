@@ -1,11 +1,13 @@
 // ProfileScreen.js - Modern UI with API Integration
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator, Modal } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import ImageUploadModal from './ImageUploadModel'; 
 import { viewMyShop } from '../../api/Service/Shop'; // Import your API function
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const API_BASE_URL = 'http://192.168.29.81:3002/api';
 
@@ -89,19 +91,84 @@ const ProfileImageModal = ({ visible, onClose, hasProfileImage, onSelectImage })
   </Modal>
 );
 
+// --- EDIT IMAGE MODAL ---
+const EditImageModal = ({ 
+  visible, 
+  onClose, 
+  title, 
+  onChangeTitle, 
+  description, 
+  onChangeDescription, 
+  onSave 
+}) => (
+  <Modal
+    animationType="fade"
+    transparent={true}
+    visible={visible}
+    onRequestClose={onClose}
+  >
+    <TouchableOpacity 
+      style={styles.modalOverlay} 
+      activeOpacity={1} 
+      onPress={onClose}
+    >
+      <View style={styles.editModalCard}>
+        <Text style={styles.profileModalTitle}>Edit Image Details</Text>
+        
+        <Text style={styles.detailLabel}>Title</Text>
+        <TextInput
+          style={styles.textInput}
+          value={title}
+          onChangeText={onChangeTitle}
+          placeholder="Enter title"
+          autoFocus
+        />
+        
+        <Text style={styles.detailLabel}>Description</Text>
+        <TextInput
+          style={[styles.textInput, styles.descriptionInput]}
+          value={description}
+          onChangeText={onChangeDescription}
+          placeholder="Enter description"
+          multiline
+          numberOfLines={4}
+        />
+        
+        <View style={styles.modalButtons}>
+          <TouchableOpacity style={styles.saveButton} onPress={onSave}>
+            <Text style={styles.buttonTextWhite}>Save</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  </Modal>
+);
+
 // --- MAIN PROFILE SCREEN COMPONENT ---
 const ProfileScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [shopData, setShopData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileImage, setProfileImage] = useState(null);
   const [shopId, setShopId] = useState(null);
   const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [editingImage, setEditingImage] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   useEffect(() => {
     initializeData();
   }, []);
+
+  const getToken = async () => {
+    return await AsyncStorage.getItem('accessToken');
+  };
 
   const initializeData = async () => {
     try {
@@ -125,9 +192,7 @@ const ProfileScreen = () => {
       if (response.success) {
         setShopData(response.data);
         // Set profile image if exists in shop data
-        if (response.data.profileImage) {
-          setProfileImage(response.data.profileImage);
-        }
+        setProfileImage(response.data.ProfileImage || null);
       } else {
         Alert.alert('Error', response.message || 'Failed to load shop data');
       }
@@ -139,9 +204,42 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear stored credentials
+              await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+              Alert.alert('Success', 'Logged out successfully');
+              // Navigate to login screen
+              router.replace('/Home');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const uploadProfileImage = async (imageUri) => {
     try {
       setUploadingProfile(true);
+
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please login again.');
+        setUploadingProfile(false);
+        return;
+      }
 
       // Get shopId from AsyncStorage if not already loaded
       let currentShopId = shopId;
@@ -149,6 +247,7 @@ const ProfileScreen = () => {
         currentShopId = await AsyncStorage.getItem('shopId');
         if (!currentShopId) {
           Alert.alert('Error', 'Shop ID not found. Please login again.');
+          setUploadingProfile(false);
           return;
         }
         setShopId(currentShopId);
@@ -185,6 +284,7 @@ const ProfileScreen = () => {
           body: formData,
           headers: {
             'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
         }
       );
@@ -277,19 +377,106 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleSaveImage = ({ description }) => {
-    // Mock adding a new image - integrate with your actual upload API
-    const newImage = {
-      _id: Date.now().toString(),
-      url: `https://picsum.photos/seed/${Date.now()}/200/200`,
-      title: description || 'New work added',
-      description: description || 'New work added',
-    };
-    
-    setShopData(prev => ({
-      ...prev,
-      media: [newImage, ...(prev.media || [])]
-    }));
+  const handleUpdateImage = async () => {
+    if (!editingImage) return;
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please login again.');
+        return;
+      }
+
+      const body = {
+        title: editTitle,
+        description: editDescription,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/shop/updateMedia/${editingImage._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      console.log('Update response status:', response.status);
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      console.log('Update response content-type:', contentType);
+
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse.substring(0, 200));
+        Alert.alert('Error', 'Server returned an invalid response. Please check the API endpoint.');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Update API Response:', result);
+
+      if (response.ok && result.success) {
+        Alert.alert('Success', 'Image details updated successfully');
+        await fetchShopData();
+        setIsEditModalVisible(false);
+        setEditingImage(null);
+        setEditTitle('');
+        setEditDescription('');
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update image details');
+      }
+    } catch (error) {
+      console.error('Error updating image:', error);
+      Alert.alert('Error', `Failed to update: ${error.message}`);
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Error', 'Authentication required. Please login again.');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/shop/deleteMedia/${imageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('Delete response status:', response.status);
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      console.log('Delete response content-type:', contentType);
+
+      let result;
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse.substring(0, 200));
+        Alert.alert('Error', 'Server returned an invalid response. Please check the API endpoint.');
+        return;
+      } else {
+        result = await response.json();
+        console.log('Delete API Response:', result);
+      }
+
+      if (response.ok && result.success) {
+        Alert.alert('Success', 'Image deleted successfully');
+        await fetchShopData();
+      } else {
+        Alert.alert('Error', result?.message || 'Failed to delete image');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      Alert.alert('Error', error.message || 'Failed to delete image');
+    }
   };
 
   const handleImagePress = (image) => {
@@ -299,16 +486,29 @@ const ProfileScreen = () => {
       [
         {
           text: "Edit Description",
-          onPress: () => console.log('Edit pressed for:', image._id),
+          onPress: () => {
+            setEditingImage(image);
+            setEditTitle(image.title || '');
+            setEditDescription(image.description || '');
+            setIsEditModalVisible(true);
+          },
         },
         {
           text: "Delete Image",
           style: 'destructive',
           onPress: () => {
-            setShopData(prev => ({
-              ...prev,
-              media: prev.media.filter(img => img._id !== image._id)
-            }));
+            Alert.alert(
+              'Confirm Delete',
+              'Are you sure you want to delete this image? This action cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => handleDeleteImage(image._id),
+                },
+              ]
+            );
           },
         },
         {
@@ -329,6 +529,18 @@ const ProfileScreen = () => {
     } else if (source === 'gallery') {
       await pickImageFromGallery();
     }
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalVisible(false);
+    setEditingImage(null);
+    setEditTitle('');
+    setEditDescription('');
+  };
+
+  const handleMediaUploadSuccess = async () => {
+    setIsModalVisible(false);
+    await fetchShopData();
   };
 
   if (loading) {
@@ -352,7 +564,8 @@ const ProfileScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+   <SafeAreaView style={{ flex: 1, backgroundColor: SECONDARY_BG }}>
+     <ScrollView style={styles.container}>
       {/* Profile Image Section */}
       <View style={styles.profileImageContainer}>
         <TouchableOpacity 
@@ -408,6 +621,13 @@ const ProfileScreen = () => {
         {shopData.website && (
           <DetailRow icon="globe-outline" label="Website" value={shopData.website} />
         )}
+        {/* Logout Button under Website */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <View style={styles.detailIconBox}>
+            <Ionicons name="log-out-outline" size={18} color="#FF3B30" />
+          </View>
+          <Text style={[styles.detailValue, { color: '#FF3B30', fontWeight: '600' }]}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Image Management Section */}
@@ -450,7 +670,7 @@ const ProfileScreen = () => {
       <ImageUploadModal 
         visible={isModalVisible} 
         onClose={() => setIsModalVisible(false)} 
-        onSave={handleSaveImage} 
+        onSave={handleMediaUploadSuccess}
       />
 
       {/* Profile Image Modal */}
@@ -460,9 +680,21 @@ const ProfileScreen = () => {
         hasProfileImage={!!profileImage}
         onSelectImage={handleProfileImageSelect}
       />
+
+      {/* Edit Image Modal */}
+      <EditImageModal
+        visible={isEditModalVisible}
+        onClose={handleEditModalClose}
+        title={editTitle}
+        onChangeTitle={setEditTitle}
+        description={editDescription}
+        onChangeDescription={setEditDescription}
+        onSave={handleUpdateImage}
+      />
       
       <View style={{ height: 40 }} />
     </ScrollView>
+   </SafeAreaView>
   );
 };
 
@@ -559,6 +791,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 350,
   },
+  editModalCard: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    width: '100%',
+    maxWidth: 350,
+  },
   profileModalTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -591,6 +830,49 @@ const styles = StyleSheet.create({
   profileModalCancelText: {
     fontSize: 16,
     color: '#666',
+    fontWeight: '600',
+  },
+  // --- Edit Modal Styles ---
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
+  },
+  descriptionInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: PRIMARY_COLOR,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginRight: 5,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  buttonTextWhite: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  buttonText: {
+    color: '#333',
     fontWeight: '600',
   },
   // --- Header/Owner Card ---
@@ -666,6 +948,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: '#222',
   },
+  // --- Logout Button Style ---
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 10,
+  },
   // --- Image Management Styles ---
   addButton: {
     flexDirection: 'row',
@@ -725,4 +1014,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ProfileScreen;
+export default ProfileScreen
