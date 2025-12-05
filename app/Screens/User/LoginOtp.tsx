@@ -1,11 +1,9 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -17,60 +15,68 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { userLogin } from '@/app/api/Service/User';
+import { MaterialIcons } from '@expo/vector-icons';
+import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
 
-const { width, height } = Dimensions.get('window');
+export default function LoginOtp() {
+  const [otpMobile, setOtpMobile] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleLogin = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+  // Send OTP
+  const handleSendOtp = async () => {
+    if (!otpMobile) {
+      Alert.alert('Error', 'Please enter your mobile number');
       return;
     }
 
-    if (!password.trim()) {
-      Alert.alert('Error', 'Please enter your password');
-      return;
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      const response = await userLogin({ email, password });
-      console.log('Login response:', response);
+      const payload = { mobileNo: otpMobile, role: "user" };
+      console.log("Sending to backend:", payload);
+      const otpResponse = await otpLogin(payload);
 
-      if (
-        response.success === true &&
-        response.result &&
-        response.result.token &&
-        !response.result.message
-      ) {
-        await AsyncStorage.setItem('accessToken', response.result.token);
-        router.replace('/(tabs)/Home');
+      if (otpResponse.success) {
+        setOtpSent(true);
+        Alert.alert('OTP Sent', 'OTP has been sent to your mobile number');
       } else {
-        const errorMessage =
-          response.result?.message || response.message || 'Invalid login details.';
-        Alert.alert('Login Failed', errorMessage, [{ text: 'OK' }]);
+        Alert.alert('Error', otpResponse.message || 'Failed to send OTP. Please try again.');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert(
-        'Error',
-        'An unexpected error occurred. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      console.error('OTP error:', error);
+      Alert.alert('Error', 'Failed to send OTP. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    if (!otpMobile || !otp) {
+      Alert.alert('Error', 'Please enter both mobile number and OTP');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = { mobileNo: otpMobile, otp, role: "user" };
+      console.log("Sending to backend:", payload);
+      const verifyResponse = await verifyOtp(payload);
+
+      if (verifyResponse.success && verifyResponse.token) {
+        await AsyncStorage.setItem('accessToken', verifyResponse.token);
+        Alert.alert('Success', 'Login successful!', [
+          { text: 'OK', onPress: () => router.push('/(tabs)/Home') }
+        ]);
+      } else {
+        Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,109 +111,95 @@ export default function Login() {
             </View>
             
             <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Welcome Back!</Text>
-              <Text style={styles.subtitleText}>Sign in to continue your journey</Text>
+              <Text style={styles.welcomeText}>OTP Login</Text>
+              <Text style={styles.subtitleText}>Enter your mobile number to continue</Text>
             </View>
           </View>
 
-          {/* Login Form */}
+          {/* OTP Form */}
           <View style={styles.formContainer}>
-            {/* Email Input */}
+            {/* Mobile Number Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="email" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="phone" size={22} color="#FF6B6B" />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Email address"
+                  placeholder="Mobile number"
                   placeholderTextColor="#94A3B8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false} 
-                  value={email}
-                  onChangeText={setEmail}
-                  editable={!isLoading}
+                  keyboardType="phone-pad"
+                  value={otpMobile}
+                  onChangeText={setOtpMobile}
+                  editable={!loading}
                 />
               </View>
             </View>
 
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="lock" size={22} color="#FF6B6B" />
-                </View>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="Password"
-                  placeholderTextColor="#94A3B8"
-                  secureTextEntry={!isPasswordVisible}
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!isLoading}
-                />
-                <TouchableOpacity
-                  style={styles.visibilityToggle}
-                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                  disabled={isLoading}
-                >
-                  <Ionicons 
-                    name={isPasswordVisible ? 'eye-off' : 'eye'} 
-                    size={22} 
-                    color="#64748B" 
+            {/* OTP Input - Only show after OTP is sent */}
+            {otpSent && (
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.inputIconContainer}>
+                    <MaterialIcons name="sms" size={22} color="#FF6B6B" />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter 6-digit OTP"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    value={otp}
+                    onChangeText={setOtp}
+                    maxLength={6}
+                    editable={!loading}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            )}
 
-            <TouchableOpacity 
-              style={styles.forgotPassword} 
-              disabled={isLoading}
-              onPress={() => router.push('/forgot-password')}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Login Button */}
+            {/* Send/Verify OTP Button */}
             <TouchableOpacity
               style={[
-                styles.loginButton,
-                isLoading && styles.loginButtonDisabled
+                styles.otpButton,
+                (loading || (otpSent ? !otp : !otpMobile)) && styles.otpButtonDisabled
               ]}
-              onPress={handleLogin}
-              disabled={isLoading}
+              onPress={otpSent ? handleVerifyOtp : handleSendOtp}
+              disabled={loading || (otpSent ? !otp : !otpMobile)}
             >
-              {isLoading ? (
+              {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <View style={styles.loginButtonContent}>
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                  <MaterialIcons name="arrow-forward" size={22} color="#FFFFFF" />
+                <View style={styles.buttonContent}>
+                  <Text style={styles.otpButtonText}>
+                    {otpSent ? 'Verify OTP' : 'Send OTP'}
+                  </Text>
+                  <MaterialIcons 
+                    name={otpSent ? 'verified-user' : 'arrow-forward'} 
+                    size={22} 
+                    color="#FFFFFF" 
+                  />
                 </View>
               )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Login using OTP Button */}
-            <TouchableOpacity
-              style={[
-                styles.otpLoginButton,
-                isLoading && styles.loginButtonDisabled
-              ]}
-              onPress={() => router.push('/Screens/User/LoginOtp')}
-              disabled={isLoading}
-            >
-              <View style={styles.otpButtonContent}>
-                <MaterialIcons name="sms" size={22} color="#FF6B6B" />
-                <Text style={styles.otpLoginButtonText}>Login with OTP</Text>
+            {/* Resend OTP Link */}
+            {otpSent && (
+              <View style={styles.resendContainer}>
+                <Text style={styles.resendText}>Didn't receive the code? </Text>
+                <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
+                  <Text style={styles.resendLink}>Resend OTP</Text>
+                </TouchableOpacity>
               </View>
+            )}
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              disabled={loading}
+            >
+              <MaterialIcons name="arrow-back" size={20} color="#FF6B6B" />
+              <Text style={styles.backButtonText}>Back to Login</Text>
             </TouchableOpacity>
           </View>
 
@@ -217,7 +209,7 @@ export default function Login() {
               <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/Screens/User/Register')}
-                disabled={isLoading}
+                disabled={loading}
               >
                 <Text style={styles.linkText}>Sign Up</Text>
               </TouchableOpacity>
@@ -227,7 +219,7 @@ export default function Login() {
               <Text style={styles.footerText}>Are you a shop owner? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/Screens/Shop/Login')}
-                disabled={isLoading}
+                disabled={loading}
               >
                 <Text style={styles.linkText}>Login here</Text>
               </TouchableOpacity>
@@ -363,84 +355,66 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     fontWeight: '500',
   },
-  passwordInput: {
-    paddingRight: 0,
-  },
-  visibilityToggle: {
-    padding: 18,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 28,
-    marginTop: 4,
-  },
-  forgotPasswordText: {
-    color: '#FF6B6B',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  loginButton: {
+  otpButton: {
     backgroundColor: '#FF6B6B',
     height: 60,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 16,
     shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
-  loginButtonDisabled: {
+  otpButtonDisabled: {
     opacity: 0.6,
   },
-  loginButtonContent: {
+  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  loginButtonText: {
+  otpButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
     marginRight: 8,
     letterSpacing: 0.5,
   },
-  dividerContainer: {
+  resendContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
+  resendText: {
+    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '400',
   },
-  dividerText: {
-    paddingHorizontal: 16,
-    color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '500',
+  resendLink: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '700',
   },
-  otpLoginButton: {
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FEF2F2',
     height: 60,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFE5E5',
     marginBottom: 32,
   },
-  otpButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  otpLoginButtonText: {
+  backButtonText: {
     color: '#FF6B6B',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 8,
   },
   footer: {
     alignItems: 'center',

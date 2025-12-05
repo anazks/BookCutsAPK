@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getmyProfile } from '../api/Service/User';
 
 export default function Profile() {
@@ -13,6 +14,7 @@ export default function Profile() {
     try {
       setLoading(true);
       const response = await getmyProfile();
+      console.log("profile data:",JSON.stringify(response,null,2))
       
       if (response && response.success) {
         setUserData(response.user);
@@ -25,6 +27,32 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear stored credentials (adjust keys if you store more, e.g., userId)
+              await AsyncStorage.multiRemove(['accessToken','shopId']);
+              Alert.alert('Success', 'Logged out successfully');
+              // Navigate to login screen - adjust path if your user login is different
+              router.replace('/Screens/User/Login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -142,7 +170,7 @@ export default function Profile() {
       </View>
 
       {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#ef4444" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>

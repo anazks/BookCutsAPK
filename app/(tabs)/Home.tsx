@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from "expo-location";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,7 +16,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { getAllShops } from '../api/Service/Shop';
+
+// Import the API service functions
+import { findNearestShops } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
 
 const Home = ({ navigation }) => {
@@ -25,8 +29,13 @@ const Home = ({ navigation }) => {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [selectedCity, setSelectedCity] = useState('India');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState(null);
+  const [coordinates, setCoordinates] = useState({
+    latitude: 0,
+    longtitude: 0
+  });
 
-  // List of cities for dropdown
   const cities = [
     'All Cities',
     'Kochi',
@@ -50,189 +59,239 @@ const Home = ({ navigation }) => {
     'Pimpri-Chinchwad'
   ];
 
-  // API call to fetch all shops
-  const getShops = async () => {
+  const getLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Allow location access in settings.");
+        setLoading(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+      });
+
+      setLocation(loc);
+      console.log("Current Location:", loc.coords);
+
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const addr = reverseGeocode[0];
+        setAddress(addr);
+        const locality = addr.city || addr.subregion || 'India';
+        console.log("Locality:", locality);
+        setSelectedCity(locality);
+        console.log("Address:", addr);
+      }
+
+      setCoordinates({
+        latitude: loc.coords.latitude,
+        longtitude: loc.coords.longitude
+      });
+
+    } catch (error) {
+      console.error("Error getting location:", error);
+      setError("Failed to get your location. Please check your settings.");
+      setLoading(false);
+    }
+  };
+
+  const findNearestShopApi = async () => {
+    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+      console.log("Coordinates not available yet. Skipping API call.");
+      return;
+    }
+
     try {
       setLoading(true);
-      setError(null);
-      const result = await getAllShops();
-      console.log("Shops Response:", result);
+      const result = await findNearestShops(coordinates);
+      console.log("Nearby shops API response:",JSON.stringify(result, null, 2));
+      
       if (result && result.success) {
-        setShops(result.data);
+        setShops(result.shops);
+        setError(null);
       } else {
-        console.log("Error fetching shops:", result);
+        console.log("Error fetching nearby shops:", result);
+        setError("Failed to fetch nearby shops. Please try again.");
       }
     } catch (error) {
-      console.error("Error fetching shops:", error);
-      Alert.alert(
-        "Error", 
-        "Failed to load shops. Please check your connection and try again.",
-        [{ text: "OK" }]
-      );
+      console.error("Error fetching nearby shops:", error);
+      setError("Failed to load shops. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch user profile
   const getProfile = async () => {
+    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+      return;
+    }
+    
     try {
-      const response = await getmyProfile();
+      const response = await getmyProfile(coordinates);
       console.log("User Profile Response:", response);
       if (response && response.success) {
         setUserProfile(response.user);
-        // Set selected city from user profile
-        if (response.user && response.user.city) {
-          setSelectedCity(response.user.city);
-        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
   };
 
-  // Handle logout
-  const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: () => {
-            // Clear any stored authentication data here
-            // For example: AsyncStorage.removeItem('userToken');
-            
-            // Navigate to login screen
-            router.replace('/Screens/User/Login0'); // Adjust path as needed
+ const handleLogout = () => {
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel"
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // Remove accessToken + shopId
+            await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+
+            // Redirect after removing token
+            router.replace('/Screens/User/Login');
+          } catch (error) {
+            console.error("Logout Error:", error);
           }
         }
-      ]
-    );
-  };
+      }
+    ]
+  );
+};
 
-  // Handle city selection
   const handleCitySelect = (city) => {
     setSelectedCity(city);
     setShowCityDropdown(false);
-    
-    // You can add logic here to filter shops by city
-    // or make a new API call with city filter
+    // In a real app, you would make an API call to filter by this city
     console.log('Selected city:', city);
   };
 
+  const handleRefresh = () => {
+    getLocation(); // This will trigger the useEffect to refetch shops
+  };
+
+  const handleSearchPress = () => {
+    router.push('/Screens/User/Search');
+  };
+
+  const handleNotificationsPress = () => {
+    router.push('/Screens/User/Notifications');
+  };
+
+  const handleProfilePress = () => {
+    router.push('/Screens/User/Profile');
+  };
+
+  const handleSeeAllPress = (section) => {
+    router.push({
+      pathname: '/Screens/User/SeeAllShops',
+      params: { section, city: selectedCity }
+    });
+  };
+
+  // 1. Get location on component mount
   useEffect(() => {
-    getShops();
-    getProfile();
+    getLocation();
   }, []);
 
-  // Filter shops by selected city
+  // 2. Call APIs when coordinates are available
+  useEffect(() => {
+    if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
+      findNearestShopApi();
+      getProfile();
+    }
+  }, [coordinates]);
+
+
   const getFilteredShops = () => {
     if (selectedCity === 'All Cities' || selectedCity === 'India') {
       return shops;
     }
-    
-    return shops.filter(shop => 
+
+    return shops.filter(shop =>
       shop.City?.toLowerCase().includes(selectedCity.toLowerCase()) ||
       shop.city?.toLowerCase().includes(selectedCity.toLowerCase())
     );
   };
 
-  // Enhanced transform function to handle all shop data structures
   const transformShopData = (apiShops) => {
-    return apiShops.map((shop, index) => {
+    return apiShops.map((shop) => {
       let shopName = 'Unknown Shop';
-      
-      // Priority: ShopName > firstName + lastName > fallback
+
       if (shop.ShopName && shop.ShopName.trim()) {
         shopName = shop.ShopName.trim();
-      } else if (shop.firstName || shop.lastName) {
-        const firstName = shop.firstName ? shop.firstName.trim() : '';
-        const lastName = shop.lastName ? shop.lastName.trim() : '';
-        shopName = `${firstName} ${lastName}`.trim();
-        if (!shopName) {
-          shopName = 'Unknown Shop';
-        }
+      }
+
+      let imageUrl = shop.ProfileImage;
+      if (!imageUrl && shop.media && Array.isArray(shop.media) && shop.media.length > 0) {
+        const firstMedia = shop.media[0];
+        imageUrl = typeof firstMedia === 'string' ? firstMedia : firstMedia?.url;
       }
 
       return {
-        id: shop._id || shop.shopId || index.toString(),
+        id: shop._id,
         name: shopName,
         rating: '4.5',
         services: 'Haircut, Beard, Styling',
         price: '$25-45',
-        distance: `${(Math.random() * 2 + 0.5).toFixed(1)} km`,
-        city: shop.City || shop.city || 'Unknown City',
+        distance: `${(shop.distance / 1000).toFixed(1)} km`,
+        city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am - 8pm',
-        mobile: shop.Mobile || shop.mobileNo || '',
+        mobile: shop.Mobile || '',
         website: shop.website || '',
-        email: shop.email || '',
-        image: `https://images.unsplash.com/photo-${1595476108010 + (index * 1000)}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`
+        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop'
       };
     });
   };
 
-  // Get popular shops (first 8 shops to show more)
   const getPopularShops = () => {
     const filteredShops = getFilteredShops();
-    const transformedShops = transformShopData(filteredShops);
+    const sortedByDistance = [...filteredShops].sort((a, b) => a.distance - b.distance);
+    const transformedShops = transformShopData(sortedByDistance);
     return transformedShops.slice(0, 8);
   };
 
-  // Get top rated shops (show more variety)
   const getTopRatedShops = () => {
     const filteredShops = getFilteredShops();
     const transformedShops = transformShopData(filteredShops);
-    
-    // First, get shops from preferred cities
-    const preferredCityShops = transformedShops.filter(shop => 
-      ['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city => 
-        shop.city.toLowerCase().includes(city.toLowerCase())
-      )
-    );
-    
-    // Then get remaining shops
-    const otherShops = transformedShops.filter(shop => 
-      !['Kochi', 'Salem', 'Kerala', 'kochi', 'salem', 'kerala'].some(city => 
-        shop.city.toLowerCase().includes(city.toLowerCase())
-      )
-    );
-    
-    // Combine and take first 8 (or all if less than 8)
-    const combinedShops = [...preferredCityShops, ...otherShops];
-    return combinedShops.slice(0, Math.min(8, combinedShops.length));
+    return transformedShops.slice(0, Math.min(8, transformedShops.length));
   };
 
-  // Get all shops for a comprehensive view
   const getAllTransformedShops = () => {
     const filteredShops = getFilteredShops();
     return transformShopData(filteredShops);
   };
 
-  // Sample trending designs data
   const trendingDesigns = [
-    { 
-      id: '1', 
-      name: 'Fade Cut', 
+    {
+      id: '1',
+      name: 'Fade Cut',
       popularity: '92%',
-      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
-    { 
-      id: '2', 
-      name: 'Pompadour', 
+    {
+      id: '2',
+      name: 'Pompadour',
       popularity: '87%',
-      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
-    { 
-      id: '3', 
-      name: 'Undercut', 
+    {
+      id: '3',
+      name: 'Undercut',
       popularity: '89%',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' 
+      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
     },
   ];
 
@@ -243,40 +302,12 @@ const Home = ({ navigation }) => {
     { id: '4', name: 'Styling', icon: 'brush', color: '#9B59B6' },
   ];
 
-  // Handle shop card press
   const handleShopPress = (shop) => {
     console.log('Shop pressed:', shop);
     router.push({
-      pathname: '/Screens/User/BookNow',
+      // pathname: '/Screens/User/BookNow',
+      pathname: '/Screens/User/BarberShopFeed',
       params: { shop_id: shop.id }
-    });
-  };
-
-  // Handle refresh
-  const handleRefresh = () => {
-    getShops();
-  };
-
-  // Handle search press
-  const handleSearchPress = () => {
-    router.push('/Screens/User/Search');
-  };
-
-  // Handle profile press
-  const handleProfilePress = () => {
-    router.push('/Screens/User/Profile');
-  };
-
-  // Handle notifications press
-  const handleNotificationsPress = () => {
-    router.push('/Screens/User/Notifications');
-  };
-
-  // Handle see all press
-  const handleSeeAllPress = (section) => {
-    router.push({
-      pathname: '/Screens/User/AllShops',
-      params: { section, city: selectedCity }
     });
   };
 
@@ -296,7 +327,6 @@ const Home = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       
-      {/* Navigation Header */}
       <View style={styles.navContainer}>
         <View style={styles.navContent}>
           <View style={styles.headerLeft}>
@@ -325,14 +355,14 @@ const Home = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.notificationButton}
-              // onPress={handleNotificationsPress }
+              onPress={handleNotificationsPress}
             >
               <Ionicons name="notifications-outline" size={24} color="#333" />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.profileButton}
-              // onPress={handleProfilePress}
+              onPress={handleProfilePress}
             >
               <Image 
                 source={{ 
@@ -345,7 +375,6 @@ const Home = ({ navigation }) => {
         </View>
       </View>
 
-      {/* City Dropdown Modal */}
       <Modal
         visible={showCityDropdown}
         transparent={true}
@@ -400,7 +429,6 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Logout Modal */}
       <Modal
         visible={showLogoutModal}
         transparent={true}
@@ -441,7 +469,6 @@ const Home = ({ navigation }) => {
       </Modal>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Welcome Section with Dynamic Name */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
             Hello, {userProfile ? userProfile.firstName : 'there'}! 👋
@@ -454,7 +481,6 @@ const Home = ({ navigation }) => {
           )}
         </View>
 
-        {/* Search Bar */}
         <TouchableOpacity 
           style={styles.searchContainer}
           onPress={handleSearchPress}
@@ -468,7 +494,6 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={24} color="#FF6B6B" />
@@ -479,7 +504,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Quick Services */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Services</Text>
@@ -496,7 +520,6 @@ const Home = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Popular Shops Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -548,7 +571,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Top Rated Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -603,7 +625,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* All Shops Section */}
         {getFilteredShops().length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -649,7 +670,6 @@ const Home = ({ navigation }) => {
           </View>
         )}
 
-        {/* Trending Designs Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Trending Styles</Text>
@@ -685,7 +705,6 @@ const Home = ({ navigation }) => {
           />
         </View>
 
-        {/* Special Offer */}
         <View style={styles.specialOfferContainer}>
           <View style={styles.specialOffer}>
             <View style={styles.offerContent}>
@@ -708,7 +727,6 @@ const Home = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>

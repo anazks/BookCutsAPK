@@ -14,7 +14,7 @@ export const userRegister = async (userData: any) => {
 export const userLogin = async (userData: any) => {
     try {
         console.log("User Data in userLogin:", userData);
-        const response = await Axios.post('/auth/user/login', userData);
+        const response = await Axios.post('auth/user/login', userData);
         console.log("Response from userLogin:", response);
         return response.data;
     } catch (error: any) {

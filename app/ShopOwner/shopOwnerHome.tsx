@@ -12,7 +12,6 @@ import {
   View
 } from 'react-native';
 import { getMyProfile } from '../api/Service/ShoperOwner';
-import AddShop from '../Components/Shop/AddShop';
 import Dashboard from '../Components/Shop/Dashboard';
 
 const { width } = Dimensions.get('window');
@@ -30,7 +29,7 @@ export default function ShopOwnerHome() {
     const fetchProfile = async () => {
       try {
         const response = await getMyProfile();
-        console.log("Profile data fetched:", response);
+        console.log("Profile data fetched:", JSON.stringify(response));
         if (response.success && response.data) {
 
           setProfileData(response.data);
@@ -72,7 +71,9 @@ export default function ShopOwnerHome() {
         </View>
         <TouchableOpacity 
           style={styles.profileButton}
-        
+          // onPress={() => router.push('/Screens/Shop/UploadMediaScreen')}
+             onPress={() => router.push('/Screens/Shop/ProfileScreen')}
+
         >
           <MaterialIcons name="account-circle" size={32} color="#FF6B6B" />
         </TouchableOpacity>
@@ -89,7 +90,8 @@ export default function ShopOwnerHome() {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => setShowAddShopModal(true)}
+        // onPress={() => setShowAddShopModal(true)}
+        onPress={() => router.push('/Components/Shop/AddShop')}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={24} color="#fff" />
@@ -111,7 +113,7 @@ export default function ShopOwnerHome() {
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
             
-            <AddShop onShopAdded={handleShopAdded} />
+            {/* <AddShop onShopAdded={handleShopAdded} /> */}
           </View>
         </View>
       </Modal>

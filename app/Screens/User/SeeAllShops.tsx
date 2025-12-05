@@ -2,21 +2,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   Modal,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAllShops } from '../api/Service/Shop';
+// Import the API service function
+import { getAllShops } from '../../api/Service/Shop';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
 // Color palette
 const colors = {
@@ -24,7 +28,7 @@ const colors = {
   secondary: '#10b981',
   accent: '#f59e0b',
   danger: '#ef4444',
-  background: '#fafafa',
+  background: '#F8F9FA',
   surface: '#ffffff',
   text: {
     primary: '#111827',
@@ -46,86 +50,43 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-const BookNow = ({ navigation }) => {
+const SeeAllShops = () => {
   const insets = useSafeAreaInsets();
+  const [shops, setShops] = useState([]);
   const [selectedCity, setSelectedCity] = useState('All');
   const [sortBy, setSortBy] = useState('name');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [allShops, setAllShops] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const handleCardPress = (shop) => {
-    console.log('Card pressed:', shop);
-    router.push({
-      pathname: '/Screens/User/BarberShopFeed',
-      params: { shop_id: shop.id }
-    });
-  };
-
-  const handleBooking = (shop) => {
-    console.log('Book button pressed:', shop);
-    router.push({
-      pathname: '/Screens/User/BookNow',
-      params: { shop_id: shop.id }
-    });
-  };
-  
-  // Transform API data to match our component structure
-  const transformShopData = (apiData) => {
-    return apiData.map((shop, index) => {
-      // Handle different data structures in the API response
-      const shopName = shop.ShopName || `${shop.firstName} ${shop.lastName}` || 'Unknown Shop';
-      const city = shop.City || shop.city || 'Unknown City';
-      const mobile = shop.Mobile || shop.mobileNo || 'N/A';
-      const timing = shop.Timing || '9:00 AM - 8:00 PM';
-      const website = shop.website || '';
-      
-      return {
-        id: shop._id,
-        name: shopName,
-        rating: 4.0 + (Math.random() * 1), // Random rating between 4.0-5.0
-        reviews: Math.floor(Math.random() * 200) + 50,
-        city: city,
-        mobile: mobile,
-        timing: timing,
-        website: website,
-        price: '₹500-1500',
-        coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
-        image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
-        isOpen: Math.random() > 0.3,
-        discount: Math.random() > 0.6 ? `${Math.floor(Math.random() * 20) + 10}% OFF` : null,
-        serviceType: 'Barber Shop',
-      };
-    });
-  };
-
-  const fetchShops = async () => {
+  const fetchAllShops = async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await getAllShops();
-      
+      console.log("All shops API response:", result);
+     
       if (result && result.success) {
-        const transformedData = result.data ? transformShopData(result.data) : [];
-        setAllShops(transformedData);
+        const shopsData = result.data || [];
+        setShops(shopsData);
+        setError(null);
       } else {
-        setError(result.message || 'Failed to fetch shops');
-        console.log("Error fetching shops:", result);
+        console.log("Error fetching all shops:", result);
+        setError("Failed to fetch all shops. Please try again.");
       }
     } catch (error) {
-      setError('Network error occurred');
-      console.error("Network error:", error);
+      console.error("Error fetching all shops:", error);
+      setError("Failed to load shops. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchShops();
+    fetchAllShops();
   }, []);
 
   useEffect(() => {
@@ -144,8 +105,8 @@ const BookNow = ({ navigation }) => {
   // Get unique cities from the data (case-insensitive)
   const getUniqueCities = useMemo(() => {
     const cityMap = new Map();
-    allShops.forEach(shop => {
-      const trimmed = shop.city.trim();
+    shops.forEach(shop => {
+      const trimmed = shop.City?.trim();
       if (trimmed) {
         const lower = trimmed.toLowerCase();
         if (!cityMap.has(lower)) {
@@ -154,13 +115,13 @@ const BookNow = ({ navigation }) => {
       }
     });
     return Array.from(cityMap.values()).sort();
-  }, [allShops]);
+  }, [shops]);
   
   const cities = useMemo(() => ['All', ...getUniqueCities], [getUniqueCities]);
 
   const shopsWithDistance = useMemo(() => {
-    if (!userLocation || !allShops.length) {
-      return allShops.map(shop => ({
+    if (!userLocation || !shops.length) {
+      return shops.map(shop => ({
         ...shop,
         distance: 'N/A',
         distanceKm: Infinity
@@ -170,8 +131,9 @@ const BookNow = ({ navigation }) => {
     const userLat = userLocation.coords.latitude;
     const userLon = userLocation.coords.longitude;
 
-    return allShops.map(shop => {
-      if (!shop.coordinates || shop.coordinates.length < 2) {
+    return shops.map(shop => {
+      const coordinates = shop.ExactLocationCoord?.coordinates;
+      if (!coordinates || coordinates.length < 2) {
         return {
           ...shop,
           distance: 'N/A',
@@ -179,8 +141,8 @@ const BookNow = ({ navigation }) => {
         };
       }
 
-      const shopLat = shop.coordinates[1];
-      const shopLon = shop.coordinates[0];
+      const shopLat = coordinates[1];
+      const shopLon = coordinates[0];
       const distanceKm = calculateDistance(userLat, userLon, shopLat, shopLon);
 
       return {
@@ -189,8 +151,8 @@ const BookNow = ({ navigation }) => {
         distanceKm
       };
     });
-  }, [userLocation, allShops]);
-  
+  }, [userLocation, shops]);
+
   const sortOptions = [
     { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
     { key: 'distance', label: 'Nearest First', icon: 'location-outline' },
@@ -199,10 +161,10 @@ const BookNow = ({ navigation }) => {
   // Filter and sort shops
   const filteredAndSortedShops = useMemo(() => {
     let filtered = shopsWithDistance.filter(shop => {
-      const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
+      const cityMatch = selectedCity === 'All' || shop.City === selectedCity;
       const searchMatch = !searchQuery || 
-        shop.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        shop.city.toLowerCase().includes(searchQuery.toLowerCase());
+        shop.ShopName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        shop.City?.toLowerCase().includes(searchQuery.toLowerCase());
       return cityMatch && searchMatch;
     });
 
@@ -210,7 +172,7 @@ const BookNow = ({ navigation }) => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          return a.ShopName.localeCompare(b.ShopName);
         case 'distance':
           return a.distanceKm - b.distanceKm;
         default:
@@ -221,69 +183,57 @@ const BookNow = ({ navigation }) => {
     return filtered;
   }, [selectedCity, sortBy, shopsWithDistance, searchQuery]);
 
-  const renderShopCard = ({ item }) => (
-    <TouchableOpacity style={styles.shopCard} activeOpacity={0.8} onPress={() => handleCardPress(item)}>
-      <View style={styles.shopImageContainer}>
-        <Image source={{ uri: item.image }} style={styles.shopImage} />
-      </View>
+  const handleShopPress = (shop) => {
+    console.log('Shop pressed:', shop);
+    router.push({
+      pathname: '/Screens/User/BarberShopFeed',
+      params: { shop_id: shop._id }
+    });
+  };
 
-      <View style={styles.shopInfo}>
-        {/* Header: Name and Service Type */}
-        <View style={styles.shopHeader}>
-          <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-          <View style={styles.serviceBadge}>
-            <Text style={styles.serviceText}>{item.serviceType}</Text>
+  const renderShopCard = ({ item, index }) => {
+    const profileImageUrl = item.ProfileImage || 'https://via.placeholder.com/150';
+
+    return (
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => handleShopPress(item)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: profileImageUrl }} 
+              style={styles.shopImage}
+              resizeMode="cover"
+            />
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={10} color="#FFD700" />
+              <Text style={styles.ratingText}>4.5</Text>
+            </View>
+          </View>
+
+          <View style={styles.shopInfo}>
+            <Text style={styles.shopName} numberOfLines={1}>
+              {item.ShopName || 'Unknown Shop'}
+            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="location" size={12} color="#666" />
+              <Text style={styles.cityText} numberOfLines={1}>
+                {item.City || 'Unknown City'}
+              </Text>
+            </View>
+            <View style={styles.servicesBadge}>
+              <Ionicons name="cut-outline" size={11} color="#FF6B6B" />
+              <Text style={styles.servicesText}>
+                Services Available
+              </Text>
+            </View>
           </View>
         </View>
-
-        {/* Rating and Distance Row - Secondary Hierarchy */}
-        <View style={styles.ratingDistanceRow}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color={colors.accent} />
-            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewsText}>({item.reviews})</Text>
-          </View>
-          <View style={styles.distanceContainer}>
-            <Ionicons name="location-outline" size={14} color={colors.text.secondary} />
-            <Text style={styles.distanceText}>{item.distance}</Text>
-          </View>
-        </View>
-
-        {/* Location and Timing Row */}
-        <View style={styles.cityTimeRow}>
-          <View style={styles.cityContainer}>
-            <Ionicons name="business-outline" size={14} color={colors.primary} />
-            <Text style={styles.cityText}>{item.city}</Text>
-          </View>
-          <Text style={styles.timeText}>{item.timing}</Text>
-        </View>
-
-        {/* Contact Row */}
-        <View style={styles.contactRow}>
-          <View style={styles.phoneContainer}>
-            <Ionicons name="call-outline" size={14} color={colors.secondary} />
-            <Text style={styles.phoneText}>{item.mobile}</Text>
-          </View>
-        </View>
-
-        {/* Bottom Row: Full-width CTA */}
-        <View style={styles.bottomRow}>
-          <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(item)}>
-            <Text style={styles.bookButtonText}>Book Service</Text>
-            <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="search-outline" size={64} color={colors.text.light} />
-      <Text style={styles.emptyTitle}>No barber shops found</Text>
-      <Text style={styles.emptyText}>Try adjusting your filters or search criteria</Text>
-    </View>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const FilterModal = () => (
     <Modal
@@ -386,46 +336,46 @@ const BookNow = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading Barber Shops ...</Text>
-        </View>
+      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color="#333" />
+        <Text style={styles.loadingText}>Loading shops...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
-          <Ionicons name="alert-circle" size={64} color={colors.danger} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchShops}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
+        <Ionicons name="alert-circle-outline" size={64} color="#999" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchAllShops}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
+      {/* Title */}
+      <View style={[styles.titleContainer, { paddingTop: insets.top }]}>
+        <Text style={styles.headerTitle}>Discover Shops</Text>
+      </View>
+
       {/* Header with Search Bar and Filter/Sort Buttons */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color={colors.text.secondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search barber shops..."
+            placeholder="Search shops or location..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor={colors.text.light}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
-              <Ionicons name="close" size={20} color={colors.text.secondary} />
+              <Ionicons name="close-circle" size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -448,21 +398,34 @@ const BookNow = ({ navigation }) => {
       {/* Results Count */}
       <View style={styles.resultsCount}>
         <Text style={styles.resultsText}>
-          {filteredAndSortedShops.length} barber shops found
+          {filteredAndSortedShops.length} shop{filteredAndSortedShops.length !== 1 ? 's' : ''} found
         </Text>
       </View>
 
-      {/* Shop List */}
-      <FlatList
-        data={filteredAndSortedShops}
-        renderItem={renderShopCard}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.shopList}
-        ListEmptyComponent={renderEmptyComponent}
-        refreshing={loading}
-        onRefresh={fetchShops}
-      />
+      {/* Shop Grid */}
+      {filteredAndSortedShops.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="storefront-outline" size={64} color="#E0E0E0" />
+          <Text style={styles.emptyText}>
+            {searchQuery ? 'No shops found' : 'No shops available'}
+          </Text>
+          {searchQuery && (
+            <Text style={styles.emptySubtext}>
+              Try searching with different keywords
+            </Text>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={filteredAndSortedShops}
+          renderItem={renderShopCard}
+          keyExtractor={(item) => item._id}
+          numColumns={2}
+          contentContainerStyle={styles.gridContent}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <FilterModal />
       <SortModal />
@@ -475,39 +438,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: colors.surface,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  errorText: {
-    marginTop: 16,
-    marginBottom: 24,
-    fontSize: 16,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',
@@ -522,10 +462,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 16,
-    height: 44,
+    height: 50,
     marginRight: 12,
   },
   searchIcon: {
@@ -573,156 +513,142 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontWeight: '500',
   },
-  shopList: {
-    paddingHorizontal: 20,
-    paddingBottom: 100, // Added padding to prevent overlap with bottom navigation bar
+  gridContent: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
+  row: {
+    justifyContent: 'space-between',
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  shopCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
+  card: {
+    width: CARD_WIDTH,
     marginBottom: 16,
+    borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 3,
   },
-  shopImageContainer: {
+  cardContent: {
+    padding: 16,
+  },
+  imageContainer: {
     position: 'relative',
+    marginBottom: 12,
   },
   shopImage: {
     width: '100%',
-    height: 160, // Slightly reduced height for compactness
-    backgroundColor: colors.border,
+    height: 120,
+    borderRadius: 8,
   },
-  shopInfo: {
-    padding: 12, // Reduced padding for less vertical space
-  },
-  shopHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8, // Reduced margin
-  },
-  shopName: {
-    fontSize: 18,
-    fontWeight: '700', // Bolder for primary hierarchy
-    color: colors.text.primary,
-    flex: 1,
-    marginRight: 8,
-  },
-  serviceBadge: {
-    backgroundColor: colors.primary + '15',
+  ratingBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-  },
-  serviceText: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  ratingDistanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8, // Reduced margin
-  },
-  ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 3,
+  },
+  shopInfo: {
+    gap: 4,
+  },
+  shopName: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
-    marginLeft: 4,
   },
-  reviewsText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginLeft: 4,
-  },
-  distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  distanceText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginLeft: 2,
-  },
-  cityTimeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8, // Reduced margin
-  },
-  cityContainer: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   cityText: {
     fontSize: 13,
-    color: colors.primary,
+    color: '#666',
     fontWeight: '500',
     marginLeft: 4,
+    flex: 1,
   },
-  timeText: {
-    fontSize: 12,
+  servicesBadge: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  servicesText: {
+    fontSize: 11,
+    color: '#FF6B6B',
+    fontWeight: '600',
+    marginLeft: 3,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
     color: colors.text.secondary,
+    fontWeight: '400',
   },
-  contactRow: {
-    marginBottom: 12, // Reduced margin
-  },
-  phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  phoneText: {
-    fontSize: 13,
-    color: colors.secondary,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  bottomRow: {
-    flexDirection: 'row',
+  errorContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
-  bookButton: {
+  errorText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1, // Full width for attractiveness
-    justifyContent: 'center',
+    borderRadius: 24,
   },
-  bookButtonText: {
-    color: '#ffffff',
+  retryText: {
+    color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
-    marginRight: 4,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 48,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -815,4 +741,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BookNow;
+export default SeeAllShops;

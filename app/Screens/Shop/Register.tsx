@@ -3,6 +3,9 @@ import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
     SafeAreaView,
     ScrollView,
     StatusBar,
@@ -12,7 +15,11 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { RegisterShopUser } from '../../api/Service/Shop';
+
+const { width, height } = Dimensions.get('window');
+
 export default function ShopRegister() {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -26,6 +33,7 @@ export default function ShopRegister() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (name, value) => {
     setFormData({
@@ -46,6 +54,10 @@ export default function ShopRegister() {
     }
     if (!formData.mobileNo.trim()) {
       Alert.alert('Error', 'Please enter your mobile number');
+      return;
+    }
+    if (!/^\d{10}$/.test(formData.mobileNo)) {
+      Alert.alert('Error', 'Mobile number must be 10 digits');
       return;
     }
     if (!formData.city.trim()) {
@@ -86,11 +98,9 @@ export default function ShopRegister() {
       data.append('email', formData.email);
       data.append('role', formData.role);
 
-      // Replace with your actual API call
-    
       const result = await RegisterShopUser(data);
-        console.log('Registration result:', result);
-        router.push('/Screens/Shop/Login')
+      console.log('Registration result:', result);
+      
       if (result && result.status === 200) {
         Alert.alert('Success', 'Shop registration successful!', [
           { text: 'OK', onPress: () => router.push('/Screens/Shop/Login') }
@@ -108,114 +118,222 @@ export default function ShopRegister() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
-      
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Shop Owner Registration</Text>
-        <Text style={styles.subtitle}>Create your salon management account</Text>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoIcon}>
+                <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
+              </View>
+            </View>
+            
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>Create Your Shop Account</Text>
+              <Text style={styles.subtitleText}>Register to manage your salon bookings</Text>
+            </View>
+          </View>
 
-        <View style={styles.form}>
-          {/* First Name */}
-          <Text style={styles.label}>First Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your first name"
-            value={formData.firstName}
-            onChangeText={(text) => handleChange('firstName', text)}
-          />
+          {/* Registration Form */}
+          <View style={styles.formContainer}>
+            {/* First Name Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="person" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  value={formData.firstName}
+                  onChangeText={(text) => handleChange('firstName', text)}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          {/* Last Name */}
-          <Text style={styles.label}>Last Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your last name"
-            value={formData.lastName}
-            onChangeText={(text) => handleChange('lastName', text)}
-          />
+            {/* Last Name Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="person-outline" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Last Name"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  value={formData.lastName}
+                  onChangeText={(text) => handleChange('lastName', text)}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          {/* Mobile Number */}
-          <Text style={styles.label}>Mobile Number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your mobile number"
-            keyboardType="phone-pad"
-            value={formData.mobileNo}
-            onChangeText={(text) => handleChange('mobileNo', text)}
-            maxLength={10}
-          />
+            {/* Mobile No Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="phone" size={22} color="#FF6B6B" />
+                </View>
+                <View style={styles.countryCodeContainer}>
+                  <Text style={styles.countryCodeText}>+91</Text>
+                </View>
+                <TextInput
+                  style={[styles.input, styles.mobileInput]}
+                  placeholder="Mobile Number"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={formData.mobileNo}
+                  onChangeText={(text) => handleChange('mobileNo', text)}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          {/* City */}
-          <Text style={styles.label}>City</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your city"
-            value={formData.city}
-            onChangeText={(text) => handleChange('city', text)}
-          />
+            {/* City Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="location-city" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="City"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  value={formData.city}
+                  onChangeText={(text) => handleChange('city', text)}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          {/* Email */}
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={formData.email}
-            onChangeText={(text) => handleChange('email', text)}
-          />
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="email" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email Address"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={formData.email}
+                  onChangeText={(text) => handleChange('email', text)}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          {/* Password */}
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            secureTextEntry={!showPassword}
-            value={formData.password}
-            onChangeText={(text) => handleChange('password', text)}
-          />
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="lock" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="Password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  value={formData.password}
+                  onChangeText={(text) => handleChange('password', text)}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.visibilityToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  <MaterialIcons 
+                    name={showPassword ? 'visibility-off' : 'visibility'} 
+                    size={22} 
+                    color="#64748B" 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Confirm Password */}
-          <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm your password"
-            secureTextEntry={!showPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="lock-outline" size={22} color="#FF6B6B" />
+                </View>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="Confirm Password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.visibilityToggle}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isLoading}
+                >
+                  <MaterialIcons 
+                    name={showConfirmPassword ? 'visibility-off' : 'visibility'} 
+                    size={22} 
+                    color="#64748B" 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Show Password Toggle */}
-          <TouchableOpacity 
-            style={styles.showPasswordButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Text style={styles.showPasswordText}>
-              {showPassword ? 'Hide Password' : 'Show Password'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.submitButton, isLoading && styles.disabledButton]}
-            onPress={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitButtonText}>Register</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Login Link */}
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/shop/login')}>
-              <Text style={styles.loginLink}>Login</Text>
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                isLoading && styles.registerButtonDisabled
+              ]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Text style={styles.registerButtonText}>Register</Text>
+                  <MaterialIcons name="arrow-forward" size={22} color="#FFFFFF" />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* Footer Links */}
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/Screens/Shop/Login')}
+                disabled={isLoading}
+              >
+                <Text style={styles.linkText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -223,85 +341,149 @@ export default function ShopRegister() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   scrollContainer: {
-    padding: 20,
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-    marginBottom: 8,
-    textAlign: 'center',
+  headerSection: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 48,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    textAlign: 'center',
+  logoContainer: {
+    marginBottom: 32,
   },
-  form: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  showPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  showPasswordText: {
-    color: '#FF6B6B',
-    fontSize: 14,
-  },
-  submitButton: {
+  logoIcon: {
+    width: 90,
+    height: 90,
+    borderRadius: 28,
     backgroundColor: '#FF6B6B',
-    height: 50,
-    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  disabledButton: {
-    opacity: 0.7,
+  welcomeContainer: {
+    alignItems: 'center',
   },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -1,
+    marginBottom: 8,
   },
-  loginContainer: {
+  subtitleText: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '400',
+  },
+  formContainer: {
+    paddingHorizontal: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#F1F5F9',
+    height: 60,
+  },
+  inputIconContainer: {
+    width: 50,
+    height: '100%',
     justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
   },
-  loginText: {
-    color: '#666',
-    fontSize: 14,
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#0F172A',
+    paddingRight: 16,
+    fontWeight: '500',
   },
-  loginLink: {
+  passwordInput: {
+    paddingRight: 0,
+  },
+  visibilityToggle: {
+    padding: 18,
+  },
+  countryCodeContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  countryCodeText: {
+    fontSize: 16,
     color: '#FF6B6B',
-    fontSize: 14,
     fontWeight: '600',
+  },
+  mobileInput: {
+    paddingLeft: 0,
+  },
+  registerButton: {
+    backgroundColor: '#FF6B6B',
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  registerButtonDisabled: {
+    opacity: 0.6,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 8,
+    letterSpacing: 0.5,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  linkText: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

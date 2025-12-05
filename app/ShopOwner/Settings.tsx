@@ -98,6 +98,7 @@ export default function Settings() {
       setFrom('')
       setShowBarberModal(false)
       Alert.alert('Success', 'Barber added successfully')
+      await fetchData()
     } catch (error) {
       Alert.alert('Error', 'Failed to add barber')
       console.error(error)
@@ -127,6 +128,7 @@ export default function Settings() {
       setServiceDuration('')
       setShowServiceModal(false)
       Alert.alert('Success', 'Service added successfully')
+      await fetchData()
     } catch (error) {
       Alert.alert('Error', 'Failed to add service')
       console.error(error)
@@ -171,6 +173,7 @@ export default function Settings() {
       setEditingBarber(null)
       setShowEditBarberModal(false)
       Alert.alert('Success', 'Barber updated successfully')
+      await fetchData()
     } catch (error) {
       Alert.alert('Error', 'Failed to update barber')
       console.error(error)
@@ -198,6 +201,7 @@ const deleteBarber = async (id) => {
             );
 
             Alert.alert("Success", "Barber deleted successfully!");
+            await fetchData()
           } catch (error) {
             console.error("Failed to delete barber:", error);
             Alert.alert("Error", "Failed to delete barber");
@@ -229,6 +233,7 @@ const deleteService = async (id) => {
             );
 
             Alert.alert("Success", "Service deleted successfully!");
+            await fetchData()
           } catch (error) {
             console.error("Failed to delete service:", error);
             Alert.alert("Error", "Failed to delete service");
@@ -282,6 +287,7 @@ const deleteService = async (id) => {
       setEditingService(null)
       setShowEditServiceModal(false)
       Alert.alert('Success', 'Service updated successfully')
+      await fetchData()
     } catch (error) {
       Alert.alert('Error', 'Failed to update service')
       console.error(error)
@@ -1148,4 +1154,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 })
-

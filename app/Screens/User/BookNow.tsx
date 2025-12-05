@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Collapsible from 'react-native-collapsible';
 import { SlotBooking } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
@@ -23,7 +24,7 @@ const parseTime = (timeStr) => {
   return `${hour.toString().padStart(2, '0')}:00`;
 };
 
-// Enhanced Manual Calendar Component
+// Old/Good Manual Calendar Component (Replaced the enhanced new one with this version for better usability)
 const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -192,7 +193,8 @@ export default function BookNow() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [isCalendarVisible, setCalendarVisibility] = useState(false);
-  const [servicesCollapsed, setServicesCollapsed] = useState(false);
+  const [servicesCollapsed, setServicesCollapsed] = useState(true);
+  const [barbersCollapsed, setBarbersCollapsed] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
   const [error, setError] = useState(null);
   const [apiErrors, setApiErrors] = useState({ services: false, barbers: false });
@@ -307,44 +309,62 @@ export default function BookNow() {
     return null;
   };
 
-  const prepareBookingData = () => {
-    const bookingDateStr = selectedDate?.toISOString().split('T')[0];
-    const startTime = new Date(`${bookingDateStr}T${selectedTimeSlot?.start}:00`);
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + totalDuration);
+const prepareBookingData = () => {
+  const bookingDateStr = selectedDate?.toISOString().split('T')[0];
+  const startTime = new Date(`${bookingDateStr}T${selectedTimeSlot?.start || '00:00'}:00`);
+  const endTime = new Date(startTime);
+  endTime.setMinutes(endTime.getMinutes() + (totalDuration || 30));
 
-    return {
-      barberId: selectedBarber?.id,
-      barberName: selectedBarber?.name || 'Unknown Barber',
-      barberNativePlace: selectedBarber?.nativePlace || 'Unknown',
-      shopId: shopDetails.id,
-      shopName: shopDetails.name,
-      serviceIds: selectedServices.map(s => s.id),
-      services: selectedServices.map(service => ({
-        id: service.id,
-        name: service.name || 'Unknown Service',
-        price: service.price || 0,
-        duration: service.duration || 30
-      })),
-      bookingDate: bookingDateStr,
-      timeSlotId: selectedTimeSlot?.id,
-      timeSlotName: selectedTimeSlot?.name || 'Unknown Slot',
-      timeSlotStart: selectedTimeSlot?.start || '00:00',
-      timeSlotEnd: selectedTimeSlot?.end || '00:00',
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      totalPrice,
-      totalDuration,
-      paymentType: 'full',
-      amountToPay: totalPrice,
-      remainingAmount: 0,
-      currency: 'INR',
-      bookingTimestamp: new Date().toISOString(),
-      bookingStatus: 'pending',
-      paymentStatus: 'unpaid',
-      amountPaid: 0
-    };
+  const getValidId = (id) => {
+    if (id == null || (Array.isArray(id) && id.length === 0)) {
+      return null;
+    }
+    return id;
   };
+
+  const serviceIdsTemp = selectedServices
+    .map(s => {
+      const id = getValidId(s.id);
+      if (id == null) return null;
+      return Array.isArray(id) ? id : [id];
+    })
+    .filter(arr => arr != null)
+    .flat();
+
+  return {
+    barberId: getValidId(selectedBarber?.id), // null if user selects "any barber"
+    barberName: selectedBarber?.name || 'Any Barber',
+    barberNativePlace: selectedBarber?.nativePlace || 'Available',
+    shopId: shopDetails?.id || null,
+    shopName: shopDetails?.name || 'Unknown Shop',
+    serviceIds: serviceIdsTemp.length > 0 ? serviceIdsTemp : null, // null if no specific service
+    services: selectedServices?.length
+      ? selectedServices.map(service => ({
+          id: getValidId(service.id), // null if no id
+          name: service.name || 'Unknown Service',
+          price: service.price || 0,
+          duration: service.duration || 30
+        })).filter(service => service.id !== null || selectedServices.length === 1) // retain at least one if only default
+      : [{ id: null, name: 'Any Service', price: 0, duration: 30 }], // null for default id
+    bookingDate: bookingDateStr,
+    timeSlotId: selectedTimeSlot?.id || null,
+    timeSlotName: selectedTimeSlot?.name || 'Unknown Slot',
+    timeSlotStart: selectedTimeSlot?.start || '00:00',
+    timeSlotEnd: selectedTimeSlot?.end || '00:00',
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString(),
+    totalPrice: totalPrice || 0,
+    totalDuration: totalDuration || 30,
+    paymentType: 'full',
+    amountToPay: totalPrice || 0,
+    remainingAmount: 0,
+    currency: 'INR',
+    bookingTimestamp: new Date().toISOString(),
+    bookingStatus: 'pending',
+    paymentStatus: 'unpaid',
+    amountPaid: 0
+  };
+};
 
   const handleBookNow = () => {
     const validationError = validateBooking();
@@ -421,6 +441,24 @@ export default function BookNow() {
     return { completed, total: 3 };
   };
 
+  const allServices = shopDetails?.services ? [
+    { id: null, name: 'hair cut', price: 150, duration: 30 },
+    ...shopDetails.services
+  ] : [];
+
+  const barberOptions = shopDetails?.barbers ? [
+    { id: null, name: 'Any Barber', nativePlace: 'Available' },
+    ...shopDetails.barbers
+  ] : [{ id: null, name: 'Any Barber', nativePlace: 'Available' }];
+
+  const toggleBarbers = useCallback(() => {
+    setBarbersCollapsed(prev => !prev);
+  }, []);
+
+  const toggleServices = useCallback(() => {
+    setServicesCollapsed(prev => !prev);
+  }, []);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -446,7 +484,7 @@ export default function BookNow() {
 
   return (
     <View style={styles.container}>
-      {/* Manual Calendar */}
+      {/* Manual Calendar (Old/Good Version) */}
       <ManualCalendar
         selectedDate={selectedDate}
         onDateSelect={setSelectedDate}
@@ -537,39 +575,51 @@ export default function BookNow() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Step 1: Barber Selection */}
         <View style={[styles.stepCard, selectedBarber && styles.completedCard]}>
-          <View style={styles.stepHeader}>
+          <TouchableOpacity 
+            style={styles.stepHeader}
+            onPress={toggleBarbers}
+            activeOpacity={0.7}
+          >
             <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>1</Text>
             </View>
             <View style={styles.stepTitleContainer}>
               <Text style={styles.stepTitle}>Choose Your Barber</Text>
-              <Text style={styles.stepSubtitle}>Select from our professional barbers</Text>
+              <Text style={styles.stepSubtitle}>
+                {selectedBarber 
+                  ? 'Barber selected' 
+                  : 'Select from our professional barbers'
+                }
+              </Text>
             </View>
-            {selectedBarber && (
-              <View style={styles.completedBadge}>
-                <Text style={styles.completedText}>Selected</Text>
-              </View>
-            )}
-          </View>
-          
-          {apiErrors.barbers ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>Unable to load barbers</Text>
+            <View style={styles.collapseControls}>
+              {selectedBarber && (
+                <View style={styles.completedBadge}>
+                  <Text style={styles.completedText}>1</Text>
+                </View>
+              )}
+              <Text style={styles.collapseText}>{barbersCollapsed ? 'Show' : 'Hide'}</Text>
             </View>
-          ) : shopDetails.barbers.length > 0 ? (
+          </TouchableOpacity>
+
+          <Collapsible collapsed={barbersCollapsed}>
             <View style={styles.optionsContainer}>
-              {shopDetails.barbers.map(barber => (
+              {barberOptions.map(barber => (
                 <TouchableOpacity
-                  key={barber.id}
+                  key={barber.id || 'default-barber'}
                   style={[
-                    styles.optionCard,
+                    styles.serviceCard,
                     selectedBarber?.id === barber.id && styles.selectedOption
                   ]}
                   onPress={() => setSelectedBarber(barber)}
                 >
-                  <View style={styles.optionContent}>
-                    <Text style={styles.optionTitle}>{barber.name}</Text>
-                    <Text style={styles.optionSubtitle}>From {barber.nativePlace}</Text>
+                  <View style={styles.serviceContent}>
+                    <View style={styles.serviceInfo}>
+                      <Text style={styles.serviceTitle}>{barber.name}</Text>
+                      <Text style={styles.serviceMeta}>
+                        {barber.id === null ? 'Available' : `From ${barber.nativePlace}`}
+                      </Text>
+                    </View>
                   </View>
                   {selectedBarber?.id === barber.id && (
                     <View style={styles.selectedIndicator}>
@@ -578,17 +628,24 @@ export default function BookNow() {
                   )}
                 </TouchableOpacity>
               ))}
+              {apiErrors.barbers && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
+                </View>
+              )}
+              {barberOptions.length === 1 && !apiErrors.barbers && (
+                <Text style={styles.emptyStateText}>No specific barbers available</Text>
+              )}
             </View>
-          ) : (
-            <Text style={styles.emptyStateText}>No barbers available at the moment</Text>
-          )}
+          </Collapsible>
         </View>
 
         {/* Step 2: Services Selection */}
         <View style={[styles.stepCard, selectedServices.length > 0 && styles.completedCard]}>
           <TouchableOpacity 
             style={styles.stepHeader}
-            onPress={() => setServicesCollapsed(!servicesCollapsed)}
+            onPress={toggleServices}
+            activeOpacity={0.7}
           >
             <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>2</Text>
@@ -617,11 +674,11 @@ export default function BookNow() {
               <View style={styles.errorBox}>
                 <Text style={styles.errorBoxText}>Unable to load services</Text>
               </View>
-            ) : shopDetails.services.length > 0 ? (
+            ) : allServices.length > 0 ? (
               <View style={styles.optionsContainer}>
-                {shopDetails.services.map(service => (
+                {allServices.map((service, index) => (
                   <TouchableOpacity
-                    key={service.id}
+                    key={service.id || `default-service-${index}`}
                     style={[
                       styles.serviceCard,
                       selectedServices.some(s => s.id === service.id) && styles.selectedOption
@@ -663,63 +720,67 @@ export default function BookNow() {
         </View>
 
         {/* Step 3: Date & Time Selection */}
-        <View style={[styles.stepCard, selectedDate && selectedTimeSlot && styles.completedCard]}>
-          <View style={styles.stepHeader}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
-            </View>
-            <View style={styles.stepTitleContainer}>
-              <Text style={styles.stepTitle}>Pick Date & Time</Text>
-              <Text style={styles.stepSubtitle}>Choose your preferred appointment slot</Text>
-            </View>
-            {selectedDate && selectedTimeSlot && (
-              <View style={styles.completedBadge}>
-                <Text style={styles.completedText}>Set</Text>
-              </View>
-            )}
-          </View>
+    <View style={[styles.stepCard, selectedDate && selectedTimeSlot && styles.completedCard]}>
+  <TouchableOpacity
+    style={styles.stepHeader}
+    onPress={() => setCalendarVisibility(true)}
+    activeOpacity={0.7}
+  >
+    <View style={styles.stepNumber}>
+      <Text style={styles.stepNumberText}>3</Text>
+    </View>
+    <View style={styles.stepTitleContainer}>
+      <Text style={styles.stepTitle}>Pick Date & Time</Text>
+      <Text style={styles.stepSubtitle}>Choose your preferred appointment slot</Text>
+    </View>
+    {selectedDate && selectedTimeSlot && (
+      <View style={styles.completedBadge}>
+        <Text style={styles.completedText}>Set</Text>
+      </View>
+    )}
+  </TouchableOpacity>
 
+  <TouchableOpacity
+    style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]}
+    onPress={() => setCalendarVisibility(true)}
+  >
+    <Text style={styles.dateSelectorLabel}>Date</Text>
+    <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+      {selectedDate ? selectedDate.toDateString() : "Tap to select date"}
+    </Text>
+  </TouchableOpacity>
+
+  {selectedDate && (
+    <View style={styles.timeSlotsSection}>
+      <Text style={styles.sectionLabel}>Available Time Slots</Text>
+      <View style={styles.timeSlotsGrid}>
+        {timeSlots.map(slot => (
           <TouchableOpacity
-            style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]}
-            onPress={() => setCalendarVisibility(true)}
+            key={slot.id}
+            style={[
+              styles.timeSlotCard,
+              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
+            ]}
+            onPress={() => setSelectedTimeSlot(slot)}
           >
-            <Text style={styles.dateSelectorLabel}>Date</Text>
-            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
-              {selectedDate ? selectedDate.toDateString() : "Tap to select date"}
+            <Text style={[
+              styles.timeSlotName,
+              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+            ]}>
+              {slot.name}
+            </Text>
+            <Text style={[
+              styles.timeSlotHours,
+              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+            ]}>
+              {slot.start} - {slot.end}
             </Text>
           </TouchableOpacity>
-
-          {selectedDate && (
-            <View style={styles.timeSlotsSection}>
-              <Text style={styles.sectionLabel}>Available Time Slots</Text>
-              <View style={styles.timeSlotsGrid}>
-                {timeSlots.map(slot => (
-                  <TouchableOpacity
-                    key={slot.id}
-                    style={[
-                      styles.timeSlotCard,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
-                    ]}
-                    onPress={() => setSelectedTimeSlot(slot)}
-                  >
-                    <Text style={[
-                      styles.timeSlotName,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-                    ]}>
-                      {slot.name}
-                    </Text>
-                    <Text style={[
-                      styles.timeSlotHours,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-                    ]}>
-                      {slot.start} - {slot.end}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
+        ))}
+      </View>
+    </View>
+  )}
+</View>
       </ScrollView>
 
       {/* Enhanced Footer */}
@@ -942,45 +1003,6 @@ const styles = StyleSheet.create({
   optionsContainer: {
     gap: 12,
   },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  selectedOption: {
-    borderColor: '#2C5AA0',
-    backgroundColor: '#EFF6FF',
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  optionSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  selectedIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2C5AA0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedCheck: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -990,6 +1012,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
     marginBottom: 12,
+  },
+  selectedOption: {
+    borderColor: '#2C5AA0',
+    backgroundColor: '#EFF6FF',
   },
   serviceContent: {
     flex: 1,
@@ -1015,6 +1041,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
     marginLeft: 16,
+  },
+  selectedIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2C5AA0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCheck: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   errorBox: {
     padding: 16,
@@ -1279,7 +1318,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// Enhanced Calendar Styles
+// Old/Good Calendar Styles (Kept as-is for better visual consistency)
 const calendarStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,

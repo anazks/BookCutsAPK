@@ -1,23 +1,39 @@
 import { router } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect,useRef } from 'react';
 import { Animated, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function GetStartedScreen() {
   // Animation values
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = new Animated.Value(0.8);
+  const slideAnim = new Animated.Value(50);
+  const buttonScale = new Animated.Value(0.9);
 
   useEffect(() => {
     // Start animations when component mounts
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 1200,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        delay: 300,
+        useNativeDriver: true,
+      }),
+      Animated.spring(buttonScale, {
+        toValue: 1,
         friction: 3,
+        delay: 600,
         useNativeDriver: true,
       })
     ]).start();
@@ -25,35 +41,101 @@ export default function GetStartedScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Animated App Name */}
-      <View style={styles.header}>
-        <Animated.Text 
+      {/* Animated Background Pattern */}
+      <View style={styles.backgroundPattern}>
+        <View style={[styles.circle, styles.circle1]} />
+        <View style={[styles.circle, styles.circle2]} />
+        <View style={[styles.circle, styles.circle3]} />
+        <View style={[styles.circle, styles.circle4]} />
+        <View style={[styles.circle, styles.circle5]} />
+        
+        {/* Decorative Lines */}
+        <View style={[styles.line, styles.line1]} />
+        <View style={[styles.line, styles.line2]} />
+        <View style={[styles.line, styles.line3]} />
+      </View>
+
+      {/* Content Container */}
+      <View style={styles.contentWrapper}>
+        {/* Logo and Brand Section */}
+        <View style={styles.header}>
+          <Animated.View
+            style={[
+              styles.logoContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }]
+              }
+            ]}
+          >
+            <View style={styles.logoIcon}>
+              <MaterialIcons name="content-cut" size={48} color="#FFFFFF" />
+            </View>
+            <Text style={styles.appName}>BookMyCuts</Text>
+            <View style={styles.divider} />
+            <Text style={styles.tagline}>Your perfect cut awaits</Text>
+          </Animated.View>
+        </View>
+
+        {/* Features Section */}
+        <Animated.View 
           style={[
-            styles.appName,
+            styles.featuresContainer,
             {
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }]
+              transform: [{ translateY: slideAnim }]
             }
           ]}
         >
-          BookMyCuts
-        </Animated.Text>
-      </View>
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <MaterialIcons name="schedule" size={24} color="#FF6B6B" />
+            </View>
+            <Text style={styles.featureText}>Book instantly</Text>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <MaterialIcons name="verified" size={24} color="#FF6B6B" />
+            </View>
+            <Text style={styles.featureText}>Trusted salons</Text>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <MaterialIcons name="stars" size={24} color="#FF6B6B" />
+            </View>
+            <Text style={styles.featureText}>Best experience</Text>
+          </View>
+        </Animated.View>
 
-      {/* Tagline */}
-      <View style={styles.content}>
-        <Text style={styles.tagline}>Your perfect haircut is just a tap away</Text>
-        
-        {/* Get Started Button */}
-        <TouchableOpacity 
-          style={styles.getStartedButton}
-          onPress={() => router.push('/Screens/User/Login')}
-        >
-          <Text style={styles.buttonText}>Get Started</Text>
-        </TouchableOpacity>
-        
-        {/* Partner Text */}
-        <Text style={styles.partnerText}>Trusted by the best salons in town</Text>
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          <Animated.View
+            style={{
+              transform: [{ scale: buttonScale }],
+              opacity: fadeAnim
+            }}
+          >
+            <TouchableOpacity 
+              style={styles.getStartedButton}
+              onPress={() => router.push('/Screens/User/Login')}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.buttonText}>Get Started</Text>
+              <MaterialIcons name="arrow-forward" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </Animated.View>
+          
+          <Animated.Text 
+            style={[
+              styles.partnerText,
+              { opacity: fadeAnim }
+            ]}
+          >
+            Join thousands of happy customers
+          </Animated.Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -62,53 +144,185 @@ export default function GetStartedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
+  },
+  backgroundPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  circle: {
+    position: 'absolute',
+    borderRadius: 1000,
+    opacity: 0.08,
+  },
+  circle1: {
+    width: 400,
+    height: 400,
+    backgroundColor: '#FF6B6B',
+    top: -200,
+    right: -150,
+  },
+  circle2: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#FF6B6B',
+    bottom: -100,
+    left: -150,
+  },
+  circle3: {
+    width: 200,
+    height: 200,
+    backgroundColor: '#FF6B6B',
+    top: '30%',
+    left: -100,
+  },
+  circle4: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#FF6B6B',
+    bottom: '35%',
+    right: -75,
+  },
+  circle5: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#FF6B6B',
+    top: '60%',
+    right: 40,
+  },
+  line: {
+    position: 'absolute',
+    backgroundColor: '#FF6B6B',
+    opacity: 0.05,
+  },
+  line1: {
+    width: 2,
+    height: 200,
+    top: 100,
+    left: '25%',
+    transform: [{ rotate: '15deg' }],
+  },
+  line2: {
+    width: 2,
+    height: 150,
+    bottom: 150,
+    right: '30%',
+    transform: [{ rotate: '-20deg' }],
+  },
+  line3: {
+    width: 2,
+    height: 180,
+    top: '40%',
+    right: '15%',
+    transform: [{ rotate: '25deg' }],
+  },
+  contentWrapper: {
+    flex: 1,
     paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingVertical: 60,
   },
   header: {
-    flex: 1,
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logoIcon: {
+    width: 110,
+    height: 110,
+    borderRadius: 32,
+    backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
   },
   appName: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FF6B6B', // Coral color - change as needed
-    textAlign: 'center',
+    fontSize: 42,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -1.5,
+    marginBottom: 16,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 60,
+  divider: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 2,
+    marginBottom: 16,
   },
   tagline: {
     fontSize: 18,
-    color: '#666',
+    color: '#64748B',
+    fontWeight: '500',
     textAlign: 'center',
-    marginBottom: 40,
+  },
+  featuresContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     paddingHorizontal: 20,
+    marginVertical: 40,
+  },
+  featureItem: {
+    alignItems: 'center',
+  },
+  featureIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#FFE5E5',
+  },
+  featureText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  bottomSection: {
+    alignItems: 'center',
   },
   getStartedButton: {
-    backgroundColor: '#FF6B6B', // Matching the app name color
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    elevation: 3, // Android shadow
-    shadowColor: '#000', // iOS shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 18,
+    paddingHorizontal: 50,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+    minWidth: 220,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    marginRight: 12,
+    letterSpacing: 0.5,
   },
   partnerText: {
-    marginTop: 30,
-    fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
+    marginTop: 24,
+    fontSize: 15,
+    color: '#94A3B8',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

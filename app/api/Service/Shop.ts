@@ -1,11 +1,11 @@
 import Axios from '../axios';
 
-
+ 
 
 export const getAllShops = async () => {
   try {
     const response = await Axios.get('/shop/ViewAllShop');
-    console.log("Response from getAllShops:", response);
+    console.log("Response from getAllShops:", JSON.stringify(response,null,2));
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Registration failed" };
@@ -177,3 +177,61 @@ export const deleteServiceAPI  = async (serviceId) => {
       throw error?.response?.data || { message: "Failed to delete" };
   }
 }
+
+  export const findNearestShops = async (coordinates) => {
+  try {
+    console.log(coordinates, "in shop.ts");
+    const { latitude, longtitude } = coordinates; // fixed typo
+    const lat = latitude;
+    const lng = longtitude; // API expects 'lng'
+    console.log(lng,"lng")
+
+    const shops = await Axios.get('/shop/findNearByShops', {
+      params: { lat, lng }, // fixed 'lgn' -> 'lng'
+    });
+
+    return shops.data; // usually return .data instead of full response
+  } catch (error) {
+    console.error("Error fetching nearest shops:", error);
+    throw error;
+  }
+};
+
+
+export const saveToCloud = async (shopId: string, data: FormData) => {
+    try {
+        console.log('📤 Uploading to:', `/uploadMedia/${shopId}`);
+        
+        // Backend route is /uploadMedia/:id, so shopId goes in URL
+        const response = await Axios.post(`/uploadMedia/${shopId}`, data, {
+            headers: {
+                'Accept': 'application/json',
+                // Content-Type will be handled automatically by interceptor
+            },
+            timeout: 60000, // 60 seconds for file uploads
+        });
+
+        console.log('✅ Upload successful:', response.data);
+        return response.data;
+        
+    } catch (error: any) {
+        console.error('❌ Axios upload error:', error);
+        
+        // Handle axios error structure
+        if (error.response) {
+            // Server responded with error status
+            console.error('Error response data:', error.response.data);
+            const errorMessage = error.response.data?.message || 'Failed to store in cloud';
+            throw { message: errorMessage };
+        } else if (error.request) {
+            // Request was made but no response received
+            console.error('No response received:', error.request);
+            throw { message: 'No response from server. Check your connection.' };
+        } else if (error.message) {
+            // Something else happened
+            throw { message: error.message };
+        } else {
+            throw { message: 'Failed to store in cloud' };
+        }
+    }
+};
