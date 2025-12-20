@@ -1,13 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Collapsible from 'react-native-collapsible';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SlotBooking } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
 
 const parseTime = (timeStr) => {
-  timeStr = timeStr.trim().toLowerCase();
+  timeStr = timeStr.trim().toLowerCase(); 
   const match = timeStr.match(/(\d+)([ap]m)/);
 
   if (!match) return '09:00';
@@ -193,12 +195,11 @@ export default function BookNow() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [isCalendarVisible, setCalendarVisibility] = useState(false);
-  const [servicesCollapsed, setServicesCollapsed] = useState(true);
-  const [barbersCollapsed, setBarbersCollapsed] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
   const [error, setError] = useState(null);
   const [apiErrors, setApiErrors] = useState({ services: false, barbers: false });
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const scrollViewRef = useRef(null);
 
   // Fetch shop data
   useEffect(() => {
@@ -277,6 +278,16 @@ export default function BookNow() {
       setLoading(false);
     }
   }, [shop_id]);
+
+  // Auto-scroll to time slots when date is selected
+  useEffect(() => {
+    if (selectedDate && scrollViewRef.current) {
+      // Small delay to allow re-render with time slots visible
+      setTimeout(() => {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }, 150);
+    }
+  }, [selectedDate]);
 
   const getTimeSlots = () => {
     if (!shopDetails) return [];
@@ -400,7 +411,7 @@ const prepareBookingData = () => {
                 advanceAmount: Math.min(20, totalPrice),
                 totalPrice,
                 barberName: selectedBarber?.name,
-                bookingDate: selectedDate?.toDateString(),
+                bookingDate: selectedDate?.toLocaleDateString(),
                 timeSlot: selectedTimeSlot?.name
               }
             });
@@ -451,31 +462,23 @@ const prepareBookingData = () => {
     ...shopDetails.barbers
   ] : [{ id: null, name: 'Any Barber', nativePlace: 'Available' }];
 
-  const toggleBarbers = useCallback(() => {
-    setBarbersCollapsed(prev => !prev);
-  }, []);
-
-  const toggleServices = useCallback(() => {
-    setServicesCollapsed(prev => !prev);
-  }, []);
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2C5AA0" />
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B6B" />
         <Text style={styles.loadingText}>Loading shop details...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !shopDetails) {
     return (
-      <View style={styles.errorContainer}>
+      <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -483,7 +486,7 @@ const prepareBookingData = () => {
   const timeSlots = getTimeSlots();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Manual Calendar (Old/Good Version) */}
       <ManualCalendar
         selectedDate={selectedDate}
@@ -502,6 +505,7 @@ const prepareBookingData = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
+              <Ionicons name="checkmark-circle-outline" size={32} color="#10B981" />
               <Text style={styles.modalTitle}>Confirm Your Booking</Text>
               <Text style={styles.modalSubtitle}>Please review your appointment details</Text>
             </View>
@@ -560,6 +564,7 @@ const prepareBookingData = () => {
           <Text style={styles.shopName}>{shopDetails.name}</Text>
           <Text style={styles.shopAddress}>{shopDetails.address}</Text>
           <View style={styles.timingBadge}>
+            <Ionicons name="time-outline" size={14} color="#FFFFFF" style={styles.timingIcon} />
             <Text style={styles.timingText}>Open {shopDetails.Timing || `${shopDetails.openingTime} - ${shopDetails.closingTime}`}</Text>
           </View>
         </View>
@@ -572,215 +577,179 @@ const prepareBookingData = () => {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Step 1: Barber Selection */}
-        <View style={[styles.stepCard, selectedBarber && styles.completedCard]}>
-          <TouchableOpacity 
-            style={styles.stepHeader}
-            onPress={toggleBarbers}
-            activeOpacity={0.7}
-          >
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Barber Selection - Horizontal Scroll Layout */}
+        <View style={styles.sectionContent}>
+         <View style={styles.sectionHeader}>
+          <View style={styles.sectionIcon}>
+              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
             </View>
-            <View style={styles.stepTitleContainer}>
-              <Text style={styles.stepTitle}>Choose Your Barber</Text>
-              <Text style={styles.stepSubtitle}>
-                {selectedBarber 
-                  ? 'Barber selected' 
-                  : 'Select from our professional barbers'
-                }
-              </Text>
-            </View>
-            <View style={styles.collapseControls}>
-              {selectedBarber && (
-                <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>1</Text>
-                </View>
-              )}
-              <Text style={styles.collapseText}>{barbersCollapsed ? 'Show' : 'Hide'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          <Collapsible collapsed={barbersCollapsed}>
-            <View style={styles.optionsContainer}>
-              {barberOptions.map(barber => (
-                <TouchableOpacity
-                  key={barber.id || 'default-barber'}
-                  style={[
-                    styles.serviceCard,
-                    selectedBarber?.id === barber.id && styles.selectedOption
-                  ]}
-                  onPress={() => setSelectedBarber(barber)}
-                >
-                  <View style={styles.serviceContent}>
-                    <View style={styles.serviceInfo}>
-                      <Text style={styles.serviceTitle}>{barber.name}</Text>
-                      <Text style={styles.serviceMeta}>
-                        {barber.id === null ? 'Available' : `From ${barber.nativePlace}`}
-                      </Text>
-                    </View>
-                  </View>
-                  {selectedBarber?.id === barber.id && (
-                    <View style={styles.selectedIndicator}>
-                      <Text style={styles.selectedCheck}>✓</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-              {apiErrors.barbers && (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
-                </View>
-              )}
-              {barberOptions.length === 1 && !apiErrors.barbers && (
-                <Text style={styles.emptyStateText}>No specific barbers available</Text>
-              )}
-            </View>
-          </Collapsible>
+            <Text style={styles.sectionTitle}>Select Barber</Text>
         </View>
 
-        {/* Step 2: Services Selection */}
-        <View style={[styles.stepCard, selectedServices.length > 0 && styles.completedCard]}>
-          <TouchableOpacity 
-            style={styles.stepHeader}
-            onPress={toggleServices}
-            activeOpacity={0.7}
+          <ScrollView
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.barbersScrollContent}
           >
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
-            </View>
-            <View style={styles.stepTitleContainer}>
-              <Text style={styles.stepTitle}>Select Services</Text>
-              <Text style={styles.stepSubtitle}>
-                {selectedServices.length > 0 
-                  ? `${selectedServices.length} services selected`
-                  : 'Choose from available services'
-                }
-              </Text>
-            </View>
-            <View style={styles.collapseControls}>
-              {selectedServices.length > 0 && (
-                <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>{selectedServices.length}</Text>
+            <View style={styles.barbersGrid}>
+            {barberOptions.map(barber => (
+              <TouchableOpacity
+                key={barber.id || 'default-barber'}
+                style={[
+                  styles.barberCard,
+                  selectedBarber?.id === barber.id && styles.selectedBarberCard
+                ]}
+                onPress={() => setSelectedBarber(barber)}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.barberCircle,
+                  selectedBarber?.id === barber.id && styles.selectedBarberCircle
+                ]}>
+                  <Text style={[
+                    styles.barberInitial,
+                    selectedBarber?.id === barber.id && styles.selectedBarberInitial
+                  ]}>
+                    {barber.name.charAt(0).toUpperCase()}
+                  </Text>
                 </View>
-              )}
-              <Text style={styles.collapseText}>{servicesCollapsed ? 'Show' : 'Hide'}</Text>
+                <View style={styles.barberTextContainer}>
+                  <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
+                  {barber.id !== null && (
+                    <Text style={styles.barberMeta} numberOfLines={1}>
+                      {barber.nativePlace}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
             </View>
+          </ScrollView>
+          {apiErrors.barbers && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
+            </View>
+          )}
+          {barberOptions.length === 1 && !apiErrors.barbers && (
+            <Text style={styles.emptyStateText}>No specific barbers available</Text>
+          )}
+        </View>
+
+        {/* Services Selection - Grid Layout */}
+        <View style={styles.sectionContent}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIcon}>
+               <Ionicons name="cut-outline" size={18} color="#FFFFFF" />
+             </View>
+            <Text style={styles.sectionTitle}>Select Services</Text>
+          </View>
+          <View style={styles.servicesGrid}>
+            {allServices.map((service, index) => (
+              <TouchableOpacity
+                key={service.id || `default-service-${index}`}
+                style={[
+                  styles.serviceCard,
+                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceCard
+                ]}
+                onPress={() => toggleService(service)}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.serviceIconContainer,
+                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceIconContainer
+                ]}>
+                  <Ionicons name="cut" size={24} color={selectedServices.some(s => s.id === service.id) ? "#FFFFFF" : "#64748B"} />
+                </View>
+                <Text style={styles.serviceTitle} numberOfLines={1}>{service.name}</Text>
+                <Text style={styles.servicePrice}>₹{service.price}</Text>
+                <Text style={styles.serviceDuration}>{service.duration} min</Text>
+                {selectedServices.some(s => s.id === service.id) && (
+                  <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.serviceCheckIcon} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+          {apiErrors.services && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>Unable to load services</Text>
+            </View>
+          )}
+          {allServices.length === 0 && !apiErrors.services && (
+            <Text style={styles.emptyStateText}>No services available</Text>
+          )}
+        </View>
+
+        {selectedServices.length > 0 && (
+          <View style={styles.selectionSummary}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Duration</Text>
+              <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Cost</Text>
+              <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Date & Time Selection */}
+        <View style={[styles.sectionCard, (selectedDate && selectedTimeSlot) && styles.completedCard]}>
+          <View style={styles.sectionHeader}>
+          <View style={styles.sectionIcon}>
+            <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+          </View>
+          <Text style={styles.sectionTitle}>Date & Time</Text>
+         </View>
+
+          <TouchableOpacity
+            style={[styles.dateTimeSelector, selectedDate && styles.selectedDateSelector]}
+            onPress={() => setCalendarVisibility(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#64748B" />
+            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+              {selectedDate ? selectedDate.toDateString() : "Select Date"}
+            </Text>
+            <Ionicons name="time-outline" size={20} color="#64748B" />
           </TouchableOpacity>
 
-          <Collapsible collapsed={servicesCollapsed}>
-            {apiErrors.services ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorBoxText}>Unable to load services</Text>
-              </View>
-            ) : allServices.length > 0 ? (
-              <View style={styles.optionsContainer}>
-                {allServices.map((service, index) => (
+          {selectedDate && (
+            <View style={styles.timeSlotsSection}>
+              <Text style={styles.sectionLabel}>Available Time Slots</Text>
+              <View style={styles.timeSlotsGrid}>
+                {timeSlots.map(slot => (
                   <TouchableOpacity
-                    key={service.id || `default-service-${index}`}
+                    key={slot.id}
                     style={[
-                      styles.serviceCard,
-                      selectedServices.some(s => s.id === service.id) && styles.selectedOption
+                      styles.timeSlotCard,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
                     ]}
-                    onPress={() => toggleService(service)}
+                    onPress={() => setSelectedTimeSlot(slot)}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.serviceContent}>
-                      <View style={styles.serviceInfo}>
-                        <Text style={styles.serviceTitle}>{service.name}</Text>
-                        <Text style={styles.serviceMeta}>{service.duration} minutes</Text>
-                      </View>
-                      <Text style={styles.servicePrice}>₹{service.price}</Text>
-                    </View>
-                    {selectedServices.some(s => s.id === service.id) && (
-                      <View style={styles.selectedIndicator}>
-                        <Text style={styles.selectedCheck}>✓</Text>
-                      </View>
-                    )}
+                    <Text style={[
+                      styles.timeSlotName,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+                    ]}>
+                      {slot.name}
+                    </Text>
+                    <Text style={[
+                      styles.timeSlotHours,
+                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
+                    ]}>
+                      {slot.start} - {slot.end}
+                    </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
-            ) : (
-              <Text style={styles.emptyStateText}>No services available</Text>
-            )}
-          </Collapsible>
-
-          {selectedServices.length > 0 && (
-            <View style={styles.selectionSummary}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Duration</Text>
-                <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Cost</Text>
-                <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
               </View>
             </View>
           )}
         </View>
-
-        {/* Step 3: Date & Time Selection */}
-    <View style={[styles.stepCard, selectedDate && selectedTimeSlot && styles.completedCard]}>
-  <TouchableOpacity
-    style={styles.stepHeader}
-    onPress={() => setCalendarVisibility(true)}
-    activeOpacity={0.7}
-  >
-    <View style={styles.stepNumber}>
-      <Text style={styles.stepNumberText}>3</Text>
-    </View>
-    <View style={styles.stepTitleContainer}>
-      <Text style={styles.stepTitle}>Pick Date & Time</Text>
-      <Text style={styles.stepSubtitle}>Choose your preferred appointment slot</Text>
-    </View>
-    {selectedDate && selectedTimeSlot && (
-      <View style={styles.completedBadge}>
-        <Text style={styles.completedText}>Set</Text>
-      </View>
-    )}
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]}
-    onPress={() => setCalendarVisibility(true)}
-  >
-    <Text style={styles.dateSelectorLabel}>Date</Text>
-    <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
-      {selectedDate ? selectedDate.toDateString() : "Tap to select date"}
-    </Text>
-  </TouchableOpacity>
-
-  {selectedDate && (
-    <View style={styles.timeSlotsSection}>
-      <Text style={styles.sectionLabel}>Available Time Slots</Text>
-      <View style={styles.timeSlotsGrid}>
-        {timeSlots.map(slot => (
-          <TouchableOpacity
-            key={slot.id}
-            style={[
-              styles.timeSlotCard,
-              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
-            ]}
-            onPress={() => setSelectedTimeSlot(slot)}
-          >
-            <Text style={[
-              styles.timeSlotName,
-              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-            ]}>
-              {slot.name}
-            </Text>
-            <Text style={[
-              styles.timeSlotHours,
-              selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-            ]}>
-              {slot.start} - {slot.end}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  )}
-</View>
       </ScrollView>
 
       {/* Enhanced Footer */}
@@ -807,13 +776,15 @@ const prepareBookingData = () => {
           ]}
           onPress={handleBookNow}
           disabled={!selectedBarber || selectedServices.length === 0 || !selectedDate || !selectedTimeSlot}
+          activeOpacity={0.8}
         >
+          <Ionicons name="calendar" size={20} color="#FFFFFF" style={styles.bookIcon} />
           <Text style={styles.bookButtonText}>
             {isBooking ? 'Processing...' : 'Book Appointment'}
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -849,10 +820,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#2C5AA0',
+    backgroundColor: '#FF6B6B',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -867,8 +838,8 @@ const styles = StyleSheet.create({
   headerSection: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     elevation: 2,
@@ -878,10 +849,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   shopInfo: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   shopName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 6,
@@ -893,11 +864,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   timingBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#FF6B6B',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timingIcon: {
+    marginTop: -2,
   },
   timingText: {
     color: '#FFFFFF',
@@ -905,7 +882,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   progressSection: {
-    marginTop: 4,
+    marginTop: 2,
   },
   progressBar: {
     height: 6,
@@ -915,7 +892,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#2C5AA0',
+    backgroundColor: '#FF6B6B',
     borderRadius: 3,
   },
   progressText: {
@@ -930,135 +907,180 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  stepCard: {
+  sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 50,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    elevation: 1,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   completedCard: {
     borderColor: '#10B981',
     backgroundColor: '#F0FDF4',
   },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionContent: {
     marginBottom: 20,
   },
-  stepNumber: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionIcon: {
+    backgroundColor: '#FF6B6B',
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#2C5AA0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  stepNumberText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  stepTitleContainer: {
-    flex: 1,
-  },
-  stepTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1E293B',
-    marginBottom: 4,
+    flex: 1,
   },
-  stepSubtitle: {
-    fontSize: 14,
+  barbersScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  barbersGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  barberCard: {
+    width: 120,
+    height: 120,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    padding: 12,
+    marginRight: 12,
+  },
+  selectedBarberCard: {
+    transform: [{ scale: 1.05 }],
+  },
+  barberCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  selectedBarberCircle: {
+    backgroundColor: '#FF6B6B',
+    elevation: 3,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  barberInitial: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#64748B',
   },
-  completedBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  completedText: {
+  selectedBarberInitial: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
   },
-  collapseControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  collapseText: {
-    fontSize: 14,
-    color: '#2C5AA0',
-    fontWeight: '500',
-  },
-  optionsContainer: {
-    gap: 12,
-  },
-  serviceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 12,
-  },
-  selectedOption: {
-    borderColor: '#2C5AA0',
-    backgroundColor: '#EFF6FF',
-  },
-  serviceContent: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  serviceInfo: {
-    flex: 1,
-  },
-  serviceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  serviceMeta: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  servicePrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginLeft: 16,
-  },
-  selectedIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2C5AA0',
+  barberTextContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  selectedCheck: {
-    color: '#FFFFFF',
+  barberName: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#1E293B',
+    fontWeight: '600',
+    maxWidth: 80,
+    marginBottom: 2,
+  },
+  barberMeta: {
+    fontSize: 10,
+    textAlign: 'center',
+    color: '#64748B',
+    maxWidth: 80,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  serviceCard: {
+    width: '31%',
+    aspectRatio: 0.8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  selectedServiceCard: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FEF2F2',
+    elevation: 2,
+    shadowColor: '#FF6B6B',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  selectedServiceIconContainer: {
+    backgroundColor: '#FF6B6B',
+  },
+  serviceTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  servicePrice: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#FF6B6B',
+    marginBottom: 2,
+  },
+  serviceDuration: {
+    fontSize: 10,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  serviceCheckIcon: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
   },
   errorBox: {
     padding: 16,
     backgroundColor: '#FEF2F2',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
@@ -1075,12 +1097,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   selectionSummary: {
-    marginTop: 16,
     padding: 16,
     backgroundColor: '#F1F5F9',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 20,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1103,51 +1125,33 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     fontWeight: '700',
   },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 12,
-    marginTop: 8,
-    marginBottom: 0,
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  totalValue: {
-    fontSize: 18,
-    color: '#2C5AA0',
-    fontWeight: '700',
-  },
-  dateSelector: {
-    padding: 20,
+  dateTimeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   selectedDateSelector: {
-    borderColor: '#2C5AA0',
-    backgroundColor: '#EFF6FF',
-  },
-  dateSelectorLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FEF2F2',
   },
   selectedDateText: {
     fontSize: 16,
     color: '#1E293B',
     fontWeight: '600',
+    flex: 1,
+    marginHorizontal: 12,
   },
   placeholderText: {
     fontSize: 16,
     color: '#94A3B8',
+    flex: 1,
+    marginHorizontal: 12,
   },
   timeSlotsSection: {
     marginTop: 4,
@@ -1171,13 +1175,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   selectedTimeSlot: {
-    borderColor: '#2C5AA0',
-    backgroundColor: '#2C5AA0',
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FF6B6B',
   },
   timeSlotName: {
     fontSize: 14,
@@ -1225,18 +1229,24 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   bookButton: {
-    backgroundColor: '#2C5AA0',
+    backgroundColor: '#FF6B6B',
     padding: 18,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
     elevation: 3,
-    shadowColor: '#2C5AA0',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
+  bookIcon: {
+    marginTop: -2,
+  },
   disabledButton: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#FCA5A5',
     elevation: 0,
     shadowOpacity: 0,
   },
@@ -1251,13 +1261,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: '#FFFFFF',
   },
   modalContent: {
     width: '90%',
     maxWidth: 400,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     elevation: 10,
     shadowColor: '#000',
@@ -1268,12 +1278,13 @@ const styles = StyleSheet.create({
   modalHeader: {
     marginBottom: 24,
     alignItems: 'center',
+    gap: 8,
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 8,
+    marginBottom: 0,
   },
   modalSubtitle: {
     fontSize: 14,
@@ -1283,6 +1294,39 @@ const styles = StyleSheet.create({
   bookingSummary: {
     marginBottom: 24,
   },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+    marginTop: 8,
+    marginBottom: 0,
+  },
+  totalLabel: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  totalValue: {
+    fontSize: 18,
+    color: '#FF6B6B',
+    fontWeight: '700',
+  },
   modalButtons: {
     flexDirection: 'row',
     gap: 12,
@@ -1290,7 +1334,7 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
   cancelButton: {
@@ -1299,9 +1343,9 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   confirmButton: {
-    backgroundColor: '#2C5AA0',
+    backgroundColor: '#FF6B6B',
     elevation: 2,
-    shadowColor: '#2C5AA0',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1330,7 +1374,7 @@ const calendarStyles = StyleSheet.create({
     width: '90%',
     maxWidth: 380,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     maxHeight: '80%',
     elevation: 10,
@@ -1402,14 +1446,14 @@ const calendarStyles = StyleSheet.create({
     borderRadius: 20,
   },
   todayCell: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FEF2F2',
     borderWidth: 2,
-    borderColor: '#2C5AA0',
+    borderColor: '#FF6B6B',
   },
   selectedCell: {
-    backgroundColor: '#2C5AA0',
+    backgroundColor: '#FF6B6B',
     elevation: 2,
-    shadowColor: '#2C5AA0',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1423,7 +1467,7 @@ const calendarStyles = StyleSheet.create({
     fontWeight: '500',
   },
   todayText: {
-    color: '#2C5AA0',
+    color: '#FF6B6B',
     fontWeight: '700',
   },
   selectedText: {

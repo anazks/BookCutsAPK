@@ -28,7 +28,9 @@ export default function Bookings() {
       setLoading(true);
       const response = await myBookings();
       if (response.success) {
-        setBookingsData(response);
+        // Reverse the bookings array to show newest first (assuming API returns oldest first)
+        const reversedBookings = [...(response.bookings || [])].reverse();
+        setBookingsData({ ...response, bookings: reversedBookings });
       } else {
         setError('Failed to fetch bookings');
       }
