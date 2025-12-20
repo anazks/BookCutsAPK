@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#FF6B6B';
-const BASE_URL = 'http://192.168.29.81:3002/api';
+const BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 
 const ImageUploadModal = ({ visible, onClose, onSave }) => {
   const [description, setDescription] = useState(''); 

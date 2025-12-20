@@ -4,7 +4,7 @@
     "slug": "bookmycuts",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/scissors.png",
     "scheme": "bookmycuts",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,7 +18,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anazk.bookmycuts"
+      "package": "com.anazk.bookmycuts",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -37,20 +40,21 @@
         }
       ],
       "expo-web-browser",
-       [
+      [
         "expo-image-picker",
         {
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ]
-    
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
-   
+      "router": {},
+      "eas": {
+        "projectId": "6716cce4-1a91-4beb-af44-9acf810e8ff1"
+      }
     }
   }
 }

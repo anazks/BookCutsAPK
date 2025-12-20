@@ -9,7 +9,7 @@ import ImageUploadModal from './ImageUploadModel';
 import { viewMyShop } from '../../api/Service/Shop'; // Import your API function
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API_BASE_URL = 'http://192.168.29.81:3002/api';
+const API_BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 
 const PRIMARY_COLOR = '#FF6B6B';
 const SECONDARY_BG = '#FFF8F8';

@@ -3,12 +3,12 @@ import axios from 'axios';
 
 const BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 // const BASE_URL = 'https://192.168.29.81:3002/api/';
-
+  //  const BASE_URL = "https://10.156.81.39:3002/api"
 
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,   
+  timeout: 60000,   
   // ❌ Don't set Content-Type here - let axios handle it based on data type
 });
 

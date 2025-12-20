@@ -74,6 +74,7 @@ export default function ShopOwnerHome() {
           // onPress={() => router.push('/Screens/Shop/UploadMediaScreen')}
              onPress={() => router.push('/Screens/Shop/ProfileScreen')}
 
+
         >
           <MaterialIcons name="account-circle" size={32} color="#FF6B6B" />
         </TouchableOpacity>
