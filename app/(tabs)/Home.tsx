@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from "expo-location";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from "expo-location";
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -274,26 +274,26 @@ const Home = ({ navigation }) => {
     return transformShopData(filteredShops);
   };
 
-  const trendingDesigns = [
-    {
-      id: '1',
-      name: 'Fade Cut',
-      popularity: '92%',
-      image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-    {
-      id: '2',
-      name: 'Pompadour',
-      popularity: '87%',
-      image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-    {
-      id: '3',
-      name: 'Undercut',
-      popularity: '89%',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    },
-  ];
+ const trendingDesigns = [
+  {
+    id: '1',
+    name: 'Fade Cut',
+    popularity: '92%',
+    image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8ZmFkZSUyMGhhaXJjdXQlMjBtZW58ZW58MHx8MHx8fDA%3D'
+  },
+  {
+    id: '2',
+    name: 'Pompadour',
+    popularity: '87%',
+    image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cG9tcGFkb3VyJTIwaGFpcmN1dCUyMG1lbnxlbnwwfHwwfHx8MA%3D%3D'
+  },
+  {
+    id: '3',
+    name: 'Undercut',
+    popularity: '89%',
+    image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8dW5kZXJjdXQlMjBoYWlyY3V0JTIwbWVufGVufDB8fDB8fHww'
+  },
+]; 
 
   const quickServices = [
     { id: '1', name: 'Haircut', icon: 'cut', color: '#4A90E2' },
@@ -704,29 +704,6 @@ const Home = ({ navigation }) => {
             )}
           />
         </View>
-
-        <View style={styles.specialOfferContainer}>
-          <View style={styles.specialOffer}>
-            <View style={styles.offerContent}>
-              <View style={styles.offerIcon}>
-                <Ionicons name="gift" size={24} color="#FF6B6B" />
-              </View>
-              <View style={styles.offerTextContainer}>
-                <Text style={styles.offerTitle}>First Booking Special!</Text>
-                <Text style={styles.offerDescription}>Get 20% off on your first salon booking</Text>
-                <Text style={styles.offerCode}>Use code: FIRST20</Text>
-              </View>
-            </View>
-            <TouchableOpacity 
-              style={styles.bookNowButton} 
-              onPress={() => router.push('/Screens/User/BookNow')}
-            >
-              <Text style={styles.bookNowText}>Book Now</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
