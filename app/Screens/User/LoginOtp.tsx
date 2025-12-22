@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -15,7 +16,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
 
 export default function LoginOtp() {
@@ -89,12 +89,7 @@ export default function LoginOtp() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         {/* Animated Background */}
-        <View style={styles.backgroundShapes}>
-          <View style={[styles.shape, styles.shape1]} />
-          <View style={[styles.shape, styles.shape2]} />
-          <View style={[styles.shape, styles.shape3]} />
-          <View style={[styles.shape, styles.shape4]} />
-        </View>
+       
 
         <ScrollView
           style={styles.scrollContainer}

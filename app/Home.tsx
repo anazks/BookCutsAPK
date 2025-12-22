@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
-import React, { useEffect,useRef } from 'react';
-import { Animated, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import { router } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import logo from '../assets/images/logo.png';
 export default function GetStartedScreen() {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -42,18 +42,7 @@ export default function GetStartedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Animated Background Pattern */}
-      <View style={styles.backgroundPattern}>
-        <View style={[styles.circle, styles.circle1]} />
-        <View style={[styles.circle, styles.circle2]} />
-        <View style={[styles.circle, styles.circle3]} />
-        <View style={[styles.circle, styles.circle4]} />
-        <View style={[styles.circle, styles.circle5]} />
-        
-        {/* Decorative Lines */}
-        <View style={[styles.line, styles.line1]} />
-        <View style={[styles.line, styles.line2]} />
-        <View style={[styles.line, styles.line3]} />
-      </View>
+
 
       {/* Content Container */}
       <View style={styles.contentWrapper}>
@@ -69,10 +58,8 @@ export default function GetStartedScreen() {
             ]}
           >
             <View style={styles.logoIcon}>
-              <MaterialIcons name="content-cut" size={48} color="#FFFFFF" />
+              <Image source={logo} style={styles.logoImage} resizeMode="contain" />
             </View>
-            <Text style={styles.appName}>BookMyCuts</Text>
-            <View style={styles.divider} />
             <Text style={styles.tagline}>Your perfect cut awaits</Text>
           </Animated.View>
         </View>
@@ -233,19 +220,9 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
   },
-  logoIcon: {
-    width: 110,
-    height: 110,
-    borderRadius: 32,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10,
+  logoImage: {
+    width: 250,
+    height: 250,
   },
   appName: {
     fontSize: 42,

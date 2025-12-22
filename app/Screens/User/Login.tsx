@@ -1,3 +1,4 @@
+import { userLogin } from '@/app/api/Service/User';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -17,7 +18,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { userLogin } from '@/app/api/Service/User';
 
 const { width, height } = Dimensions.get('window');
 
@@ -84,10 +84,7 @@ export default function Login() {
       >
         {/* Animated Background */}
         <View style={styles.backgroundShapes}>
-          <View style={[styles.shape, styles.shape1]} />
-          <View style={[styles.shape, styles.shape2]} />
-          <View style={[styles.shape, styles.shape3]} />
-          <View style={[styles.shape, styles.shape4]} />
+        
         </View>
 
         <ScrollView
