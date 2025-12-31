@@ -14,7 +14,7 @@ export const myBookings = async ()=>{
    try {
         const response = await Axios.post('/booking/myBookings');
         console.log("Response from myBookings:", response);
-        return response.data;
+        return response.data;   
    } catch (error) {
       console.log(error)
    }
@@ -23,7 +23,7 @@ export const myBookings = async ()=>{
 export const createOrder = async (data:any)=>{
     try {
         const response = await Axios.post('/booking/create-order',data);
-        console.log(response)
+        console.log("order:",response)
         return response.data
     } catch (error) {
         console.log(error)
@@ -42,3 +42,33 @@ export const verifyPayment = async(data:any)=>{
         return null   
     }
 }
+
+
+export const getBarberFreeTime = async (barberId, dateStr,shopId) => {
+  try {
+    const dateObject = new Date(dateStr);
+    const isoDate = dateObject.toISOString();
+    console.log("date:",dateStr)
+    console.log("Sending Date to Backend:", JSON.stringify(dateStr));
+    const response = await Axios.post('/booking/getBarberFreeTime', {
+      barberId,
+      bookingDate: dateStr,
+      shopId
+    });
+
+    const data = response.data;
+
+    // Matching your nested logic: data.success && data.availableHours.success
+    if (data.success) {
+      return data || [];
+    }
+
+    console.error('Unexpected data structure:', data);
+    return [];
+
+  } catch (error) {
+    // Your interceptor already logs the error, so we just return the fallback here
+    // But you can add specific UI logic here if needed
+    return [];
+  }
+};

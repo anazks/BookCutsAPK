@@ -32,6 +32,7 @@ axiosInstance.interceptors.request.use(
         url: config.baseURL + config.url,
         headers: config.headers,
         dataType: config.data instanceof FormData ? 'FormData' : 'JSON',
+        payload:config.data
       });
 
       return config;
