@@ -1,19 +1,19 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
   ScrollView,
   StyleSheet,
+  Text,
   useWindowDimensions,
+  View,
 } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
+  runOnJS,
+  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
-  useAnimatedGestureHandler,
-  runOnJS,
   withTiming,
 } from 'react-native-reanimated';
-import { PanGestureHandler } from 'react-native-gesture-handler';
 
 interface FreeGap {
   from: string; // "09:30"
