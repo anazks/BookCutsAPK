@@ -296,10 +296,10 @@ const Home = ({ navigation }) => {
 ]; 
 
   const quickServices = [
-    { id: '1', name: 'Haircut', icon: 'cut', color: '#4A90E2' },
-    { id: '2', name: 'Beard Trim', icon: 'leaf', color: '#50C878' },
-    { id: '3', name: 'Hair Wash', icon: 'water', color: '#FF6B6B' },
-    { id: '4', name: 'Styling', icon: 'brush', color: '#9B59B6' },
+    { id: '1', name: 'Haircut', icon: 'cut', color: '#4F46E5' },
+    { id: '2', name: 'Beard Trim', icon: 'leaf', color: '#10B981' },
+    { id: '3', name: 'Hair Wash', icon: 'water', color: '#3B82F6' },
+    { id: '4', name: 'Styling', icon: 'brush', color: '#8B5CF6' },
   ];
 
   const handleShopPress = (shop) => {
@@ -316,7 +316,7 @@ const Home = ({ navigation }) => {
       <View style={[styles.container, styles.loadingContainer]}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
         <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
+          <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.loadingText}>Loading shops...</Text>
         </View>
       </View>
@@ -334,15 +334,15 @@ const Home = ({ navigation }) => {
               style={styles.menuButton}
               onPress={() => setShowLogoutModal(true)}
             >
-              <Ionicons name="menu" size={24} color="#333" />
+              <Ionicons name="menu" size={24} color="#1E293B" />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.locationContainer}
               onPress={() => setShowCityDropdown(true)}
             >
-              <Ionicons name="location-outline" size={16} color="#666" />
+              <Ionicons name="location-outline" size={16} color="#64748B" />
               <Text style={styles.locationText}>{selectedCity}</Text>
-              <Ionicons name="chevron-down" size={16} color="#666" />
+              <Ionicons name="chevron-down" size={16} color="#64748B" />
             </TouchableOpacity>
           </View>
           
@@ -351,13 +351,13 @@ const Home = ({ navigation }) => {
               style={styles.refreshButton}
               onPress={handleRefresh}
             >
-              <Ionicons name="refresh-outline" size={24} color="#333" />
+              <Ionicons name="refresh-outline" size={24} color="#1E293B" />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.notificationButton}
               onPress={handleNotificationsPress}
             >
-              <Ionicons name="notifications-outline" size={24} color="#333" />
+              <Ionicons name="notifications-outline" size={24} color="#1E293B" />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
             <TouchableOpacity 
@@ -393,7 +393,7 @@ const Home = ({ navigation }) => {
                 onPress={() => setShowCityDropdown(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color="#1E293B" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.cityList} showsVerticalScrollIndicator={false}>
@@ -409,7 +409,7 @@ const Home = ({ navigation }) => {
                   <Ionicons 
                     name="location-outline" 
                     size={20} 
-                    color={selectedCity === city ? "#FF6B6B" : "#666"} 
+                    color={selectedCity === city ? "#4F46E5" : "#64748B"} 
                   />
                   <Text 
                     style={[
@@ -420,7 +420,7 @@ const Home = ({ navigation }) => {
                     {city}
                   </Text>
                   {selectedCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#FF6B6B" />
+                    <Ionicons name="checkmark" size={20} color="#4F46E5" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -443,7 +443,7 @@ const Home = ({ navigation }) => {
           <View style={styles.logoutModalContainer}>
             <View style={styles.logoutModalContent}>
               <View style={styles.logoutIcon}>
-                <Ionicons name="log-out-outline" size={48} color="#FF6B6B" />
+                <Ionicons name="log-out-outline" size={48} color="#4F46E5" />
               </View>
               <Text style={styles.logoutTitle}>Logout</Text>
               <Text style={styles.logoutMessage}>
@@ -486,17 +486,17 @@ const Home = ({ navigation }) => {
           onPress={handleSearchPress}
         >
           <View style={styles.searchContent}>
-            <Ionicons name="search" size={20} color="#666" />
+            <Ionicons name="search" size={20} color="#64748B" />
             <Text style={styles.searchText}>Search salons, services, or styles...</Text>
           </View>
           <TouchableOpacity style={styles.filterButton}>
-            <Ionicons name="options-outline" size={20} color="#FF6B6B" />
+            <Ionicons name="options-outline" size={20} color="#4F46E5" />
           </TouchableOpacity>
         </TouchableOpacity>
 
         {error && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={24} color="#FF6B6B" />
+            <Ionicons name="alert-circle-outline" size={24} color="#4F46E5" />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
               <Text style={styles.retryText}>Retry</Text>
@@ -529,7 +529,7 @@ const Home = ({ navigation }) => {
                 onPress={() => handleSeeAllPress('popular')}
               >
                 <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#FF6B6B" />
+                <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -557,7 +557,7 @@ const Home = ({ navigation }) => {
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.ratingPriceContainer}>
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFD700" />
+                        <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>{item.rating}</Text>
                       </View>
                       <Text style={styles.priceText}>{item.price}</Text>
@@ -580,7 +580,7 @@ const Home = ({ navigation }) => {
                 onPress={() => handleSeeAllPress('top-rated')}
               >
                 <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#FF6B6B" />
+                <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -611,7 +611,7 @@ const Home = ({ navigation }) => {
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.ratingPriceContainer}>
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFD700" />
+                        <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>{item.rating}</Text>
                       </View>
                       <Text style={styles.priceText}>{item.price}</Text>
@@ -656,7 +656,7 @@ const Home = ({ navigation }) => {
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
                     <View style={styles.ratingPriceContainer}>
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFD700" />
+                        <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>{item.rating}</Text>
                       </View>
                       <Text style={styles.priceText}>{item.price}</Text>
@@ -678,7 +678,7 @@ const Home = ({ navigation }) => {
               onPress={() => router.push('/Screens/User/TrendingStyles')}
             >
               <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="chevron-forward" size={16} color="#FF6B6B" />
+              <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
             </TouchableOpacity>
           </View>
           <FlatList
@@ -713,7 +713,7 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8FAFC',
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -725,21 +725,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#64748B',
     fontWeight: '500',
   },
   navContainer: {
     backgroundColor: '#FFFFFF',
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderBottomColor: '#E2E8F0',
     zIndex: 1000,
   },
   navContent: {
@@ -753,31 +748,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuButton: {
-    marginRight: 12,
+    marginRight: 16,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
   },
   locationText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
-    marginHorizontal: 4,
+    color: '#1E293B',
+    marginHorizontal: 6,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   refreshButton: {
-    marginRight: 12,
+    marginRight: 16,
   },
   notificationButton: {
-    marginRight: 12,
+    marginRight: 16,
     position: 'relative',
   },
   notificationDot: {
@@ -786,36 +781,31 @@ const styles = StyleSheet.create({
     right: 2,
     width: 8,
     height: 8,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#4F46E5',
     borderRadius: 4,
   },
   profileButton: {
     marginLeft: 8,
   },
   profileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FF6B6B',
+    borderColor: '#4F46E5',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cityDropdownContainer: {
     backgroundColor: '#FFF',
     borderRadius: 16,
-    marginHorizontal: 20,
+    marginHorizontal: 24,
     maxHeight: '70%',
-    width: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+    width: '85%',
   },
   cityDropdownHeader: {
     flexDirection: 'row',
@@ -823,12 +813,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    borderBottomColor: '#E2E8F0',
   },
   cityDropdownTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: '600',
+    color: '#1E293B',
   },
   closeButton: {
     padding: 4,
@@ -842,55 +832,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#F1F5F9',
   },
   selectedCityItem: {
-    backgroundColor: '#FFF5F5',
+    backgroundColor: '#F0F9FF',
   },
   cityItemText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 16,
-    color: '#333',
+    color: '#475569',
     fontWeight: '400',
   },
   selectedCityItemText: {
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: '#4F46E5',
+    fontWeight: '500',
   },
   logoutModalContainer: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoutModalContent: {
     backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 30,
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
     marginHorizontal: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
   },
   logoutIcon: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   logoutTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
   },
   logoutMessage: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
+    marginBottom: 24,
+    lineHeight: 20,
   },
   logoutButtonContainer: {
     flexDirection: 'row',
@@ -899,31 +884,31 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     marginRight: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
   },
   logoutButton: {
     flex: 1,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#4F46E5',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     marginLeft: 8,
     alignItems: 'center',
   },
   logoutButtonText: {
     color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   scrollContainer: {
     flex: 1,
@@ -931,28 +916,28 @@ const styles = StyleSheet.create({
   welcomeSection: {
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#1E293B',
     marginBottom: 4,
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#64748B',
     fontWeight: '400',
   },
   shopsCount: {
     fontSize: 14,
-    color: '#FF6B6B',
+    color: '#4F46E5',
     fontWeight: '500',
     marginTop: 4,
   },
   shopsCountSmall: {
     fontSize: 12,
-    color: '#999',
+    color: '#94A3B8',
     fontWeight: '400',
   },
   searchContainer: {
@@ -964,11 +949,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   searchContent: {
     flexDirection: 'row',
@@ -977,7 +959,7 @@ const styles = StyleSheet.create({
   },
   searchText: {
     marginLeft: 12,
-    color: '#999',
+    color: '#94A3B8',
     fontSize: 15,
     fontWeight: '400',
   },
@@ -993,27 +975,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+    borderLeftColor: '#4F46E5',
   },
   errorText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
   },
   retryButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#4F46E5',
     borderRadius: 6,
   },
   retryText: {
     color: '#FFF',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   section: {
-    marginBottom: 28,
+    marginBottom: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1023,18 +1005,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   seeAllText: {
-    color: '#FF6B6B',
+    color: '#4F46E5',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     marginRight: 4,
   },
   quickServicesContainer: {
@@ -1048,17 +1030,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   serviceIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   serviceName: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '500',
+    color: '#475569',
     textAlign: 'center',
   },
   horizontalListContainer: {
@@ -1069,17 +1051,14 @@ const styles = StyleSheet.create({
     width: 220,
     marginRight: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   topRatedCard: {
-    borderWidth: 1,
-    borderColor: '#FFD700',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
   },
   shopImageContainer: {
     position: 'relative',
@@ -1092,10 +1071,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   distanceText: {
     color: '#FFF',
@@ -1106,17 +1085,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#F59E0B',
     padding: 6,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   shopDetails: {
-    padding: 16,
+    padding: 12,
   },
   shopName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: '500',
+    color: '#1E293B',
     marginBottom: 8,
   },
   ratingPriceContainer: {
@@ -1133,22 +1112,22 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 13,
     fontWeight: '500',
-    color: '#666',
+    color: '#64748B',
   },
   priceText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#FF6B6B',
+    fontWeight: '500',
+    color: '#4F46E5',
   },
   servicesText: {
     fontSize: 13,
-    color: '#888',
+    color: '#94A3B8',
     fontWeight: '400',
     marginBottom: 4,
   },
   cityText: {
     fontSize: 12,
-    color: '#999',
+    color: '#CBD5E1',
     fontWeight: '400',
   },
   designCard: {
@@ -1167,81 +1146,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(255,107,107,0.9)',
+    backgroundColor: 'rgba(79, 70, 229, 0.9)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   popularityText: {
     color: '#FFF',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   designName: {
     marginTop: 8,
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#333',
-  },
-  specialOfferContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  specialOffer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  offerContent: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  offerIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  offerTextContainer: {
-    flex: 1,
-  },
-  offerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FF6B6B',
-    marginBottom: 4,
-  },
-  offerDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-    lineHeight: 20,
-  },
-  offerCode: {
-    fontSize: 12,
-    color: '#999',
     fontWeight: '500',
-  },
-  bookNowButton: {
-    backgroundColor: '#FF6B6B',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  bookNowText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 16,
-    marginRight: 8,
+    textAlign: 'center',
+    color: '#475569',
   },
   bottomSpacing: {
-    height: 60,
+    height: 80,
   },
 });
 
