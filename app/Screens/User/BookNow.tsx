@@ -1,13 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, { runOnJS, runOnUI, useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View,useWindowDimensions } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import Collapsible from 'react-native-collapsible';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getBarberFreeTime, SlotBooking } from '../../api/Service/Booking';
+import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, runOnJS, runOnUI,withTiming } from 'react-native-reanimated';
+import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { SlotBooking } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
-// import BarberScheduleTimeline from './BarberScheduleTimeLine';
+import { getBarberFreeTime } from '../../api/Service/Booking';
+import { useDerivedValue } from 'react-native-reanimated';
+import BarberScheduleTimeline from './BarberScheduleTimeLine';
+// import Timeline from './Timeline';
 
 const parseTime = (timeStr) => {
   timeStr = timeStr.trim().toLowerCase(); 
@@ -203,13 +208,13 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
   );
 };
 
-const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, onSlotChange, selectedStartTime }) => {
+const Timeline = ({ freeGaps, totalDuration, openingTime, closingTime, onSlotChange, selectedStartTime }) => {
   const { width: screenWidth } = useWindowDimensions();
   const scrollRef = useRef(null);
   const openMin = timeToMinutes(openingTime);
   const closeMin = timeToMinutes(closingTime);
   const totalMinutes = closeMin - openMin;
-  const scale = 3; // Increased scale for easier sliding
+  const scale = 2; // Fixed scale for better visibility and scrollability
   const timelineWidth = totalMinutes * scale;
   const slotWidth = totalDuration * scale;
 
@@ -218,6 +223,7 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
 
   const handleSnap = useCallback((startX, currentX) => {
     const intendedMinAbs = openMin + (currentX / scale);
+    // Find target gap for the intended start position
     let targetGap = null;
     for (const gap of freeGaps) {
       const gs = timeToMinutes(gap.from);
@@ -230,10 +236,11 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     if (!targetGap) {
       runOnUI((sx) => {
         'worklet'
-        translateX.value = withTiming(sx, { duration: 200 });
+        translateX.value = sx;
       })(startX);
       return;
     }
+    // Generate candidates within this gap
     const gs = timeToMinutes(targetGap.from);
     const ge = timeToMinutes(targetGap.to);
     const gapStartPossible = Math.max(gs, Math.ceil(gs / 30) * 30);
@@ -248,21 +255,23 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     if (candidates.length === 0) {
       runOnUI((sx) => {
         'worklet'
-        translateX.value = withTiming(sx, { duration: 200 });
+        translateX.value = sx;
       })(startX);
       return;
     }
+    // Sort by distance and pick closest
     candidates.sort((a, b) => a.dist - b.dist);
     const best = candidates[0];
     onSlotChange(best.time);
     runOnUI((tx) => {
       'worklet'
-      translateX.value = withTiming(tx, { duration: 200 });
+      translateX.value = tx;
     })(best.x);
-  }, [freeGaps, totalDuration, onSlotChange, translateX, openMin, scale]);
+  }, [freeGaps, totalDuration, onSlotChange, translateX, openMin, scale, timeToMinutes, minutesToTime]);
 
   const findAndSetBest = useCallback((intendedMinAbs) => {
     const currentX = (intendedMinAbs - openMin) * scale;
+    // Find target gap
     let targetGap = null;
     for (const gap of freeGaps) {
       const gs = timeToMinutes(gap.from);
@@ -272,7 +281,10 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
         break;
       }
     }
-    if (!targetGap) return;
+    if (!targetGap) {
+      return; // Do not set if not in a gap
+    }
+//     // Generate candidates within this gap
     const gs = timeToMinutes(targetGap.from);
     const ge = timeToMinutes(targetGap.to);
     const gapStartPossible = Math.max(gs, Math.ceil(gs / 30) * 30);
@@ -287,16 +299,17 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     if (candidates.length > 0) {
       candidates.sort((a, b) => a.dist - b.dist);
       const best = candidates[0];
-      translateX.value = withTiming(best.x, { duration: 300 });
+      translateX.value = best.x;
       startTranslate.value = best.x;
       onSlotChange(best.time);
     }
-  }, [freeGaps, totalDuration, onSlotChange, translateX, startTranslate, openMin, scale]);
+  }, [freeGaps, totalDuration, onSlotChange, translateX, startTranslate, openMin, scale, timeToMinutes, minutesToTime]);
 
   useEffect(() => {
     if (freeGaps.length > 0 && !selectedStartTime) {
       const intendedMinAbs = timeToMinutes(freeGaps[0].from);
       findAndSetBest(intendedMinAbs);
+      // Initial scroll to start
       setTimeout(() => {
         scrollRef.current?.scrollTo({ x: 0, animated: false });
       }, 100);
@@ -307,6 +320,7 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     if (selectedStartTime) {
       const intendedMinAbs = timeToMinutes(selectedStartTime);
       const selX = (intendedMinAbs - openMin) * scale;
+      // Try to snap within gap, fallback to exact
       let targetGap = null;
       for (const gap of freeGaps) {
         const gs = timeToMinutes(gap.from);
@@ -319,15 +333,16 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
       if (targetGap) {
         findAndSetBest(intendedMinAbs);
       } else {
-        translateX.value = withTiming(selX, { duration: 300 });
+        translateX.value = selX;
         startTranslate.value = selX;
       }
+//       // Scroll to center the selected slot
       setTimeout(() => {
         const scrollX = Math.max(0, selX - screenWidth / 2);
         scrollRef.current?.scrollTo({ x: scrollX, animated: true });
       }, 100);
     }
-  }, [selectedStartTime, findAndSetBest, screenWidth, scale, openMin, freeGaps]);
+  }, [selectedStartTime, findAndSetBest, screenWidth, scale, openMin]);
 
   const gestureHandler = useAnimatedGestureHandler(
     {
@@ -354,9 +369,11 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     };
   });
 
+//   // Tick and label interval: every 30 minutes
   const intervalMinutes = 30;
-  const labelWidth = 40;
+  const labelWidth = 35;
 
+//   // Generate ticks every intervalMinutes
   const tickElements = [];
   let currentTickTime = Math.ceil(openMin / intervalMinutes) * intervalMinutes;
   while (currentTickTime <= closeMin) {
@@ -369,19 +386,20 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
           style={{
             position: 'absolute',
             left,
-            top: 15,
+            top: 20,
             width: 1,
-            height: isMajorTick ? 40 : 20,
-            backgroundColor: isMajorTick ? '#475569' : '#CBD5E1',
+            height: isMajorTick ? 60 : 20,
+            backgroundColor: isMajorTick ? '#94A3B8' : '#E2E8F0',
           }}
         />
       );
-    }
+     }
     currentTickTime += intervalMinutes;
   }
 
+//   // Generate labels every intervalMinutes, with emphasis on full hours
   const labelElements = [];
-  currentTickTime = Math.ceil(openMin / intervalMinutes) * intervalMinutes;
+  currentTickTime = Math.ceil(openMin / intervalMinutes) * intervalMinutes; // Reuse for labels
   while (currentTickTime <= closeMin) {
     const left = (currentTickTime - openMin) * scale;
     const timeLabel = minutesToTime(currentTickTime);
@@ -394,16 +412,16 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
       labelLeft = timelineWidth - labelWidth;
     }
 
-    if (left <= timelineWidth + labelWidth) {
+    if (left <= timelineWidth + labelWidth) { // Ensure end labels show
       labelElements.push(
         <Text
           key={`${currentTickTime}-label`}
           style={{
             position: 'absolute',
             left: labelLeft,
-            top: 0,
-            color: isHour ? '#1E293B' : '#64748B',
-            fontSize: 12,
+            top: 4,
+            color: isHour ? '#475569' : '#94A3B8', // Darker for hours
+            fontSize: 11, // Slightly smaller to prevent overlap
             fontWeight: isHour ? 'bold' : 'normal',
             width: labelWidth,
             textAlign: 'center',
@@ -417,9 +435,14 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     currentTickTime += intervalMinutes;
   }
 
-  // Ensure start and end labels
+  // Always ensure start and end labels if not already included
   const startTimeMin = openMin;
-  let startLabelLeft = 0;
+  let startLabelLeft = (startTimeMin - openMin) * scale - labelWidth / 2;
+  if (startLabelLeft < 0) {
+    startLabelLeft = 0;
+  } else if (startLabelLeft + labelWidth > timelineWidth) {
+    startLabelLeft = timelineWidth - labelWidth;
+  }
   const hasStartLabel = labelElements.some(el => el.key === `${startTimeMin}-label`);
   if (!hasStartLabel) {
     labelElements.unshift(
@@ -428,9 +451,9 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
         style={{
           position: 'absolute',
           left: startLabelLeft,
-          top: 0,
-          color: '#1E293B',
-          fontSize: 12,
+          top: 4,
+          color: '#475569',
+          fontSize: 11,
           fontWeight: 'bold',
           width: labelWidth,
           textAlign: 'center',
@@ -443,7 +466,12 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
   }
 
   const endTimeMin = closeMin;
-  let endLabelLeft = timelineWidth - labelWidth;
+  let endLabelLeft = (endTimeMin - openMin) * scale - labelWidth / 2;
+  if (endLabelLeft < 0) {
+    endLabelLeft = 0;
+  } else if (endLabelLeft + labelWidth > timelineWidth) {
+    endLabelLeft = timelineWidth - labelWidth;
+  }
   const hasEndLabel = labelElements.some(el => el.key === `${endTimeMin}-label`);
   if (!hasEndLabel) {
     labelElements.push(
@@ -452,9 +480,9 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
         style={{
           position: 'absolute',
           left: endLabelLeft,
-          top: 0,
-          color: '#1E293B',
-          fontSize: 12,
+          top: 4,
+          color: '#475569',
+          fontSize: 11,
           fontWeight: 'bold',
           width: labelWidth,
           textAlign: 'center',
@@ -466,23 +494,24 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
     );
   }
 
+  // Slot time text
   const slotTimeText = selectedStartTime
     ? `${selectedStartTime} - ${addMinutesToTime(selectedStartTime, totalDuration)}`
     : `${openingTime} - ${addMinutesToTime(openingTime, totalDuration)}`;
 
   return (
-    <View style={{ height: 80, width: '100%', position: 'relative', marginTop: 8 }}>
+    <View style={{ height: 100, width: '100%', position: 'relative', marginTop: 16 }}>
       <ScrollView
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ width: timelineWidth, paddingHorizontal: 20 }}
-        style={{ height: 80, flex: 1 }}
+        contentContainerStyle={{ width: timelineWidth }}
+        style={{ height: 80 }}
         bounces
-        decelerationRate="fast"
+        decelerationRate="normal"
       >
-        <View style={{ width: timelineWidth, height: 80, position: 'relative', backgroundColor: '#F8FAFC' }}>
-          {/* Simplified ruler */}
+        <View style={{ width: timelineWidth, height: 80, position: 'relative', backgroundColor: '#f8fafc' }}>
+          {/* Ruler strip background */}
           <View
             style={{
               position: 'absolute',
@@ -490,18 +519,20 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
               left: 0,
               right: 0,
               height: 20,
-              backgroundColor: '#F1F5F9',
+              backgroundColor: '#f1f5f9',
+              borderBottomWidth: 1,
+              borderBottomColor: '#e2e8f0',
               zIndex: 5,
             }}
           />
 
-          {/* Labels */}
+          {/* Time labels (ruler-like above the bar) */}
           {labelElements}
 
           {/* Ticks */}
           {tickElements}
 
-          {/* Simplified free gaps */}
+          {/* Free gaps */}
           {freeGaps.map((gap, index) => {
             const left = (timeToMinutes(gap.from) - openMin) * scale;
             const gapWidth = (timeToMinutes(gap.to) - timeToMinutes(gap.from)) * scale;
@@ -513,48 +544,50 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
                   top: 20,
                   left,
                   width: gapWidth,
-                  height: 40,
-                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                  borderRadius: 4,
-                  borderWidth: 1,
-                  borderColor: 'rgba(34, 197, 94, 0.3)',
+                  height: 60,
+                  backgroundColor: 'rgba(16, 185, 129, 0.3)',
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: 'rgba(16, 185, 129, 0.5)',
                 }}
               >
                 <Text
                   style={{
                     position: 'absolute',
-                    top: 2,
-                    left: 4,
-                    right: 4,
+                    top: 25,
+                    left: 0,
+                    right: 0,
                     textAlign: 'center',
                     color: '#059669',
-                    fontSize: 8,
+                    fontSize: 10,
                     fontWeight: '500',
                   }}
                   numberOfLines={1}
                 >
-                  {`${gap.from}-${gap.to}`}
+                  {`${gap.from} - ${gap.to}`}
                 </Text>
               </View>
             );
           })}
 
-          {/* Simplified draggable slot */}
+           {/* Draggable slot */}
           <PanGestureHandler onGestureEvent={gestureHandler}>
             <Animated.View
               style={[
                 animStyle,
                 {
                   position: 'absolute',
-                  top: 25,
+                  top: 30,
                   left: 0,
                   width: slotWidth,
-                  height: 30,
-                  backgroundColor: '#EF4444',
+                  height: 40,
+                  backgroundColor: '#FF6B6B',
                   borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  elevation: 3,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  elevation: 4,
                 },
               ]}
             >
@@ -574,10 +607,10 @@ const DraggableTimeline = ({ freeGaps, totalDuration, openingTime, closingTime, 
         </View>
       </ScrollView>
 
-      {/* Simple legend */}
-      <View style={{ alignItems: 'center', marginTop: 4, paddingHorizontal: 20 }}>
-        <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '500', textAlign: 'center' }}>
-          Drag red bar to slide into green free slots
+       {/* Legend */}
+      <View style={{ alignItems: 'center', marginTop: 8 }}>
+        <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '500' }}>
+          Green = Free Slots | Red = Your {totalDuration}min Appointment
         </Text>
       </View>
     </View>
@@ -598,49 +631,80 @@ export default function BookNow() {
   const [apiErrors, setApiErrors] = useState({ services: false, barbers: false });
   const [showConfirmation, setShowConfirmation] = useState(false);
   const scrollViewRef = useRef(null);
-  const [dynamicOpeningTime, setDynamicOpeningTime] = useState<string>('09:00');
-  const [dynamicClosingTime, setDynamicClosingTime] = useState<string>('21:00');
-  const [freeGaps, setFreeGaps] = useState([]);
+const [dynamicOpeningTime, setDynamicOpeningTime] = useState<string>('09:00');
+const [dynamicClosingTime, setDynamicClosingTime] = useState<string>('21:00');
+  const [freeGaps, setFreeGaps] = useState<any>({
+  workHours: { from: "09:00", to: "21:00" },
+  breaks: [],
+  bookings: [],
+  freeSlots: []
+});
 
-  const fetchFreeTimes = useCallback(async () => {
-    if (!selectedDate || !selectedBarber?.id) {
-      setFreeGaps([]);
-      setSelectedStartTime(null);
-      return;
-    }
+  // Fetch barber free time using imported function
 
-    const dateStr = selectedDate.toLocaleDateString('en-CA');
+const fetchFreeTimes = useCallback(async () => {
+  if (!selectedDate || !selectedBarber?.id) {
+    setFreeGaps([]);
+    setSelectedStartTime(null);
+    return;
+  }
 
-    try {
-      const response = await getBarberFreeTime(selectedBarber.id, dateStr, shop_id);
-      console.log("Barber free time response:", response);
+  const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
-      if (response?.success && response?.availableHours?.success) {
-        const apiSchedule = response.availableHours.schedule;
-        const scheduleFreeSlots = (apiSchedule.freeSlots || []).map(slot => ({
+  try {
+    const response = await getBarberFreeTime(selectedBarber.id, dateStr,shop_id);
+    console.log("Barber free time response:", response);
+
+    if (response?.success && response?.availableHours?.success) {
+      const apiSchedule = response.availableHours.schedule;
+
+      // Build the exact schedule object your new Timeline expects
+      const schedule = {
+        workHours: {
+          from: apiSchedule.workHours?.from || "09:00",
+          to: apiSchedule.workHours?.to || "21:00"
+        },
+        breaks: (apiSchedule.breaks || []).map(b => ({
+          startTime: b.startTime,
+          endTime: b.endTime
+        })),
+        bookings: (apiSchedule.bookings || [])
+          .filter(b => b.bookingStatus === "confirmed" || b.status === "confirmed") // safety
+          .map(b => ({
+            startTime: b.startTime,
+            endTime: b.endTime,
+            status: b.bookingStatus || b.status || "confirmed"
+          })),
+        freeSlots: (apiSchedule.freeSlots || []).map(slot => ({
           from: slot.from,
           to: slot.to,
-        }));
-        setFreeGaps(scheduleFreeSlots);
+          minutes: slot.minutes || timeToMinutes(slot.to) - timeToMinutes(slot.from)
+        }))
+      };
 
-        if (scheduleFreeSlots.length > 0 && !selectedStartTime) {
-          setSelectedStartTime(scheduleFreeSlots[0].from);
-        } else if (scheduleFreeSlots.length === 0) {
-          setSelectedStartTime(null);
-        }
+      // Pass the full schedule object instead of just gaps
+      setFreeGaps(schedule); // Now storing the whole schedule
 
-        setDynamicOpeningTime(apiSchedule.workHours?.from || "09:00");
-        setDynamicClosingTime(apiSchedule.workHours?.to || "21:00");
-      } else {
-        setFreeGaps([]);
+      // Auto-select first free slot
+      if (schedule.freeSlots.length > 0 && !selectedStartTime) {
+        setSelectedStartTime(schedule.freeSlots[0].from);
+      } else if (schedule.freeSlots.length === 0) {
         setSelectedStartTime(null);
       }
-    } catch (err) {
-      console.error('Error fetching barber schedule:', err);
-      setFreeGaps([]);
+
+      // Optional: store opening/closing for other uses
+      setDynamicOpeningTime(schedule.workHours.from);
+      setDynamicClosingTime(schedule.workHours.to);
+    } else {
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
       setSelectedStartTime(null);
     }
-  }, [selectedDate, selectedBarber?.id, selectedStartTime, shop_id]);
+  } catch (err) {
+    console.error('Error fetching barber schedule:', err);
+    setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+    setSelectedStartTime(null);
+  }
+}, [selectedDate, selectedBarber?.id, selectedStartTime]);
 
   useEffect(() => {
     fetchFreeTimes();
@@ -758,68 +822,74 @@ export default function BookNow() {
     return null;
   };
 
-  const prepareBookingData = () => {
-    const bookingDateStr = selectedDate?.toISOString()?.split('T')[0] || '';
-    if (!bookingDateStr) {
-      throw new Error("Invalid booking date");
+  const formatLocalDate = (date: Date) => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const prepareBookingData = () => {
+  const bookingDateStr = formatLocalDate(selectedDate);
+  // const bookingDateStr = selectedDate?.toISOString()?.split('T')[0] || '';
+  if (!bookingDateStr) {
+    throw new Error("Invalid booking date");
+  }
+  const startTimeStr = selectedStartTime || '';
+  if (!startTimeStr) {
+    throw new Error("Invalid start time");
+  }
+  const endTimeStr = addMinutesToTime(startTimeStr, totalDuration);
+  const startingTime = new Date(`${bookingDateStr}T${startTimeStr}:00`).toISOString();
+  const endingTime = new Date(`${bookingDateStr}T${endTimeStr}:00`).toISOString();
+
+  const getValidId = (id) => {
+    if (id == null || (Array.isArray(id) && id.length === 0)) {
+      return null;
     }
-    const startTimeStr = selectedStartTime || '';
-    if (!startTimeStr) {
-      throw new Error("Invalid start time");
-    }
-    const endTimeStr = addMinutesToTime(startTimeStr, totalDuration);
-    const startingTime = new Date(`${bookingDateStr}T${startTimeStr}:00`).toISOString();
-    const endingTime = new Date(`${bookingDateStr}T${endTimeStr}:00`).toISOString();
-
-    const getValidId = (id) => {
-      if (id == null || (Array.isArray(id) && id.length === 0)) {
-        return null;
-      }
-      return id;
-    };
-
-    const serviceIdsTemp = selectedServices
-      .map(s => {
-        const id = getValidId(s.id);
-        if (id == null) return null;
-        return Array.isArray(id) ? id : [id];
-      })
-      .filter(arr => arr != null)
-      .flat();
-
-    const advanceAmount = Math.min(20, totalPrice * 0.2);
-    const remainingAmount = totalPrice - advanceAmount;
-
-    return {
-      barberId: getValidId(selectedBarber?.id),
-      userId: "69315678fca89f6d95026e4a", // Replace with actual user ID from auth context/state
-      shopId: shopDetails?.id || null,
-      serviceIds: serviceIdsTemp.length > 0 ? serviceIdsTemp : null,
-      services: selectedServices?.length
-        ? selectedServices.map(service => ({
-            id: getValidId(service.id),
-            name: service.name || 'Unknown Service',
-            price: service.price || 0,
-            duration: service.duration || 30
-          })).filter(service => service.id !== null || selectedServices.length === 1)
-        : [],
-      bookingDate: bookingDateStr,
-      timeSlot: {
-        startingTime,
-        endingTime
-      },
-      totalPrice: totalPrice || 0,
-      totalDuration: totalDuration || 30,
-      paymentType: 'advance',
-      amountToPay: advanceAmount,
-      remainingAmount,
-      currency: 'INR',
-      bookingStatus: 'pending',
-      paymentId: null,
-      paymentStatus: 'unpaid',
-      amountPaid: 0
-    };
+    return id;
   };
+
+  const serviceIdsTemp = selectedServices
+    .map(s => {
+      const id = getValidId(s.id);
+      if (id == null) return null;
+      return Array.isArray(id) ? id : [id];
+    })
+    .filter(arr => arr != null)
+    .flat();
+
+  // Calculate advance payment (e.g., min 20% or fixed min 20 as per existing alert logic)
+  const advanceAmount = Math.min(20, totalPrice * 0.2); // Or Math.min(20, totalPrice) to match alert
+  const remainingAmount = totalPrice - advanceAmount;
+
+  return {
+    barberId: getValidId(selectedBarber?.id),
+    userId: "69315678fca89f6d95026e4a", // Replace with actual user ID from auth context/state
+    shopId: shopDetails?.id || null,
+    serviceIds: serviceIdsTemp.length > 0 ? serviceIdsTemp : null,
+    services: selectedServices?.length
+      ? selectedServices.map(service => ({
+          id: getValidId(service.id),
+          name: service.name || 'Unknown Service',
+          price: service.price || 0,
+          duration: service.duration || 30
+        })).filter(service => service.id !== null || selectedServices.length === 1)
+      : [], // Empty array if no services, or adjust as needed
+    bookingDate: bookingDateStr,
+    timeSlot: {
+      startingTime,
+      endingTime
+    },
+    totalPrice: totalPrice || 0,
+    totalDuration: totalDuration || 30,
+    paymentType: 'advance',
+    amountToPay: advanceAmount,
+    remainingAmount,
+    currency: 'INR',
+    bookingStatus: 'pending',
+    paymentId: null, // Set after payment (e.g., from PayNow response)
+    paymentStatus: 'unpaid', // Initial status; update to 'partial' after advance payment
+    amountPaid: 0 // Initial; update after payment
+  };
+};
 
   const handleBookNow = () => {
     const validationError = validateBooking();
@@ -835,6 +905,7 @@ export default function BookNow() {
       const bookingData = prepareBookingData();
       console.log("Submitting booking:\n", JSON.stringify(bookingData, null, 2));
 
+      
       const response = await SlotBooking(bookingData);
       console.log("..........................",response,"-------------------------------------------------------------------------------------------------------")
       if (response.success) {
@@ -909,7 +980,7 @@ export default function BookNow() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#EF4444" />
+        <ActivityIndicator size="large" color="#FF6B6B" />
         <Text style={styles.loadingText}>Loading shop details...</Text>
       </SafeAreaView>
     );
@@ -930,7 +1001,7 @@ export default function BookNow() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Manual Calendar */}
+      {/* Manual Calendar (Old/Good Version) */}
       <ManualCalendar
         selectedDate={selectedDate}
         onDateSelect={setSelectedDate}
@@ -1025,49 +1096,44 @@ export default function BookNow() {
         style={styles.scrollContainer} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Services Selection */}
-        <View style={styles.sectionContent}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-              <Ionicons name="cut-outline" size={18} color="#FFFFFF" />
-            </View>
-            <Text style={styles.sectionTitle}>Select Services</Text>
-          </View>
-          <View style={styles.servicesGrid}>
-            {allServices.map((service, index) => (
-              <TouchableOpacity
-                key={service.id || `default-service-${index}`}
-                style={[
-                  styles.serviceCard,
-                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceCard
-                ]}
-                onPress={() => toggleService(service)}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.serviceIconContainer,
-                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceIconContainer
-                ]}>
-                  <Ionicons name="cut" size={24} color={selectedServices.some(s => s.id === service.id) ? "#FFFFFF" : "#64748B"} />
-                </View>
-                <Text style={styles.serviceTitle} numberOfLines={1}>{service.name}</Text>
-                <Text style={styles.servicePrice}>₹{service.price}</Text>
-                <Text style={styles.serviceDuration}>{service.duration} min</Text>
-                {selectedServices.some(s => s.id === service.id) && (
-                  <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.serviceCheckIcon} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          {apiErrors.services && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>Unable to load services</Text>
-            </View>
-          )}
-          {allServices.length === 0 && !apiErrors.services && (
-            <Text style={styles.emptyStateText}>No services available</Text>
-          )}
-        </View>
+        {/* Services Selection - First Section */}
+       <View style={styles.sectionContent}>
+  <View style={styles.sectionHeader}>
+    <View style={styles.sectionIcon}>
+      <Ionicons name="cut-outline" size={18} color="#FFFFFF" />
+    </View>
+    <Text style={styles.sectionTitle}>Select Services</Text>
+  </View>
+  <View style={styles.servicesGrid}>
+    {allServices.map((service, index) => (
+      <TouchableOpacity
+        key={service.id || `default-service-${index}`}
+        style={[
+          styles.serviceCard,
+          selectedServices.some(s => s.id === service.id) && styles.selectedServiceCard
+        ]}
+        onPress={() => toggleService(service)}
+        activeOpacity={0.8}
+      >
+        {/* Removed the icon circle container and icon */}
+        <Text style={styles.serviceTitle} numberOfLines={1}>{service.name}</Text>
+        <Text style={styles.servicePrice}>₹{service.price}</Text>
+        <Text style={styles.serviceDuration}>{service.duration} min</Text>
+        {selectedServices.some(s => s.id === service.id) && (
+          <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.serviceCheckIcon} />
+        )}
+      </TouchableOpacity>
+    ))}
+  </View>
+  {apiErrors.services && (
+    <View style={styles.errorBox}>
+      <Text style={styles.errorBoxText}>Unable to load services</Text>
+    </View>
+  )}
+  {allServices.length === 0 && !apiErrors.services && (
+    <Text style={styles.emptyStateText}>No services available</Text>
+  )}
+</View>
 
         {selectedServices.length > 0 && (
           <View style={styles.selectionSummary}>
@@ -1082,113 +1148,132 @@ export default function BookNow() {
           </View>
         )}
 
-        {/* Date Selection */}
-        <View style={[styles.sectionCard, selectedDate && styles.completedCard]}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-              <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-            </View>
-            <Text style={styles.sectionTitle}>Select Date</Text>
-          </View>
+        {/* Date Selection - Second Section */}
+       <View>
+  <View style={styles.sectionHeader}>
+    <View style={styles.sectionIcon}>
+      <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+    </View>
+    <Text style={styles.sectionTitle}>Select Date</Text>
+  </View>
 
-          <TouchableOpacity
-            style={[styles.dateTimeSelector, selectedDate && styles.selectedDateSelector]}
-            onPress={() => setCalendarVisibility(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="calendar-outline" size={20} color="#64748B" />
-            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
-              {selectedDate ? selectedDate.toDateString() : "Select Date"}
+  <TouchableOpacity
+    style={[styles.dateTimeSelector, selectedDate && styles.selectedDateSelector]}
+    onPress={() => setCalendarVisibility(true)}
+    activeOpacity={0.8}
+  >
+    <Ionicons name="calendar-outline" size={20} color="#64748B" />
+    <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+      {selectedDate ? selectedDate.toDateString() : "Select Date"}
+    </Text>
+    <Ionicons name="chevron-down" size={20} color="#64748B" />
+  </TouchableOpacity>
+</View> 
+
+        {/* Barber & Time Selection - Third Section */}
+       <View style={[styles.sectionContent, {paddingTop: 20}]}>
+  <View style={styles.sectionHeader}>
+    <View style={styles.sectionIcon}>
+      <Ionicons name="person-outline" size={18} color="#FFFFFF" />
+    </View>
+    <Text style={styles.sectionTitle}>Select Barber & Time</Text>
+  </View>
+
+  <ScrollView
+    horizontal={true}
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.barbersScrollContent}
+  >
+    <View style={styles.barbersGrid}>
+      {barberOptions.map(barber => (
+        <TouchableOpacity
+          key={barber.id || 'default-barber'}
+          style={[
+            styles.barberCard,
+            selectedBarber?.id === barber.id && styles.selectedBarberCard
+          ]}
+          onPress={() => handleBarberSelect(barber)}
+          activeOpacity={0.8}
+        >
+          <View style={[
+            styles.barberCircle,
+            selectedBarber?.id === barber.id && styles.selectedBarberCircle
+          ]}>
+            <Text style={[
+              styles.barberInitial,
+              selectedBarber?.id === barber.id && styles.selectedBarberInitial
+            ]}>
+              {barber.name.charAt(0).toUpperCase()}
             </Text>
-            <Ionicons name="chevron-down" size={20} color="#64748B" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Barber & Time Selection */}
-        <View style={[styles.sectionContent, (selectedBarber && selectedStartTime) && styles.completedCard]}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
-            </View>
-            <Text style={styles.sectionTitle}>Select Barber & Time</Text>
           </View>
+          <View style={styles.barberTextContainer}>
+            <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
+            {barber.id !== null && (
+              <Text style={styles.barberMeta} numberOfLines={1}>
+                {barber.nativePlace}
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </ScrollView>
 
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.barbersScrollContent}
-          >
-            <View style={styles.barbersGrid}>
-              {barberOptions.map(barber => (
-                <TouchableOpacity
-                  key={barber.id || 'default-barber'}
-                  style={[
-                    styles.barberCard,
-                    selectedBarber?.id === barber.id && styles.selectedBarberCard
-                  ]}
-                  onPress={() => handleBarberSelect(barber)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[
-                    styles.barberCircle,
-                    selectedBarber?.id === barber.id && styles.selectedBarberCircle
-                  ]}>
-                    <Text style={[
-                      styles.barberInitial,
-                      selectedBarber?.id === barber.id && styles.selectedBarberInitial
-                    ]}>
-                      {barber.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.barberTextContainer}>
-                    <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
-                    {barber.id !== null && (
-                      <Text style={styles.barberMeta} numberOfLines={1}>
-                        {barber.nativePlace}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+  {selectedBarber && !selectedBarber.id && (
+    <Text style={styles.noteText}>Select a specific barber to choose time slot</Text>
+  )}
 
-          {selectedBarber && !selectedBarber.id && (
-            <Text style={styles.noteText}>Select a specific barber to choose time slot</Text>
-          )}
+  {selectedBarber?.id && selectedDate && freeGaps.length === 0 && selectedStartTime === null && (
+    <Text style={styles.loadingText}>Loading availability...</Text>
+  )}
 
-          {selectedBarber?.id && selectedDate && freeGaps.length === 0 && selectedStartTime === null && (
-            <Text style={styles.loadingText}>Loading availability...</Text>
-          )}
+  {freeGaps.length === 0 && selectedStartTime === null && selectedBarber?.id && selectedDate && (
+    <Text style={styles.emptyStateText}>No available slots for this barber</Text>
+  )}
 
-          {freeGaps.length === 0 && selectedStartTime === null && selectedBarber?.id && selectedDate && (
-            <Text style={styles.emptyStateText}>No available slots for this barber</Text>
-          )}
+  {/* New Barber Schedule Timeline */}
+  {selectedBarber?.id && selectedDate && freeGaps.freeSlots?.length > 0 && (
+    <BarberScheduleTimeline
+      totalDuration={totalDuration}
+      scheduleData={freeGaps}
+      availableDurations={[30, 60, 90, 120]} // You can customize this list
+      title="Choose Your Time Slot"
+      date={selectedDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}
+      onTimeSelect={(selected) => {
+        setSelectedStartTime(selected.startTime);
+        // Optional: you could also store end time if needed later
+        console.log('Selected slot:', selected.startTime, '-', selected.endTime);
+      }}
+    />
+  )}
 
-          {/* Simple Draggable Timeline */}
-          {selectedBarber?.id && selectedDate && freeGaps.length > 0 && (
-            <DraggableTimeline
-              freeGaps={freeGaps}
-              totalDuration={totalDuration}
-              openingTime={dynamicOpeningTime}
-              closingTime={dynamicClosingTime}
-              onSlotChange={setSelectedStartTime}
-              selectedStartTime={selectedStartTime}
-            />
-          )}
+  {/* Loading or No Slots Message */}
+  {selectedBarber?.id && selectedDate && (!freeGaps.freeSlots || freeGaps.freeSlots.length === 0) && (
+    <View style={{ padding: 20, alignItems: 'center' }}>
+      <Text style={{ fontSize: 16, color: '#64748B', textAlign: 'center' }}>
+        No available time slots for this barber on the selected date.
+      </Text>
+    </View>
+  )}
 
-          {apiErrors.barbers && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
-            </View>
-          )}
-          {barberOptions.length === 1 && !apiErrors.barbers && (
-            <Text style={styles.emptyStateText}>No specific barbers available</Text>
-          )}
-        </View>
+  {apiErrors.barbers && (
+    <View style={styles.errorBox}>
+      <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
+    </View>
+  )}
+  {barberOptions.length === 1 && !apiErrors.barbers && (
+    <Text style={styles.emptyStateText}>No specific barbers available</Text>
+  )}
+</View>
       </ScrollView>
 
-      {/* Footer */}
+
+      {/* Enhanced Footer */}
       <View style={styles.footer}>
         {(selectedServices.length > 0 || selectedDate || selectedBarber) && (
           <View style={styles.bookingSummaryFooter}>
@@ -1256,7 +1341,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1300,7 +1385,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   timingBadge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1328,7 +1413,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     borderRadius: 3,
   },
   progressText: {
@@ -1369,7 +1454,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionIcon: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -1416,9 +1501,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   selectedBarberCircle: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     elevation: 3,
-    shadowColor: '#EF4444',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -1471,10 +1556,10 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   selectedServiceCard: {
-    borderColor: '#EF4444',
+    borderColor: '#FF6B6B',
     backgroundColor: '#FEF2F2',
     elevation: 2,
-    shadowColor: '#EF4444',
+    shadowColor: '#FF6B6B',
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -1488,7 +1573,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectedServiceIconContainer: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
   },
   serviceTitle: {
     fontSize: 12,
@@ -1500,7 +1585,7 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#FF6B6B',
     marginBottom: 2,
   },
   serviceDuration: {
@@ -1579,7 +1664,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   selectedDateSelector: {
-    borderColor: '#EF4444',
+    borderColor: '#FF6B6B',
     backgroundColor: '#FEF2F2',
   },
   selectedDateText: {
@@ -1628,7 +1713,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   bookButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     padding: 18,
     borderRadius: 16,
     alignItems: 'center',
@@ -1636,7 +1721,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     elevation: 3,
-    shadowColor: '#EF4444',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1723,7 +1808,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: 18,
-    color: '#EF4444',
+    color: '#FF6B6B',
     fontWeight: '700',
   },
   modalButtons: {
@@ -1742,9 +1827,9 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   confirmButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     elevation: 2,
-    shadowColor: '#EF4444',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1761,7 +1846,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// Calendar Styles
+// Old/Good Calendar Styles (Kept as-is for better visual consistency)
 const calendarStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -1847,12 +1932,12 @@ const calendarStyles = StyleSheet.create({
   todayCell: {
     backgroundColor: '#FEF2F2',
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: '#FF6B6B',
   },
   selectedCell: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#FF6B6B',
     elevation: 2,
-    shadowColor: '#EF4444',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1866,7 +1951,7 @@ const calendarStyles = StyleSheet.create({
     fontWeight: '500',
   },
   todayText: {
-    color: '#EF4444',
+    color: '#FF6B6B',
     fontWeight: '700',
   },
   selectedText: {
