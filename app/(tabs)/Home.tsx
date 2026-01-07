@@ -17,9 +17,10 @@ import {
   View
 } from 'react-native';
 
-// Import the API service functions
 import { findNearestShops } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import BookingReminder from '../Components/Reminder/BookingReminder';
+
 
 const Home = ({ navigation }) => {
   const [shops, setShops] = useState([]);
@@ -243,7 +244,6 @@ const Home = ({ navigation }) => {
       return {
         id: shop._id,
         name: shopName,
-        rating: '4.5',
         services: 'Haircut, Beard, Styling',
         price: '$25-45',
         distance: `${(shop.distance / 1000).toFixed(1)} km`,
@@ -467,6 +467,7 @@ const Home = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       </Modal>
+          <BookingReminder />
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.welcomeSection}>
@@ -505,7 +506,7 @@ const Home = ({ navigation }) => {
         )}
 
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Services</Text>
           </View>
           <View style={styles.quickServicesContainer}>
@@ -517,7 +518,8 @@ const Home = ({ navigation }) => {
                 <Text style={styles.serviceName}>{service.name}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </View> */}
+          {/* <BookingReminder /> */}
         </View>
 
         {getFilteredShops().length > 0 && (
@@ -555,13 +557,7 @@ const Home = ({ navigation }) => {
                   </View>
                   <View style={styles.shopDetails}>
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
+                    <Text style={styles.priceText}>{item.price}</Text>
                     <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
                     <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
                   </View>
@@ -601,7 +597,7 @@ const Home = ({ navigation }) => {
                       resizeMode="cover"
                     />
                     <View style={styles.topRatedBadge}>
-                      <Ionicons name="trophy" size={12} color="#FFF" />
+                      <Ionicons name="trophy" size={10} color="#FFF" />
                     </View>
                     <View style={styles.distanceBadge}>
                       <Text style={styles.distanceText}>{item.distance}</Text>
@@ -609,13 +605,7 @@ const Home = ({ navigation }) => {
                   </View>
                   <View style={styles.shopDetails}>
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
+                    <Text style={styles.priceText}>{item.price}</Text>
                     <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
                     <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
                   </View>
@@ -654,13 +644,7 @@ const Home = ({ navigation }) => {
                   </View>
                   <View style={styles.shopDetails}>
                     <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
+                    <Text style={styles.priceText}>{item.price}</Text>
                     <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
                     <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
                   </View>
@@ -1044,16 +1028,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   horizontalListContainer: {
-    paddingLeft: 20,
+    paddingLeft: 16,
     paddingRight: 8,
   },
   shopCard: {
-    width: 220,
-    marginRight: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    width: 120,
+    marginRight: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#E2E8F0',
   },
   topRatedCard: {
@@ -1065,100 +1049,85 @@ const styles = StyleSheet.create({
   },
   shopImage: {
     width: '100%',
-    height: 140,
+    height: 100,
   },
   distanceBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   distanceText: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '500',
   },
   topRatedBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 6,
+    left: 6,
     backgroundColor: '#F59E0B',
-    padding: 6,
-    borderRadius: 8,
+    padding: 4,
+    borderRadius: 6,
   },
   shopDetails: {
-    padding: 12,
+    padding: 8,
   },
   shopName: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 8,
-  },
-  ratingPriceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    marginLeft: 4,
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  priceText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#4F46E5',
-  },
-  servicesText: {
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '400',
     marginBottom: 4,
   },
+  priceText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4F46E5',
+    marginBottom: 3,
+  },
+  servicesText: {
+    fontSize: 9,
+    color: '#94A3B8',
+    fontWeight: '400',
+    marginBottom: 2,
+  },
   cityText: {
-    fontSize: 12,
+    fontSize: 9,
     color: '#CBD5E1',
     fontWeight: '400',
   },
   designCard: {
-    width: 160,
-    marginRight: 12,
+    width: 120,
+    marginRight: 10,
   },
   designImageContainer: {
     position: 'relative',
   },
   designImage: {
     width: '100%',
-    height: 180,
-    borderRadius: 12,
+    height: 140,
+    borderRadius: 10,
   },
   popularityBadge: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+    bottom: 6,
+    right: 6,
     backgroundColor: 'rgba(79, 70, 229, 0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   popularityText: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '500',
   },
   designName: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 6,
+    fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
     color: '#475569',
