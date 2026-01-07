@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { createOrder, verifyPayment } from '../../api/Service/Booking';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
@@ -254,13 +255,12 @@ export default function PayNow() {
     : `Pay ₹${totalPrice} Now`;
 
   return (
-    <ScrollView 
+    <SafeAreaView>
+       <ScrollView 
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.headerContainer}>
-        <Text style={styles.subHeader}>Review your booking and make payment</Text>
-      </View>
+      
       
       <View style={styles.bookingSummary}>
         <View style={styles.sectionHeader}>
@@ -320,6 +320,7 @@ export default function PayNow() {
         )}
       </TouchableOpacity>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

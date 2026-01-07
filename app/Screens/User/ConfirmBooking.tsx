@@ -7,7 +7,7 @@ export default function ConfirmBooking() {
   const { bookingId, paymentId, paymentType, amount, verified } = params;
 
   const handleExploreMore = () => {
-    router.push('/(tabs)/Home');
+    router.push('/Screens/User/Bookings');
   };
 
   const handleDownloadReceipt = () => {
@@ -107,7 +107,7 @@ export default function ConfirmBooking() {
         {/* Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.primaryButton} onPress={handleExploreMore}>
-            <Text style={styles.primaryButtonText}>Explore More</Text>
+            <Text style={styles.primaryButtonText}>check your bookings </Text>
           </TouchableOpacity>
           
           {/* <TouchableOpacity style={styles.secondaryButton} onPress={handleDownloadReceipt}>

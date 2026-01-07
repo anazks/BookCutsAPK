@@ -72,3 +72,28 @@ export const getBarberFreeTime = async (barberId, dateStr,shopId) => {
     return [];
   }
 };
+
+export const fetchAllAvailableTimeSlots = async (shopId,dateStr) => {
+  try {
+       const dateObject = new Date(dateStr);
+    const isoDate = dateObject.toISOString();
+    console.log("date:",dateStr)
+    console.log("Sending Date to Backend:", JSON.stringify(dateStr));
+    const response = await Axios.post('/booking/fetchAllAvailableTimeSlots', {
+      bookingDate: dateStr,
+      shopId
+    });
+        console.log("shop available slots:",response.data)
+
+    const data = response.data;
+
+    if (data.success) {
+      return data || [];
+    }
+
+    console.error('Unexpected data structure:', data);
+    return [];
+  } catch (error) {
+    return []
+  }
+}

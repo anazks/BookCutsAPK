@@ -1,3 +1,4 @@
+import axios from 'axios';
 import Axios from '../axios';
 
  
@@ -234,4 +235,17 @@ export const saveToCloud = async (shopId: string, data: FormData) => {
             throw { message: 'Failed to store in cloud' };
         }
     }
+};
+
+export const search = async (q) => {
+  try {
+    // Use template literal with proper query parameter
+    const response = await Axios.get(`/shop/search?q=${encodeURIComponent(q)}`);
+    console.log("search result",JSON.stringify(response , null, 2))
+    return response.data;
+
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
 };
