@@ -30,3 +30,12 @@ export const getmyProfile = async (userId: string) => {
         throw error?.response?.data || { message: "Failed to fetch profile" };
     }
 }
+
+export const fetchUniqueServices = async () => {
+    try {
+        const response = await Axios.get('/shop/fetchAllUniqueService')
+        return response.data
+    } catch (error) {
+        throw error?.response?.data || { message: "Faild to fetch unique service" }
+    }
+}

@@ -223,65 +223,60 @@ export default function BookNow() {
 
   // Fetch all shop-wide slots when "Any Barber" is selected
   const fetchAllSlots = useCallback(async () => {
-    if (!selectedDate || selectedBarber?.id !== null) {
-      setAllAvailableSlots([]);
-      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
-      setLoadingAllSlots(false);
-      return;
-    }
+  if (!selectedDate || selectedBarber?.id !== null) {
+    setAllAvailableSlots([]);
+    setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+    setLoadingAllSlots(false);
+    return;
+  }
 
-    setLoadingAllSlots(true);
-    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  setLoadingAllSlots(true);
+  const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
-    try {
-      const response = await fetchAllAvailableTimeSlots(shop_id, dateStr);
+  try {
+    const response = await fetchAllAvailableTimeSlots(shop_id, dateStr);
+    console.log("AVAILABLE SLOTS OF ANY BARBER:", response.availableSlots.schedule.freeSlots);
+    
+    if (response?.success && response?.availableSlots?.success) {
+      const freeSlots = response.availableSlots.schedule?.freeSlots || [];
       
-      let slots: string[] = [];
-      
-      if (response?.success && response?.availableSlots?.success) {
-        const freeSlots = response.availableSlots.schedule?.freeSlots || [];
-        
-        // Extract start times from freeSlots objects
-        slots = freeSlots
-          .map((slot: { from: string, to: string, minutes: number }) => slot.from)
-          .filter((timeStr: string | undefined) => timeStr && typeof timeStr === 'string')
-          .map((timeStr: string) => {
-            const [hours, minutes] = timeStr.split(':');
-            return `${hours.padStart(2, '0')}:${minutes || '00'}`;
-          })
-          .sort((a: string, b: string) => timeToMinutes(a) - timeToMinutes(b));
-      }
-      
-      setAllAvailableSlots(slots);
-
-      // Convert string slots to freeSlots format for BarberScheduleTimeline
-      const timelineSlots = slots.map(time => ({
-        from: time,
-        to: addMinutesToTime(time, 30),
-        minutes: 30
-      }));
-      
-      // Update freeGaps with Any Barber slots
+      // NEW: Pass FULL gaps to freeGaps (no transformation!)
       setFreeGaps({
         workHours: { from: "09:00", to: "21:00" },
         breaks: [],
         bookings: [],
-        freeSlots: timelineSlots
+        freeSlots: freeSlots.map(slot => ({  // Just copy as-is
+          from: slot.from,
+          to: slot.to,
+          minutes: slot.minutes
+        }))
       });
 
-      if (slots.length > 0 && !selectedStartTime) {
-        setSelectedStartTime(slots[0]);
-      } else if (slots.length === 0) {
+      // Keep allAvailableSlots as start times (if needed for auto-select)
+      const startTimes = freeSlots
+        .map(slot => slot.from)
+        .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+      
+      setAllAvailableSlots(startTimes);
+
+      if (startTimes.length > 0 && !selectedStartTime) {
+        setSelectedStartTime(startTimes[0]);
+      } else if (startTimes.length === 0) {
         setSelectedStartTime(null);
       }
-    } catch (err) {
-      console.error('Error fetching all available slots:', err);
+    } else {
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
       setAllAvailableSlots([]);
       setSelectedStartTime(null);
-    } finally {
-      setLoadingAllSlots(false);
     }
-  }, [selectedDate, selectedBarber?.id, shop_id]);
+  } catch (err) {
+    console.error('Error fetching all available slots:', err);
+    setAllAvailableSlots([]);
+    setSelectedStartTime(null);
+  } finally {
+    setLoadingAllSlots(false);
+  }
+}, [selectedDate, selectedBarber?.id, shop_id]);
 
   // Fetch slots when date or barber changes
   useEffect(() => {
@@ -690,7 +685,7 @@ export default function BookNow() {
     </SafeAreaView>
   );
 }
-  
+
 // All styles remain unchanged from your original code
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },

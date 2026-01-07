@@ -20,7 +20,7 @@ import {
 
 // Import the API service functions
 import { findNearestShops,search } from '../api/Service/Shop';
-import { getmyProfile } from '../api/Service/User';
+import { fetchUniqueServices, getmyProfile } from '../api/Service/User';
 import ShopCard from '../Screens/User/ShopCard';
 
 const Home = ({ navigation }) => {
@@ -39,6 +39,7 @@ const Home = ({ navigation }) => {
   });
 
   const [cities, setCities] = useState([]);
+  const [service,setService] = useState([]);
 
 
   const getLocation = async () => {
@@ -152,6 +153,23 @@ return sorted;
   }
 };
 
+const fetchService = async () => {
+  try {
+    const response = await fetchUniqueServices();
+    console.log(response,"UNIQUE SERVICE")
+    if (response) {
+      const formattedServices = response.map((name, index) => ({
+        id: index.toString(),
+        name: name,
+        icon: 'cut-outline', // Default icon
+        color: '#4A90E2',    // Default brand color or logic to rotate colors
+      }));
+      setService(formattedServices);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 
   const findNearestShopApi = async () => {
@@ -281,22 +299,30 @@ const handleCitySelect = (city) => {
   useEffect(() => {
     if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
       findNearestShopApi();
+      fetchService()
       getProfile();
       getNearByCities(coordinates); 
     }
   }, [coordinates]);
 
 
-  const getFilteredShops = () => {
-    if (selectedCity === 'All Cities' || selectedCity === 'India') {
-      return shops;
-    }
+const getFilteredShops = () => {
 
-    return shops.filter(shop =>
-      shop.City?.toLowerCase().includes(selectedCity.toLowerCase()) ||
-      shop.city?.toLowerCase().includes(selectedCity.toLowerCase())
-    );
-  };
+  const cityName =
+    typeof selectedCity === "string"
+      ? selectedCity
+      : selectedCity?.name || "";
+
+  if (cityName === "All Cities" || cityName === "India") {
+    return shops;
+  }
+
+  return shops.filter(shop =>
+    shop.City?.toLowerCase().includes(cityName.toLowerCase()) ||
+    shop.city?.toLowerCase().includes(cityName.toLowerCase())
+  );
+};
+
 
   const transformShopData = (apiShops) => {
     return apiShops.map((shop) => {
@@ -700,21 +726,26 @@ const performSearch = async (query) => {
       )}
 
       {/* Quick Services */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Services</Text>
+<View style={styles.section}>
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>Quick Services</Text>
+  </View>
+
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.quickServicesScrollContainer}
+  >
+    {service.map((item) => (
+      <TouchableOpacity key={item.id} style={styles.serviceCard}>
+        <View style={[styles.serviceIcon, { backgroundColor: item.color }]}>
+          <Ionicons name={item.icon} size={24} color="#FFF" />
         </View>
-        <View style={styles.quickServicesContainer}>
-          {quickServices.map((service) => (
-            <TouchableOpacity key={service.id} style={styles.serviceCard}>
-              <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
-                <Ionicons name={service.icon} size={24} color="#FFF" />
-              </View>
-              <Text style={styles.serviceName}>{service.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+        <Text style={styles.serviceName}>{item.name}</Text>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+</View>
 
       {/* Top Rated This Week */}
       {getFilteredShops().length > 0 && (
