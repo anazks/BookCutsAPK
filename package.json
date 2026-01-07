@@ -42,6 +42,8 @@
     "expo-web-browser": "~14.2.0",
     "firebase": "^12.3.0",
     "install": "^0.13.0",
+    "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "lucide-react-native": "^0.562.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",

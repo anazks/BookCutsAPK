@@ -14,12 +14,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  TextInput
 } from 'react-native';
 
 // Import the API service functions
-import { findNearestShops } from '../api/Service/Shop';
+import { findNearestShops,search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import ShopCard from '../Screens/User/ShopCard';
 
 const Home = ({ navigation }) => {
   const [shops, setShops] = useState([]);
@@ -36,28 +38,8 @@ const Home = ({ navigation }) => {
     longtitude: 0
   });
 
-  const cities = [
-    'All Cities',
-    'Kochi',
-    'Salem',
-    'Mumbai',
-    'Delhi',
-    'Bangalore',
-    'Chennai',
-    'Hyderabad',
-    'Pune',
-    'Kolkata',
-    'Ahmedabad',
-    'Jaipur',
-    'Lucknow',
-    'Kanpur',
-    'Nagpur',
-    'Indore',
-    'Thane',
-    'Bhopal',
-    'Visakhapatnam',
-    'Pimpri-Chinchwad'
-  ];
+  const [cities, setCities] = useState([]);
+
 
   const getLocation = async () => {
     try {
@@ -100,6 +82,77 @@ const Home = ({ navigation }) => {
       setLoading(false);
     }
   };
+
+  const getNearByCities = async ({ latitude, longtitude }) => {
+  try {
+
+    const lat = Number(latitude.toFixed(4));
+    const lon = Number(longtitude.toFixed(4));
+
+    const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
+
+    console.log("URL >>>", url);
+
+    const res = await fetch(url);
+    const text = await res.text();
+
+    console.log("RAW RESPONSE >>>", text);
+
+    // handle empty / invalid result
+    if (!text || text.trim() === "[[%s]]") {
+      console.log("No nearby cities returned");
+      return [];
+    }
+
+    // ✅ convert string → JSON array
+    const data = JSON.parse(text);
+
+    // ✅ extract only required fields
+    const cities = data.map(item => ({
+      name: item[1],
+      lat: Number(item[8]),
+      lon: Number(item[10])
+    }));
+
+    // ---- distance helpers ----
+    const toRad = deg => (deg * Math.PI) / 180;
+
+    const distanceKm = (lat1, lon1, lat2, lon2) => {
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) *
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) ** 2;
+
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    // ---- sort nearest first ----
+    const sorted = cities.sort(
+  (a, b) =>
+    distanceKm(lat, lon, a.lat, a.lon) -
+    distanceKm(lat, lon, b.lat, b.lon)
+);
+
+console.log("Nearby Cities (sorted):", sorted);
+
+// ✅ update dropdown city list here
+setCities(sorted);
+
+return sorted;
+
+
+  } catch (err) {
+    console.error("Failed to fetch nearby cities:", err);
+    return [];
+  }
+};
+
+
 
   const findNearestShopApi = async () => {
     if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
@@ -171,12 +224,30 @@ const Home = ({ navigation }) => {
   );
 };
 
-  const handleCitySelect = (city) => {
-    setSelectedCity(city);
-    setShowCityDropdown(false);
-    // In a real app, you would make an API call to filter by this city
-    console.log('Selected city:', city);
-  };
+const handleCitySelect = (city) => {
+  if (!city) return;
+
+  // Store city name for UI
+  setSelectedCity(city.name);
+
+  // Update coordinates (this will trigger your useEffect API call)
+  setCoordinates({
+    latitude: Number(city.lat),
+    longtitude: Number(city.lon),
+  });
+
+  // Close dropdown
+  setShowCityDropdown(false);
+
+  console.log(
+    "Selected city:",
+    city.name,
+    city.lat,
+    city.lon
+  );
+};
+
+
 
   const handleRefresh = () => {
     getLocation(); // This will trigger the useEffect to refetch shops
@@ -211,6 +282,7 @@ const Home = ({ navigation }) => {
     if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
       findNearestShopApi();
       getProfile();
+      getNearByCities(coordinates); 
     }
   }, [coordinates]);
 
@@ -310,6 +382,54 @@ const Home = ({ navigation }) => {
       params: { shop_id: shop.id }
     });
   };
+  
+const [searchQuery, setSearchQuery] = useState('');
+  const [searchData, setSearchData] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // --- SEARCH LOGIC (DEBOUNCED) ---
+  useEffect(() => {
+    // If the user clears the input, clear the results immediately
+    if (searchQuery.trim() === '') {
+      setSearchData([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 500); // 500ms pause before API call
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+const performSearch = async (query) => {
+  setIsSearching(true);
+  try {
+    // .trim() removes the extra space that caused your 404 log
+    const response = await search(query.trim()); 
+    
+    console.log("Full Data:", response); 
+
+    // Look closely at your log: the array is in response.nearByshops
+    if (response && response.shops) {
+      setSearchData(response.shops); 
+    } else {
+      setSearchData([]);
+    }
+  } catch (error) {
+    console.error("Search API Error:", error);
+    setSearchData([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
+
+  const handleResetSearch = () => {
+    setSearchQuery('');
+    setSearchData([]);
+    // Keyboard.dismiss();
+  };
 
   if (loading) {
     return (
@@ -397,33 +517,34 @@ const Home = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.cityList} showsVerticalScrollIndicator={false}>
-              {cities.map((city, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.cityItem,
-                    selectedCity === city && styles.selectedCityItem
-                  ]}
-                  onPress={() => handleCitySelect(city)}
-                >
-                  <Ionicons 
-                    name="location-outline" 
-                    size={20} 
-                    color={selectedCity === city ? "#4F46E5" : "#64748B"} 
-                  />
-                  <Text 
-                    style={[
-                      styles.cityItemText,
-                      selectedCity === city && styles.selectedCityItemText
-                    ]}
-                  >
-                    {city}
-                  </Text>
-                  {selectedCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#4F46E5" />
-                  )}
-                </TouchableOpacity>
-              ))}
+             {cities.map((city, index) => (
+  <TouchableOpacity
+    key={index}
+    style={[
+      styles.cityItem,
+      selectedCity?.name === city.name && styles.selectedCityItem
+    ]}
+    onPress={() => handleCitySelect(city)}
+  >
+    <Ionicons 
+      name="location-outline" 
+      size={20} 
+      color={selectedCity?.name === city.name ? "#4F46E5" : "#64748B"} 
+    />
+
+    <Text style={[
+      styles.cityItemText,
+      selectedCity?.name === city.name && styles.selectedCityItemText
+    ]}>
+      {city.name}
+    </Text>
+
+    {selectedCity?.name === city.name && (
+      <Ionicons name="checkmark" size={20} color="#4F46E5" />
+    )}
+  </TouchableOpacity>
+))}
+
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -467,215 +588,142 @@ const Home = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       </Modal>
+              <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+  {/* Welcome Section - Always visible */}
+  <View style={styles.welcomeSection}>
+    <Text style={styles.welcomeTitle}>
+      Hello, {userProfile ? userProfile.firstName : 'there'}! 👋
+    </Text>
+    <Text style={styles.welcomeSubtitle}>Find the perfect salon for your style</Text>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>
-            Hello, {userProfile ? userProfile.firstName : 'there'}! 👋
-          </Text>
-          <Text style={styles.welcomeSubtitle}>Find the perfect salon for your style</Text>
-          {getFilteredShops().length > 0 && (
-            <Text style={styles.shopsCount}>
-              {getFilteredShops().length} shops available in {selectedCity}
-            </Text>
-          )}
-        </View>
+    {/* Only show shop count when NOT searching */}
+    {searchQuery.length === 0 && getFilteredShops().length > 0 && (
+      <Text style={styles.shopsCount}>
+        {getFilteredShops().length} shops available in {selectedCity}
+      </Text>
+    )}
+  </View>
 
-        <TouchableOpacity 
-          style={styles.searchContainer}
-          onPress={handleSearchPress}
+  {/* Search Bar - Always visible */}
+  <View style={styles.searchContainer}>
+    <View style={styles.searchContent}>
+      {isSearching ? (
+        <ActivityIndicator size="small" color="#4F46E5" style={{ marginRight: 4 }} />
+      ) : (
+        <Ionicons name="search" size={20} color="#64748B" />
+      )}
+
+      <TextInput
+        style={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search salons, services, or styles..."
+        placeholderTextColor="#64748B"
+        returnKeyType="search"
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+
+      {searchQuery.length > 0 && (
+        <TouchableOpacity
+          onPress={() => {
+            setSearchQuery('');
+            setSearchData([]);
+            // Keyboard.dismiss();
+          }}
+          style={{ padding: 4 }}
         >
-          <View style={styles.searchContent}>
-            <Ionicons name="search" size={20} color="#64748B" />
-            <Text style={styles.searchText}>Search salons, services, or styles...</Text>
-          </View>
-          <TouchableOpacity style={styles.filterButton}>
-            <Ionicons name="options-outline" size={20} color="#4F46E5" />
-          </TouchableOpacity>
+          <Ionicons name="close-circle" size={20} color="#94A3B8" />
         </TouchableOpacity>
+      )}
+    </View>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={24} color="#4F46E5" />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+    <TouchableOpacity style={styles.filterButton}>
+      <Ionicons name="options-outline" size={20} color="#4F46E5" />
+    </TouchableOpacity>
+  </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Services</Text>
-          </View>
-          <View style={styles.quickServicesContainer}>
-            {quickServices.map((service) => (
-              <TouchableOpacity key={service.id} style={styles.serviceCard}>
-                <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
-                  <Ionicons name={service.icon} size={24} color="#FFF" />
-                </View>
-                <Text style={styles.serviceName}>{service.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+  {/* ==================== SEARCH RESULTS (ONLY WHEN SEARCHING) ==================== */}
+  {searchQuery.length > 0 && (
+    <View style={{ flex: 1 }}>
+      {/* Loading State */}
+      {isSearching && (
+        <View style={{ paddingVertical: 60, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={{ marginTop: 16, fontSize: 16, color: '#64748B' }}>
+            Searching salons...
+          </Text>
         </View>
+      )}
 
-        {getFilteredShops().length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Popular Near You</Text>
-              <TouchableOpacity 
-                style={styles.seeAllButton}
-                onPress={() => handleSeeAllPress('popular')}
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={getPopularShops()}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.horizontalListContainer}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.shopCard}
-                  onPress={() => handleShopPress(item)}
-                >
-                  <View style={styles.shopImageContainer}>
-                    <Image 
-                      source={{ uri: item.image }} 
-                      style={styles.shopImage} 
-                      resizeMode="cover"
-                    />
-                    <View style={styles.distanceBadge}>
-                      <Text style={styles.distanceText}>{item.distance}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.shopDetails}>
-                    <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
-                    <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
-                    <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+      {/* Search Results List */}
+      <FlatList
+        data={searchData}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <ShopCard
+            shop={item}
+            onPress={() => handleShopPress({ id: item._id })}
+          />
         )}
-
-        {getFilteredShops().length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Rated This Week</Text>
-              <TouchableOpacity 
-                style={styles.seeAllButton}
-                onPress={() => handleSeeAllPress('top-rated')}
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
-              </TouchableOpacity>
+        ListEmptyComponent={() =>
+          !isSearching ? (
+            <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
+              <Ionicons name="search-outline" size={64} color="#CBD5E1" />
+              <Text style={{ marginTop: 16, fontSize: 18, color: '#64748B', textAlign: 'center' }}>
+                No salons found for "{searchQuery}"
+              </Text>
+              <Text style={{ marginTop: 8, fontSize: 14, color: '#94A3B8', textAlign: 'center' }}>
+                Try searching with different keywords
+              </Text>
             </View>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={getTopRatedShops()}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.horizontalListContainer}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={[styles.shopCard, styles.topRatedCard]}
-                  onPress={() => handleShopPress(item)}
-                >
-                  <View style={styles.shopImageContainer}>
-                    <Image 
-                      source={{ uri: item.image }} 
-                      style={styles.shopImage} 
-                      resizeMode="cover"
-                    />
-                    <View style={styles.topRatedBadge}>
-                      <Ionicons name="trophy" size={12} color="#FFF" />
-                    </View>
-                    <View style={styles.distanceBadge}>
-                      <Text style={styles.distanceText}>{item.distance}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.shopDetails}>
-                    <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
-                    <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
-                    <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
+          ) : null
+        }
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  )}
 
-        {getFilteredShops().length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>All Available Shops</Text>
-              <Text style={styles.shopsCountSmall}>({getFilteredShops().length} shops)</Text>
-            </View>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={getAllTransformedShops()}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.horizontalListContainer}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.shopCard}
-                  onPress={() => handleShopPress(item)}
-                >
-                  <View style={styles.shopImageContainer}>
-                    <Image 
-                      source={{ uri: item.image }} 
-                      style={styles.shopImage} 
-                      resizeMode="cover"
-                    />
-                    <View style={styles.distanceBadge}>
-                      <Text style={styles.distanceText}>{item.distance}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.shopDetails}>
-                    <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.ratingPriceContainer}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#F59E0B" />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                      </View>
-                      <Text style={styles.priceText}>{item.price}</Text>
-                    </View>
-                    <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
-                    <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
+  {/* ==================== NORMAL HOME CONTENT (ONLY WHEN NOT SEARCHING) ==================== */}
+  {searchQuery.length === 0 && (
+    <>
+      {/* Error Message */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={24} color="#4F46E5" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
+      {/* Quick Services */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Services</Text>
+        </View>
+        <View style={styles.quickServicesContainer}>
+          {quickServices.map((service) => (
+            <TouchableOpacity key={service.id} style={styles.serviceCard}>
+              <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
+                <Ionicons name={service.icon} size={24} color="#FFF" />
+              </View>
+              <Text style={styles.serviceName}>{service.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Top Rated This Week */}
+      {getFilteredShops().length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Trending Styles</Text>
-            <TouchableOpacity 
+            <Text style={styles.sectionTitle}>Top Rated This Week</Text>
+            <TouchableOpacity
               style={styles.seeAllButton}
-              onPress={() => router.push('/Screens/User/TrendingStyles')}
+              onPress={() => handleSeeAllPress('top-rated')}
             >
               <Text style={styles.seeAllText}>See All</Text>
               <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
@@ -684,28 +732,116 @@ const Home = ({ navigation }) => {
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={trendingDesigns}
+            data={getTopRatedShops()}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.horizontalListContainer}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.designCard}>
-                <View style={styles.designImageContainer}>
-                  <Image 
-                    source={{ uri: item.image }} 
-                    style={styles.designImage} 
-                    resizeMode="cover"
-                  />
-                  <View style={styles.popularityBadge}>
-                    <Text style={styles.popularityText}>{item.popularity}</Text>
+              <TouchableOpacity
+                style={[styles.shopCard, styles.topRatedCard]}
+                onPress={() => handleShopPress(item)}
+              >
+                <View style={styles.shopImageContainer}>
+                  <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
+                  <View style={styles.topRatedBadge}>
+                    <Ionicons name="trophy" size={12} color="#FFF" />
+                  </View>
+                  <View style={styles.distanceBadge}>
+                    <Text style={styles.distanceText}>{item.distance}</Text>
                   </View>
                 </View>
-                <Text style={styles.designName}>{item.name}</Text>
+                <View style={styles.shopDetails}>
+                  <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
+                  <View style={styles.ratingPriceContainer}>
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={14} color="#F59E0B" />
+                      <Text style={styles.ratingText}>{item.rating}</Text>
+                    </View>
+                    <Text style={styles.priceText}>{item.price}</Text>
+                  </View>
+                  <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
+                  <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
+                </View>
               </TouchableOpacity>
             )}
           />
         </View>
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      )}
+
+      {/* All Available Shops */}
+      {getFilteredShops().length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>All Available Shops</Text>
+            <Text style={styles.shopsCountSmall}>({getFilteredShops().length} shops)</Text>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={getAllTransformedShops()}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.horizontalListContainer}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.shopCard} onPress={() => handleShopPress(item)}>
+                <View style={styles.shopImageContainer}>
+                  <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
+                  <View style={styles.distanceBadge}>
+                    <Text style={styles.distanceText}>{item.distance}</Text>
+                  </View>
+                </View>
+                <View style={styles.shopDetails}>
+                  <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
+                  <View style={styles.ratingPriceContainer}>
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={14} color="#F59E0B" />
+                      <Text style={styles.ratingText}>{item.rating}</Text>
+                    </View>
+                    <Text style={styles.priceText}>{item.price}</Text>
+                  </View>
+                  <Text style={styles.servicesText} numberOfLines={1}>{item.services}</Text>
+                  <Text style={styles.cityText} numberOfLines={1}>{item.city}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
+      {/* Trending Styles */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Trending Styles</Text>
+          <TouchableOpacity
+            style={styles.seeAllButton}
+            onPress={() => router.push('/Screens/User/TrendingStyles')}
+          >
+            <Text style={styles.seeAllText}>See All</Text>
+            <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={trendingDesigns}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.horizontalListContainer}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.designCard}>
+              <View style={styles.designImageContainer}>
+                <Image source={{ uri: item.image }} style={styles.designImage} resizeMode="cover" />
+                <View style={styles.popularityBadge}>
+                  <Text style={styles.popularityText}>{item.popularity}</Text>
+                </View>
+              </View>
+              <Text style={styles.designName}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      <View style={styles.bottomSpacing} />
+    </>
+  )}
+</ScrollView>
     </View>
   );
 };
