@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 // const BASE_URL = 'https://bookmycutsapp.onrender.com/api';
-const BASE_URL = 'http://192.168.29.81:3002/api';
+  const BASE_URL = 'http://192.168.29.81:3002/api';
   //  const BASE_URL = "https://10.156.81.39:3002/api"
 
 
