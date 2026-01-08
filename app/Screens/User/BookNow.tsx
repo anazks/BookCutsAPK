@@ -1,12 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SlotBooking } from '../../api/Service/Booking';
+import { fetchAllAvailableTimeSlots, getBarberFreeTime, SlotBooking } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
-import { getBarberFreeTime, fetchAllAvailableTimeSlots } from '../../api/Service/Booking';
 import BarberScheduleTimeline from './BarberScheduleTimeLine';
+
+const { width } = Dimensions.get('window');
 
 const parseTime = (timeStr: string) => {
   timeStr = timeStr.trim().toLowerCase(); 
@@ -45,6 +57,7 @@ const addMinutesToTime = (timeStr: string, minutesToAdd: number) => {
 const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any) => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const fadeAnim = useState(new Animated.Value(0))[0];
   
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -52,6 +65,18 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any)
   const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
   
+  useEffect(() => {
+    if (isVisible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [isVisible]);
+
   const generateCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentMonth, currentYear);
     const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
@@ -95,25 +120,38 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any)
   if (!isVisible) return null;
   
   return (
-    <Modal visible={isVisible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={calendarStyles.modalOverlay}>
-        <View style={calendarStyles.calendarContainer}>
+        <Animated.View style={[calendarStyles.calendarContainer, { opacity: fadeAnim }]}>
           <View style={calendarStyles.calendarHeader}>
             <TouchableOpacity 
               style={[calendarStyles.navButton, !canGoPrev && calendarStyles.disabledNav]}
               onPress={() => canGoPrev && navigateMonth('prev')}
               disabled={!canGoPrev}
             >
-              <Text style={calendarStyles.navText}>Previous</Text>
+              <Ionicons name="chevron-back" size={20} color={canGoPrev ? "#475569" : "#CBD5E1"} />
+              <Text style={[calendarStyles.navText, !canGoPrev && calendarStyles.disabledNavText]}>Previous</Text>
             </TouchableOpacity>
-            <Text style={calendarStyles.monthYear}>{months[currentMonth]} {currentYear}</Text>
+            
+            <View style={calendarStyles.monthYearContainer}>
+              <Text style={calendarStyles.monthYear}>{months[currentMonth]} {currentYear}</Text>
+              <Text style={calendarStyles.currentDateText}>
+                {selectedDate ? selectedDate.toDateString() : 'Select a date'}
+              </Text>
+            </View>
+            
             <TouchableOpacity style={calendarStyles.navButton} onPress={() => navigateMonth('next')}>
               <Text style={calendarStyles.navText}>Next</Text>
+              <Ionicons name="chevron-forward" size={20} color="#475569" />
             </TouchableOpacity>
           </View>
           
           <View style={calendarStyles.daysHeader}>
-            {daysOfWeek.map(day => <Text key={day} style={calendarStyles.dayHeaderText}>{day}</Text>)}
+            {daysOfWeek.map(day => (
+              <View key={day} style={calendarStyles.dayHeader}>
+                <Text style={calendarStyles.dayHeaderText}>{day}</Text>
+              </View>
+            ))}
           </View>
           
           <View style={calendarStyles.calendarGrid}>
@@ -129,24 +167,47 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any)
                 onPress={() => handleDateSelect(dayObj)}
                 disabled={!dayObj || dayObj.isPast}
               >
-                <Text style={[
-                  calendarStyles.dayText,
-                  dayObj?.isToday && calendarStyles.todayText,
-                  dayObj?.isPast && calendarStyles.pastText,
-                  dayObj?.isSelected && calendarStyles.selectedText,
+                <View style={[
+                  calendarStyles.dayInner,
+                  dayObj?.isSelected && calendarStyles.selectedDayInner,
                 ]}>
-                  {dayObj?.day || ''}
-                </Text>
+                  <Text style={[
+                    calendarStyles.dayText,
+                    dayObj?.isToday && calendarStyles.todayText,
+                    dayObj?.isPast && calendarStyles.pastText,
+                    dayObj?.isSelected && calendarStyles.selectedText,
+                  ]}>
+                    {dayObj?.day || ''}
+                  </Text>
+                  {dayObj?.isToday && !dayObj?.isSelected && (
+                    <View style={calendarStyles.todayDot} />
+                  )}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
           
           <View style={calendarStyles.calendarFooter}>
-            <TouchableOpacity style={calendarStyles.closeButton} onPress={onClose}>
-              <Text style={calendarStyles.closeButtonText}>Close</Text>
+            <View style={calendarStyles.legend}>
+              <View style={calendarStyles.legendItem}>
+                <View style={[calendarStyles.legendDot, calendarStyles.todayDot]} />
+                <Text style={calendarStyles.legendText}>Today</Text>
+              </View>
+              <View style={calendarStyles.legendItem}>
+                <View style={[calendarStyles.legendDot, { backgroundColor: '#FF6B6B' }]} />
+                <Text style={calendarStyles.legendText}>Selected</Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={calendarStyles.closeButton} 
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <Text style={calendarStyles.closeButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -166,6 +227,7 @@ export default function BookNow() {
   const [apiErrors, setApiErrors] = useState({ services: false, barbers: false });
   const [showConfirmation, setShowConfirmation] = useState(false);
   const scrollViewRef = useRef<any>(null);
+  const fadeAnim = useState(new Animated.Value(0))[0];
 
   const [freeGaps, setFreeGaps] = useState<any>({
     workHours: { from: "09:00", to: "21:00" },
@@ -177,6 +239,17 @@ export default function BookNow() {
   // New states for "Any Barber" slots
   const [allAvailableSlots, setAllAvailableSlots] = useState<string[]>([]);
   const [loadingAllSlots, setLoadingAllSlots] = useState(false);
+
+  // Animation for content load
+  useEffect(() => {
+    if (!loading && shopDetails) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [loading, shopDetails]);
 
   // Fetch specific barber schedule
   const fetchFreeTimes = useCallback(async () => {
@@ -455,7 +528,7 @@ export default function BookNow() {
         const bookingId = response.BookingStatus?._id;
         const endTimeStr = addMinutesToTime(selectedStartTime!, totalDuration);
         Alert.alert(
-          "Booking Confirmed", 
+          "🎉 Booking Confirmed!", 
           `Your appointment with ${selectedBarber?.name || 'Any Barber'} is confirmed for ${selectedDate?.toDateString()} at ${selectedStartTime} - ${endTimeStr}`,
           [{ 
             text: "Continue to Payment", 
@@ -507,8 +580,11 @@ export default function BookNow() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Loading shop details...</Text>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+          <Text style={styles.loadingText}>Loading shop details...</Text>
+          <Text style={styles.loadingSubtext}>Preparing your booking experience</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -516,10 +592,18 @@ export default function BookNow() {
   if (error || !shopDetails) {
     return (
       <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => setLoading(true)}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
+        <View style={styles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={60} color="#FF6B6B" />
+          <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => setLoading(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh" size={20} color="#FFFFFF" />
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -530,262 +614,1274 @@ export default function BookNow() {
     <SafeAreaView style={styles.container}>
       <ManualCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} isVisible={isCalendarVisible} onClose={() => setCalendarVisibility(false)} />
 
-      <Modal visible={showConfirmation} transparent animationType="slide" onRequestClose={() => setShowConfirmation(false)}>
+      <Modal visible={showConfirmation} transparent animationType="fade" onRequestClose={() => setShowConfirmation(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <Animated.View style={[styles.modalContent, { transform: [{ scale: fadeAnim }] }]}>
             <View style={styles.modalHeader}>
-              <Ionicons name="checkmark-circle-outline" size={32} color="#10B981" />
+              <View style={styles.successIconContainer}>
+                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+              </View>
               <Text style={styles.modalTitle}>Confirm Your Booking</Text>
               <Text style={styles.modalSubtitle}>Please review your appointment details</Text>
             </View>
             
             <View style={styles.bookingSummary}>
-              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Services</Text><Text style={styles.summaryValue}>{selectedServices.map(s => s.name).join(', ')}</Text></View>
-              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Date</Text><Text style={styles.summaryValue}>{selectedDate?.toDateString()}</Text></View>
-              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Barber</Text><Text style={styles.summaryValue}>{selectedBarber?.name || 'Any Barber'}</Text></View>
-              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Time</Text><Text style={styles.summaryValue}>{selectedStartTime} - {addMinutesToTime(selectedStartTime || '00:00', totalDuration)}</Text></View>
-              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Duration</Text><Text style={styles.summaryValue}>{totalDuration} minutes</Text></View>
-              <View style={[styles.summaryRow, styles.totalRow]}><Text style={styles.totalLabel}>Total Amount</Text><Text style={styles.totalValue}>₹{totalPrice}</Text></View>
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="cut-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Services</Text>
+                  <Text style={styles.summaryValue} numberOfLines={2}>{selectedServices.map(s => s.name).join(', ')}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="calendar-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Date</Text>
+                  <Text style={styles.summaryValue}>{selectedDate?.toDateString()}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="person-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Barber</Text>
+                  <Text style={styles.summaryValue}>{selectedBarber?.name || 'Any Barber'}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="time-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Time</Text>
+                  <Text style={styles.summaryValue}>{selectedStartTime} - {addMinutesToTime(selectedStartTime || '00:00', totalDuration)}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.totalAmountContainer}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={styles.totalValue}>₹{totalPrice}</Text>
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowConfirmation(false)}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={confirmBooking} disabled={isBooking}><Text style={styles.confirmButtonText}>{isBooking ? 'Processing...' : 'Confirm Booking'}</Text></TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => setShowConfirmation(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cancelButtonText}>Edit Details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]} 
+                onPress={confirmBooking} 
+                disabled={isBooking}
+                activeOpacity={0.7}
+              >
+                {isBooking ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Confirm & Pay</Text>
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
+      {/* Header with Shop Info */}
       <View style={styles.headerSection}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+        </TouchableOpacity>
+        
         <View style={styles.shopInfo}>
-          <Text style={styles.shopName}>{shopDetails.name}</Text>
-          <Text style={styles.shopAddress}>{shopDetails.address}</Text>
-          <View style={styles.timingBadge}><Ionicons name="time-outline" size={14} color="#FFFFFF" /><Text style={styles.timingText}>Open {shopDetails.Timing || `${shopDetails.openingTime} - ${shopDetails.closingTime}`}</Text></View>
-        </View>
-        <View style={styles.progressSection}>
-          <View style={styles.progressBar}><View style={[styles.progressFill, { width: `${(progress.completed / progress.total) * 100}%` }]} /></View>
-          <Text style={styles.progressText}>Step {progress.completed} of {progress.total}</Text>
+          <Text style={styles.shopName} numberOfLines={1}>{shopDetails.name}</Text>
         </View>
       </View>
 
-      <ScrollView ref={scrollViewRef} style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Services */}
-        <View style={styles.sectionContent}>
-          <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name="cut-outline" size={18} color="#FFFFFF" /></View><Text style={styles.sectionTitle}>Select Services</Text></View>
-          <View style={styles.servicesGrid}>
-            {allServices.map((service, index) => (
-              <TouchableOpacity key={service.id || `default-${index}`} style={[styles.serviceCard, selectedServices.some(s => s.id === service.id) && styles.selectedServiceCard]} onPress={() => toggleService(service)}>
-                <Text style={styles.serviceTitle} numberOfLines={1}>{service.name}</Text>
-                <Text style={styles.servicePrice}>₹{service.price}</Text>
-                <Text style={styles.serviceDuration}>{service.duration} min</Text>
-                {selectedServices.some(s => s.id === service.id) && <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.serviceCheckIcon} />}
-              </TouchableOpacity>
-            ))}
+      {/* Progress Indicator */}
+      <View style={styles.progressSection}>
+        <View style={styles.progressSteps}>
+          {[1, 2, 3].map((step) => (
+            <View key={step} style={styles.stepContainer}>
+              <View style={[
+                styles.stepCircle,
+                step <= progress.completed && styles.stepCircleActive,
+                step === progress.completed && styles.stepCircleCurrent
+              ]}>
+                {step < progress.completed ? (
+                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                ) : (
+                  <Text style={[
+                    styles.stepNumber,
+                    step <= progress.completed && styles.stepNumberActive
+                  ]}>{step}</Text>
+                )}
+              </View>
+              <Text style={[
+                styles.stepLabel,
+                step <= progress.completed && styles.stepLabelActive
+              ]}>
+                {step === 1 ? 'Services' : step === 2 ? 'Date' : 'Time'}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${(progress.completed / progress.total) * 100}%` }]} />
+        </View>
+      </View>
+
+      <Animated.ScrollView 
+        ref={scrollViewRef} 
+        style={[styles.scrollContainer, { opacity: fadeAnim }]} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Services Section - Now Horizontal Scroll for Compact Height */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            
+            <Text style={styles.sectionTitle}>Select Services</Text>
+            <Text style={styles.sectionSubtitle}>Choose one or more services</Text>
           </View>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.servicesScrollContent}
+          >
+            {allServices.map((service, index) => {
+              const isSelected = selectedServices.some(s => s.id === service.id);
+              return (
+                <TouchableOpacity 
+                  key={service.id || `default-${index}`} 
+                  style={[
+                    styles.compactServiceCard,
+                    isSelected && styles.selectedCompactServiceCard
+                  ]} 
+                  onPress={() => toggleService(service)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.compactServiceCardContent}>
+                    <Text style={styles.compactServiceTitle} numberOfLines={2}>{service.name}</Text>
+                    <Text style={styles.compactServicePrice}>₹{service.price}</Text>
+                    <View style={styles.compactServiceDurationBadge}>
+                      <Ionicons name="time-outline" size={8} color="#FFFFFF" />
+                      <Text style={styles.compactServiceDurationText}>{service.duration} min</Text>
+                    </View>
+                  </View>
+                  {isSelected && (
+                    <View style={styles.compactServiceSelectedOverlay}>
+                      <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
+        {/* Selected Services Summary */}
         {selectedServices.length > 0 && (
           <View style={styles.selectionSummary}>
-            <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Total Duration</Text><Text style={styles.summaryValue}>{totalDuration} minutes</Text></View>
-            <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Total Cost</Text><Text style={styles.summaryPrice}>₹{totalPrice}</Text></View>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.summaryHeaderText}>Selected Services</Text>
+              <Text style={styles.summaryCount}>{selectedServices.length} item{selectedServices.length > 1 ? 's' : ''}</Text>
+            </View>
+            <View style={styles.summaryDetails}>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryDetail}>
+                  <Ionicons name="time-outline" size={16} color="#64748B" />
+                  <Text style={styles.summaryLabel}>Total Duration</Text>
+                  <Text style={styles.summaryValue}>{totalDuration} min</Text>
+                </View>
+                <View style={styles.summaryDetail}>
+                  <Ionicons name="cash-outline" size={16} color="#64748B" />
+                  <Text style={styles.summaryLabel}>Total Cost</Text>
+                  <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+                </View>
+              </View>
+            </View>
           </View>
         )}
 
-        {/* Date */}
-        <View style={styles.sectionContent}>
-          <View style={styles.sectionHeader}><View style={styles.sectionIcon}><Ionicons name="calendar-outline" size={18} color="#FFFFFF" /></View><Text style={styles.sectionTitle}>Select Date</Text></View>
-          <TouchableOpacity style={[styles.dateTimeSelector, selectedDate && styles.selectedDateSelector]} onPress={() => setCalendarVisibility(true)}>
-            <Ionicons name="calendar-outline" size={20} color="#64748B" />
-            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>{selectedDate ? selectedDate.toDateString() : "Select Date"}</Text>
-            <Ionicons name="chevron-down" size={20} color="#64748B" />
+        {/* Date Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+           
+            <Text style={styles.sectionTitle}>Select Date</Text>
+            <Text style={styles.sectionSubtitle}>Choose your preferred date</Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]} 
+            onPress={() => setCalendarVisibility(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.dateSelectorContent}>
+              <View style={styles.dateIconContainer}>
+                <Ionicons name="calendar" size={24} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+              </View>
+              <View style={styles.dateTextContainer}>
+                <Text style={selectedDate ? styles.selectedDateLabel : styles.placeholderLabel}>
+                  {selectedDate ? 'Selected Date' : 'Tap to select date'}
+                </Text>
+                <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+                  {selectedDate ? selectedDate.toDateString() : "Choose a date"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Barber & Time */}
-        <View style={[styles.sectionContent, {paddingTop: 20}]}>
+        {/* Barber & Time Section */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
-            </View>
             <Text style={styles.sectionTitle}>Select Barber & Time</Text>
+            <Text style={styles.sectionSubtitle}>Choose your barber and time slot</Text>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.barbersScrollContent}>
-            <View style={styles.barbersGrid}>
-              {barberOptions.map(barber => (
-                <TouchableOpacity 
-                  key={barber.id || 'any'} 
-                  style={[styles.barberCard, selectedBarber?.id === barber.id && styles.selectedBarberCard]} 
-                  onPress={() => handleBarberSelect(barber)}
-                >
-                  <View style={[styles.barberCircle, selectedBarber?.id === barber.id && styles.selectedBarberCircle]}>
-                    <Text style={[styles.barberInitial, selectedBarber?.id === barber.id && styles.selectedBarberInitial]}>
-                      {barber.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.barberTextContainer}>
-                    <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
-                    {barber.id !== null && <Text style={styles.barberMeta} numberOfLines={1}>{barber.nativePlace}</Text>}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          {/* Barbers Selection */}
+          <View style={styles.barbersSection}>
+            <Text style={styles.barbersTitle}>Available Barbers</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.barbersScrollContent}
+            >
+              {barberOptions.map(barber => {
+                const isSelected = selectedBarber?.id === barber.id;
+                return (
+                  <TouchableOpacity 
+                    key={barber.id || 'any'} 
+                    style={[
+                      styles.barberCard,
+                      isSelected && styles.selectedBarberCard
+                    ]} 
+                    onPress={() => handleBarberSelect(barber)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.barberAvatar,
+                      isSelected && styles.selectedBarberAvatar
+                    ]}>
+                      <Text style={[
+                        styles.barberInitial,
+                        isSelected && styles.selectedBarberInitial
+                      ]}>
+                        {barber.name.charAt(0).toUpperCase()}
+                      </Text>
+                      {barber.id === null && (
+                        <View style={styles.anyBarberBadge}>
+                          <Ionicons name="people" size={12} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.barberInfo}>
+                      <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
+                      {barber.id !== null && (
+                        <Text style={styles.barberFrom} numberOfLines={1}>
+                          <Ionicons name="location" size={10} color="#64748B" /> {barber.nativePlace}
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <View style={styles.barberSelectedIndicator}>
+                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
 
-          {/* Unified Timeline for Both Specific Barber and Any Barber */}
+          {/* Time Slots */}
           {selectedDate && (
-            <>
+            <View style={styles.timeSlotsSection}>
+              <View style={styles.timeSlotsHeader}>
+                <Text style={styles.timeSlotsTitle}>
+                  Available Time Slots {selectedBarber?.id ? `for ${selectedBarber.name}` : '(Any Barber)'}
+                </Text>
+                <Text style={styles.selectedDateDisplay}>
+                  {selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </Text>
+              </View>
+              
               {loadingAllSlots && !selectedBarber?.id ? (
-                <View style={{ padding: 20, alignItems: 'center' }}>
+                <View style={styles.loadingSlotsContainer}>
                   <ActivityIndicator size="small" color="#FF6B6B" />
-                  <Text style={{ marginTop: 12, fontSize: 16, color: '#64748B' }}>Loading available slots...</Text>
+                  <Text style={styles.loadingSlotsText}>Loading available slots...</Text>
                 </View>
               ) : freeGaps.freeSlots?.length > 0 ? (
                 <BarberScheduleTimeline
                   totalDuration={totalDuration}
                   scheduleData={freeGaps}
                   availableDurations={[30, 60, 90, 120]}
-                  title={`Choose Your Time Slot ${selectedBarber?.id ? `(${selectedBarber.name})` : '(Any Barber)'}`}
-                  date={selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  title={`Choose Your Time Slot`}
+                  date={selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
                   onTimeSelect={(selected: any) => setSelectedStartTime(selected.startTime)}
                 />
               ) : !loadingAllSlots && (
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, color: '#64748B', textAlign: 'center' }}>
+                <View style={styles.noSlotsContainer}>
+                  <Ionicons name="time-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.noSlotsText}>
                     {selectedBarber?.id 
-                      ? `No available time slots for ${selectedBarber.name} on the selected date.`
-                      : 'No available time slots for any barber on this date.'
+                      ? `No available time slots for ${selectedBarber.name} on this date`
+                      : 'No available time slots for any barber on this date'
                     }
+                  </Text>
+                  <Text style={styles.noSlotsSubtext}>
+                    Please select a different date or barber
                   </Text>
                 </View>
               )}
-            </>
+            </View>
           )}
         </View>
-      </ScrollView>
 
+        {/* Spacer for footer */}
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
+
+      {/* Fixed Footer */}
       <View style={styles.footer}>
         {(selectedServices.length > 0 || selectedDate || selectedBarber) && (
-          <View style={styles.bookingSummaryFooter}>
-            <Text style={styles.footerSummaryText}>
-              {selectedServices.length > 0 && `${selectedServices.length} services • `}
-              {selectedDate && selectedDate.toLocaleDateString()}
-              {(selectedServices.length > 0 || selectedDate) && selectedBarber && ' • '}
-              {selectedBarber && (selectedBarber.name || 'Any Barber')}
-              {selectedBarber && selectedStartTime && ` • ${selectedStartTime}`}
-            </Text>
-            {selectedServices.length > 0 && <Text style={styles.footerPriceText}>₹{totalPrice}</Text>}
+          <View style={styles.bookingPreview}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewTitle}>Appointment Summary</Text>
+              {selectedServices.length > 0 && (
+                <Text style={styles.previewPrice}>₹{totalPrice}</Text>
+              )}
+            </View>
+            <View style={styles.previewDetails}>
+              {selectedServices.length > 0 && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+              {selectedDate && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="calendar" size={12} color="#FF6B6B" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+              )}
+              {selectedBarber && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="person" size={12} color="#8B5CF6" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedBarber.name}
+                  </Text>
+                </View>
+              )}
+              {selectedStartTime && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="time" size={12} color="#3B82F6" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedStartTime}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
         
         <TouchableOpacity
-          style={[styles.bookButton, (selectedServices.length === 0 || !selectedDate || !selectedBarber || !selectedStartTime) && styles.disabledButton]}
+          style={[
+            styles.bookButton,
+            (selectedServices.length === 0 || !selectedDate || !selectedBarber || !selectedStartTime) && styles.disabledButton
+          ]}
           onPress={handleBookNow}
           disabled={selectedServices.length === 0 || !selectedDate || !selectedBarber || !selectedStartTime}
+          activeOpacity={0.7}
         >
-          <Ionicons name="calendar" size={20} color="#FFFFFF" />
-          <Text style={styles.bookButtonText}>{isBooking ? 'Processing...' : 'Book Appointment'}</Text>
+          <View style={styles.bookButtonContent}>
+            <Ionicons name="calendar" size={22} color="#FFFFFF" />
+            <Text style={styles.bookButtonText}>
+              {isBooking ? 'Processing...' : 'Book Appointment'}
+            </Text>
+          </View>
+          {selectedServices.length > 0 && (
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceBadgeText}>₹{totalPrice}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-  
-// All styles remain unchanged from your original code
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#64748B', fontWeight: '500' },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  errorText: { fontSize: 16, color: '#DC2626', marginBottom: 24, textAlign: 'center', lineHeight: 24 },
-  retryButton: { backgroundColor: '#FF6B6B', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  retryButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 16 },
-  headerSection: { backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  shopInfo: { marginBottom: 12 },
-  shopName: { fontSize: 24, fontWeight: '700', color: '#1E293B', marginBottom: 6 },
-  shopAddress: { fontSize: 16, color: '#64748B', marginBottom: 12 },
-  timingBadge: { backgroundColor: '#FF6B6B', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timingText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
-  progressSection: { marginTop: 2 },
-  progressBar: { height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#FF6B6B', borderRadius: 3 },
-  progressText: { fontSize: 12, color: '#64748B', marginTop: 8, textAlign: 'center', fontWeight: '500' },
-  scrollContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
-  sectionContent: { marginBottom: 20 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  sectionIcon: { backgroundColor: '#FF6B6B', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1E293B', flex: 1 },
-  barbersScrollContent: { paddingHorizontal: 16, paddingVertical: 8 },
-  barbersGrid: { flexDirection: 'row', alignItems: 'center' },
-  barberCard: { width: 120, height: 120, justifyContent: 'flex-start', alignItems: 'center', padding: 12, marginRight: 12 },
-  selectedBarberCard: { transform: [{ scale: 1.05 }] },
-  barberCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center' },
-  selectedBarberCircle: { backgroundColor: '#FF6B6B' },
-  barberInitial: { fontSize: 24, fontWeight: 'bold', color: '#64748B' },
-  selectedBarberInitial: { color: '#FFFFFF' },
-  barberTextContainer: { justifyContent: 'center', alignItems: 'center' },
-  barberName: { fontSize: 12, textAlign: 'center', color: '#1E293B', fontWeight: '600', maxWidth: 80, marginBottom: 2 },
-  barberMeta: { fontSize: 10, textAlign: 'center', color: '#64748B', maxWidth: 80 },
-  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
-  serviceCard: { width: '31%', aspectRatio: 0.8, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center' },
-  selectedServiceCard: { borderColor: '#FF6B6B', backgroundColor: '#FEF2F2' },
-  serviceTitle: { fontSize: 12, fontWeight: '600', color: '#1E293B', textAlign: 'center', marginBottom: 4 },
-  servicePrice: { fontSize: 14, fontWeight: '700', color: '#FF6B6B', marginBottom: 2 },
-  serviceDuration: { fontSize: 10, color: '#64748B' },
-  serviceCheckIcon: { position: 'absolute', top: -5, right: -5 },
-  selectionSummary: { padding: 16, backgroundColor: '#F1F5F9', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 20 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  summaryLabel: { fontSize: 14, color: '#64748B', fontWeight: '500' },
-  summaryValue: { fontSize: 14, color: '#1E293B', fontWeight: '600' },
-  summaryPrice: { fontSize: 16, color: '#1E293B', fontWeight: '700' },
-  dateTimeSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, backgroundColor: '#FFFFFF' },
-  selectedDateSelector: { borderColor: '#FF6B6B', backgroundColor: '#FEF2F2' },
-  selectedDateText: { fontSize: 16, color: '#1E293B', fontWeight: '600', flex: 1, marginHorizontal: 12 },
-  placeholderText: { fontSize: 16, color: '#94A3B8', flex: 1, marginHorizontal: 12 },
-  footer: { backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  bookingSummaryFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  footerSummaryText: { fontSize: 14, color: '#64748B', flex: 1 },
-  footerPriceText: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
-  bookButton: { backgroundColor: '#FF6B6B', padding: 18, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  disabledButton: { backgroundColor: '#FCA5A5' },
-  bookButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '90%', maxWidth: 400, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24 },
-  modalHeader: { marginBottom: 24, alignItems: 'center', gap: 8 },
-  modalTitle: { fontSize: 22, fontWeight: '700', color: '#1E293B' },
-  modalSubtitle: { fontSize: 14, color: '#64748B', textAlign: 'center' },
-  bookingSummary: { marginBottom: 24 },
-  totalRow: { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12, marginTop: 8 },
-  totalLabel: { fontSize: 16, color: '#1E293B', fontWeight: '600' },
-  totalValue: { fontSize: 18, color: '#FF6B6B', fontWeight: '700' },
-  modalButtons: { flexDirection: 'row', gap: 12 },
-  modalButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  cancelButton: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' },
-  confirmButton: { backgroundColor: '#FF6B6B' },
-  cancelButtonText: { color: '#475569', fontWeight: '600', fontSize: 16 },
-  confirmButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  errorContent: {
+    alignItems: 'center',
+    gap: 16,
+    padding: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#DC2626',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: '#FF6B6B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  headerSection: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopInfo: {
+    flex: 1,
+  },
+  shopName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  progressSection: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  progressSteps: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepContainer: {
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stepCircleActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  stepCircleCurrent: {
+    backgroundColor: '#FF6B6B',
+    transform: [{ scale: 1.1 }],
+  },
+  stepNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  stepNumberActive: {
+    color: '#FFFFFF',
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  stepLabelActive: {
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  progressBar: {
+    height: 2,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 1,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#FF6B6B',
+    borderRadius: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionIconContainer: {
+    backgroundColor: '#FF6B6B',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  // Updated Services Styles - Compact and Horizontal
+  servicesScrollContent: {
+    paddingRight: 20,
+    gap: 12,
+  },
+  compactServiceCard: {
+    width: 120, // Reduced from 140
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: 10, // Reduced from 12
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  selectedCompactServiceCard: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+    transform: [{ scale: 1.01 }],
+  },
+  compactServiceCardContent: {
+    alignItems: 'flex-start',
+  },
+  compactServiceTitle: {
+    fontSize: 11, // Reduced from 12
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2, // Reduced margin
+    lineHeight: 13,
+  },
+  compactServicePrice: {
+    fontSize: 15, // Reduced from 16
+    fontWeight: '700',
+    color: '#FF6B6B',
+    marginBottom: 2, // Reduced margin
+  },
+  compactServiceDurationBadge: {
+    backgroundColor: '#3B82F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  compactServiceDurationText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  compactServiceSelectedOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+  selectionSummary: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  summaryCount: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  summaryDetails: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  summaryPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  dateSelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  selectedDateSelector: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+  },
+  dateSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateTextContainer: {
+    flex: 1,
+    marginHorizontal: 16,
+  },
+  selectedDateLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  placeholderLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  selectedDateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#94A3B8',
+  },
+  barbersSection: {
+    marginTop: 8,
+  },
+  barbersTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8, // Reduced from 12
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  barbersScrollContent: {
+    paddingRight: 20,
+    gap: 12,
+  },
+  barberCard: {
+    width: 100,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12, // Reduced from 16
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  selectedBarberCard: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+    transform: [{ scale: 1.05 }],
+  },
+  barberAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  selectedBarberAvatar: {
+    backgroundColor: '#FF6B6B',
+  },
+  barberInitial: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  selectedBarberInitial: {
+    color: '#FFFFFF',
+  },
+  anyBarberBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#8B5CF6',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  barberInfo: {
+    alignItems: 'center',
+  },
+  barberName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  barberFrom: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  barberSelectedIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  timeSlotsSection: {
+    marginTop: 24,
+  },
+  timeSlotsHeader: {
+    marginBottom: 16,
+  },
+  timeSlotsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  selectedDateDisplay: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  loadingSlotsContainer: {
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingSlotsText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  noSlotsContainer: {
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  noSlotsText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  noSlotsSubtext: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bookingPreview: {
+    marginBottom: 16,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  previewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  previewPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  previewDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  previewText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  bookButton: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  disabledButton: {
+    backgroundColor: '#FCA5A5',
+    shadowColor: '#FCA5A5',
+    shadowOpacity: 0.1,
+  },
+  bookButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bookButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  priceBadge: {
+    position: 'absolute',
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  priceBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF6B6B',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+  },
+  modalHeader: {
+    marginBottom: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  successIconContainer: {
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  bookingSummary: {
+    marginBottom: 24,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  summaryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryTextContainer: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  totalAmountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  totalLabel: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  totalValue: {
+    fontSize: 20,
+    color: '#FF6B6B',
+    fontWeight: '700',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F1F5F9',
+  },
+  confirmButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  cancelButtonText: {
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 });
 
 const calendarStyles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
-  calendarContainer: { width: '90%', maxWidth: 380, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, maxHeight: '80%' },
-  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  navButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' },
-  disabledNav: { backgroundColor: '#F8FAFC', opacity: 0.5 },
-  navText: { fontSize: 14, fontWeight: '600', color: '#475569' },
-  monthYear: { fontSize: 20, fontWeight: '700', color: '#1E293B' },
-  daysHeader: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  dayHeaderText: { fontSize: 12, fontWeight: '600', color: '#64748B', width: 40, textAlign: 'center', textTransform: 'uppercase' },
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginBottom: 24 },
-  dayCell: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', marginVertical: 4, borderRadius: 20 },
-  todayCell: { backgroundColor: '#FEF2F2', borderWidth: 2, borderColor: '#FF6B6B' },
-  selectedCell: { backgroundColor: '#FF6B6B' },
-  pastCell: { opacity: 0.3 },
-  dayText: { fontSize: 16, color: '#1E293B', fontWeight: '500' },
-  todayText: { color: '#FF6B6B', fontWeight: '700' },
-  selectedText: { color: '#FFFFFF', fontWeight: '700' },
-  pastText: { color: '#CBD5E1' },
-  calendarFooter: { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 20, alignItems: 'center' },
-  closeButton: { backgroundColor: '#F1F5F9', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  closeButtonText: { fontSize: 16, fontWeight: '600', color: '#475569' },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  calendarContainer: {
+    width: '90%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  disabledNav: {
+    opacity: 0.5,
+  },
+  navText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  disabledNavText: {
+    color: '#CBD5E1',
+  },
+  monthYearContainer: {
+    alignItems: 'center',
+  },
+  monthYear: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  currentDateText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  daysHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 12,
+    paddingBottom: 8,
+  },
+  dayHeader: {
+    width: 40,
+    alignItems: 'center',
+  },
+  dayHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  dayCell: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  dayInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedDayInner: {
+    backgroundColor: '#FF6B6B',
+  },
+  todayCell: {},
+  selectedCell: {},
+  pastCell: {
+    opacity: 0.3,
+  },
+  dayText: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  todayText: {
+    color: '#FF6B6B',
+    fontWeight: '700',
+  },
+  selectedText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  pastText: {
+    color: '#CBD5E1',
+  },
+  todayDot: {
+    position: 'absolute',
+    bottom: 2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FF6B6B',
+  },
+  calendarFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 20,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  closeButton: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });
