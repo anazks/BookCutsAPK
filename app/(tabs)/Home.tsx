@@ -20,6 +20,7 @@ import {
 
 import { findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
@@ -485,7 +486,11 @@ const Home = ({ navigation }) => {
       </Modal>
 
       {/* Main Content */}
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {searchQuery.length > 0 ? (
           <View style={{ flex: 1 }}>
             {isSearching ? (
@@ -628,7 +633,10 @@ const Home = ({ navigation }) => {
                 />
               </View>
             )}
-
+            <View style={styles.advancedFilterSection}>
+              {/* <AdvancedFilter/> */}
+              <PaisAdd/>
+            </View>
             {/* Trending Styles */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -661,7 +669,11 @@ const Home = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.bottomSpacing} />
+            {/* Advanced Filter - Always shown at the bottom */}
+           
+
+            {/* Additional bottom padding for scroll */}
+            <View style={styles.bottomPadding} />
           </>
         )}
       </ScrollView>
@@ -748,6 +760,10 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
+  // Advanced Filter Section
+  advancedFilterSection: {
+  
+  },
   // Modal
   modalOverlay: {
     flex: 1,
@@ -814,6 +830,9 @@ const styles = StyleSheet.create({
   // Main Content
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding to ensure content is scrollable
   },
   // Search Results
   searchingContainer: {
@@ -1031,8 +1050,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#374151',
   },
-  bottomSpacing: {
-    height: 100,
+  bottomPadding: {
+    height: 40, // Extra padding at the bottom for scroll
   },
 });
 
