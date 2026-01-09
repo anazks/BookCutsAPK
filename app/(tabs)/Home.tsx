@@ -20,6 +20,7 @@ import {
 
 import { findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
@@ -633,8 +634,7 @@ const Home = ({ navigation }) => {
                 />
               </View>
             )}
-            <View style={styles.advancedFilterSection}>
-              {/* <AdvancedFilter/> */}
+              <View style={styles.advancedFilterSection}>
               <PaisAdd/>
             </View>
             {/* Trending Styles */}
@@ -668,6 +668,7 @@ const Home = ({ navigation }) => {
                 )}
               />
             </View>
+          
 
             {/* Advanced Filter - Always shown at the bottom */}
            
@@ -676,6 +677,8 @@ const Home = ({ navigation }) => {
             <View style={styles.bottomPadding} />
           </>
         )}
+              <AdvancedFilter/>
+
       </ScrollView>
     </View>
   );

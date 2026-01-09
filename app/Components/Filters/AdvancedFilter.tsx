@@ -1,122 +1,181 @@
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const FILTER_OPTIONS = [
+  {
+    id: '1',
+    title: 'Best Offers',
+    subtitle: 'Up to 50% OFF',
+    icon: 'flash',
+    color: '#EF4444', // Theme red
+    iconColor: '#FFFFFF',
+    badge: '🔥',
+    active: true,
+  },
+  {
+    id: '2',
+    title: 'Most Booked',
+    subtitle: 'Popular picks',
+    icon: 'trending-up',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '📈',
+    active: false,
+  },
+  {
+    id: '3',
+    title: 'Nearby You',
+    subtitle: 'Within 5km',
+    icon: 'location',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '📍',
+    active: false,
+  },
+  {
+    id: '4',
+    title: 'Top Rated',
+    subtitle: '4.5+ stars',
+    icon: 'star',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '⭐',
+    active: false,
+  },
+  {
+    id: '5',
+    title: 'New Arrivals',
+    subtitle: 'Recently added',
+    icon: 'time',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '🆕',
+    active: false,
+  },
+  {
+    id: '6',
+    title: 'Express Service',
+    subtitle: 'Quick service',
+    icon: 'rocket',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '⚡',
+    active: false,
+  },
+  {
+    id: '7',
+    title: 'Budget',
+    subtitle: 'Under ₹500',
+    icon: 'wallet',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '💰',
+    active: false,
+  },
+  {
+    id: '8',
+    title: 'Luxury',
+    subtitle: 'Premium salons',
+    icon: 'diamond',
+    color: '#F8FAFC',
+    iconColor: '#EF4444',
+    badge: '💎',
+    active: false,
+  },
+];
 
-export default function ExploreMore() {
-  const options = [
-    {
-      id: 1,
-      title: 'Gifts',
-      image: {
-        uri: 'https://static.vecteezy.com/system/resources/previews/023/630/261/non_2x/flat-gift-box-icon-with-transparent-background-free-png.png'
-      },
-      color: '#FEF2F2',
-      iconColor: '#EF4444'
-    },
-    {
-      id: 2,
-      title: 'Offers',
-      image: {
-        uri: 'https://png.pngtree.com/png-vector/20251028/ourlarge/pngtree-3d-red-discount-tag-icon-png-image_17846969.webp'
-      },
-      color: '#EFF6FF',
-      iconColor: '#3B82F6'
-    },
-    {
-      id: 3,
-      title: 'Top Rated',
-      image: {
-        uri: 'https://png.pngtree.com/png-vector/20240613/ourlarge/pngtree-high-quality-five-star-rating-icon-for-top-notch-products-png-image_12739606.png'
-      },
-      color: '#FFFBEB',
-      iconColor: '#F59E0B'
-    },
-    {
-      id: 4,
-      title: 'Near Me',
-      image: {
-        uri: 'https://www.clipartmax.com/png/middle/114-1148777_pin-map-pushpin-location-icon-location-pin-icon-transparent.png'
-      },
-      color: '#F0FDF4',
-      iconColor: '#10B981'
-    },
-    {
-      id: 5,
-      title: 'Open Now',
-      image: {
-        uri: 'https://static.vecteezy.com/system/resources/thumbnails/021/286/373/small/24-hours-sign-on-transparent-background-free-png.png'
-      },
-      color: '#F5F3FF',
-      iconColor: '#8B5CF6'
-    },
-    {
-      id: 6,
-      title: 'Premium',
-      image: {
-        uri: 'https://img.freepik.com/premium-vector/vector-illustration-diamond-icon-set-isolated-transparent-background_181203-36155.jpg'
-      },
-      color: '#FDF4FF',
-      iconColor: '#EC4899'
-    },
-    {
-      id: 7,
-      title: 'Quick Book',
-      image: {
-        uri: 'https://www.clipartmax.com/png/middle/225-2255698_lightning-bolt-icon-lightning-vector.png'
-      },
-      color: '#ECFEFF',
-      iconColor: '#06B6D4'
-    },
-    {
-      id: 8,
-      title: 'Deals',
-      image: {
-        uri: 'https://p1.hiclipart.com/preview/1010/506/329/trending-icon-up-icon-line-logo-material-property-triangle-png-clipart.jpg'
-      },
-      color: '#FFF7ED',
-      iconColor: '#F97316'
-    },
-  ];
+export default function AdvancedFilter() {
+  const [filters, setFilters] = useState(FILTER_OPTIONS);
 
-  const handleOptionPress = (optionId: number) => {
-    console.log(`Pressed option: ${optionId}`);
+  const handleFilterPress = (id) => {
+    const updatedFilters = filters.map(filter => ({
+      ...filter,
+      active: filter.id === id
+    }));
+    setFilters(updatedFilters);
   };
+
+  const renderFilterItem = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.filterCard,
+        { 
+          backgroundColor: item.color,
+          borderColor: item.active ? '#EF4444' : '#E5E7EB'
+        }
+      ]}
+      onPress={() => handleFilterPress(item.id)}
+      activeOpacity={0.7}
+    >
+      {/* Icon Container */}
+      <View style={[
+        styles.iconContainer,
+        { backgroundColor: item.active ? '#FFFFFF' : '#EF4444' }
+      ]}>
+        <Ionicons 
+          name={item.icon} 
+          size={20} 
+          color={item.active ? '#EF4444' : '#FFFFFF'} 
+        />
+      </View>
+
+      {/* Badge */}
+      <View style={styles.badgeContainer}>
+        <Text style={styles.badgeText}>{item.badge}</Text>
+      </View>
+
+      {/* Content */}
+      <View style={styles.contentContainer}>
+        <Text style={[
+          styles.filterTitle,
+          { color: item.active ? '#FFFFFF' : '#111827' }
+        ]}>
+          {item.title}
+        </Text>
+        <Text style={[
+          styles.filterSubtitle,
+          { color: item.active ? 'rgba(255,255,255,0.9)' : '#6B7280' }
+        ]}>
+          {item.subtitle}
+        </Text>
+      </View>
+
+      {/* Active Indicator */}
+      {item.active && (
+        <View style={styles.activeIndicator}>
+          <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <ScrollView
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <Ionicons name="filter" size={20} color="#111827" />
+          <Text style={styles.headerTitle}>Advanced Filter</Text>
+        </View>
+        <TouchableOpacity style={styles.clearButton} activeOpacity={0.7}>
+          <Text style={styles.clearButtonText}>Clear All</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={filters}
+        renderItem={renderFilterItem}
+        keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.optionsContainer}
-        style={styles.scrollView}
-      >
-        {options.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={styles.optionCard}
-            onPress={() => handleOptionPress(option.id)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.imageContainer, { backgroundColor: option.color }]}>
-              <Image
-                source={option.image}
-                style={styles.image}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.optionTitle}>{option.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        contentContainerStyle={styles.listContainer}
+      />
     </View>
   );
 }
@@ -124,36 +183,84 @@ export default function ExploreMore() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    width: '100%',
+    marginBottom: 24,
+    marginTop: 8,
+    paddingTop: 12,
   },
-  scrollView: {
-    width: '100%',
-  },
-  optionsContainer: {
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    gap: 20,
+    marginBottom: 12,
   },
-  optionCard: {
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: 72,
+    gap: 8,
   },
-  imageContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
-  image: {
-    width: 32,
-    height: 32,
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
   },
-  optionTitle: {
+  clearButtonText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#1F2937',
-    textAlign: 'center',
+    color: '#6B7280',
+  },
+  listContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+  },
+  filterCard: {
+    width: 120,
+    height: 140,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    position: 'relative',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  filterTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  filterSubtitle: {
+    fontSize: 11,
+    fontWeight: '400',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
   },
 });
