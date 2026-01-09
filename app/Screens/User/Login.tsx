@@ -55,6 +55,8 @@ export default function Login() {
         response.result.token &&
         !response.result.message
       ) {
+
+        await AsyncStorage.setItem('userId',response.result.userData.id)
         await AsyncStorage.setItem('accessToken', response.result.token);
         router.replace('/(tabs)/Home');
       } else {

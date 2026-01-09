@@ -39,3 +39,13 @@ export const fetchUniqueServices = async () => {
         throw error?.response?.data || { message: "Faild to fetch unique service" }
     }
 }
+
+export const fetchUpcomingBooking  = async (userId) => {
+    try {
+    console.log("USER ID:",userId)
+    const response = await Axios.get(`booking/fetchUpComingBooking/${userId}`)
+        return response.data   
+    } catch (error) {
+        console.log(error)
+    }
+}
