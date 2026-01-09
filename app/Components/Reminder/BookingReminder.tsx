@@ -1,4 +1,4 @@
-import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -154,24 +154,6 @@ export default function BookingReminder() {
       })
     ]).start();
 
-    // Shimmer animation for View button
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-          easing: Easing.linear,
-        }),
-        Animated.timing(shimmerAnim, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-          easing: Easing.linear,
-        }),
-      ])
-    ).start();
-
     const bounceInterval = setInterval(() => {
       Animated.sequence([
         Animated.spring(bounceAnim, {
@@ -193,14 +175,9 @@ export default function BookingReminder() {
     };
   }, []);
 
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-100, 100]
-  });
-
   return (
     <>
-      {/* Enhanced Fixed Bottom Widget */}
+      {/* Simplified Fixed Bottom Widget - Reduced Width */}
       <Animated.View
         style={[
           styles.fixedBottomWidget,
@@ -231,57 +208,43 @@ export default function BookingReminder() {
                 ]}
               >
                 <View style={styles.clockIcon}>
-                  <Ionicons name="time" size={18} color="white" />
-                </View>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>!</Text>
+                  <Ionicons name="time" size={16} color="white" />
                 </View>
               </Animated.View>
 
               <View style={styles.timeInfo}>
-                <Text style={styles.widgetTitle}>UPCOMING APPOINTMENT</Text>
+                <Text style={styles.widgetTitle}>UPCOMING</Text>
                 <View style={styles.countdownContainer}>
                   <View style={styles.countdownItem}>
                     <Text style={styles.countdownNumber}>{String(timeLeft.days).padStart(2, '0')}</Text>
-                    <Text style={styles.countdownLabel}>Days</Text>
+                    <Text style={styles.countdownLabel}>D</Text>
                   </View>
                   <Text style={styles.countdownSeparator}>:</Text>
                   <View style={styles.countdownItem}>
                     <Text style={styles.countdownNumber}>{String(timeLeft.hours).padStart(2, '0')}</Text>
-                    <Text style={styles.countdownLabel}>Hours</Text>
+                    <Text style={styles.countdownLabel}>H</Text>
                   </View>
                   <Text style={styles.countdownSeparator}>:</Text>
                   <View style={styles.countdownItem}>
                     <Text style={styles.countdownNumber}>{String(timeLeft.minutes).padStart(2, '0')}</Text>
-                    <Text style={styles.countdownLabel}>Min</Text>
+                    <Text style={styles.countdownLabel}>M</Text>
                   </View>
                 </View>
-                <Text style={styles.shopName}>{BOOKING_DATA.shopName}</Text>
               </View>
             </View>
 
-            {/* View Button with Shimmer Effect */}
+            {/* View Button */}
             <View style={styles.viewButtonContainer}>
               <View style={styles.viewButton}>
-                <View style={styles.shimmerOverlay}>
-                  <Animated.View 
-                    style={[
-                      styles.shimmer,
-                      {
-                        transform: [{ translateX: shimmerTranslate }]
-                      }
-                    ]} 
-                  />
-                </View>
                 <Text style={styles.viewButtonText}>VIEW</Text>
-                <Feather name="arrow-right" size={12} color="white" />
+                <Feather name="arrow-right" size={10} color="white" />
               </View>
             </View>
           </Animated.View>
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Enhanced Modal */}
+      {/* Simplified Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -308,25 +271,21 @@ export default function BookingReminder() {
               <View style={styles.modalHeader}>
                 <View style={styles.headerLeft}>
                   <View style={styles.headerIcon}>
-                    <Ionicons name="calendar" size={24} color="#4F46E5" />
+                    <Ionicons name="calendar" size={20} color="#4F46E5" />
                   </View>
                   <View>
                     <Text style={styles.headerTitle}>Appointment Details</Text>
-                    <Text style={styles.headerSubtitle}>Your upcoming booking</Text>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                  <Ionicons name="close" size={24} color="#6B7280" />
+                  <Ionicons name="close" size={20} color="#6B7280" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Countdown Timer */}
                 <View style={styles.timerCard}>
-                  <View style={styles.timerHeader}>
-                    <Ionicons name="time-outline" size={20} color="#4F46E5" />
-                    <Text style={styles.timerTitle}>Time Remaining</Text>
-                  </View>
+                  <Text style={styles.timerTitle}>Time Remaining</Text>
                   <View style={styles.timerGrid}>
                     <TimeBlock value={timeLeft.days} label="Days" />
                     <TimeBlock value={timeLeft.hours} label="Hours" />
@@ -337,71 +296,50 @@ export default function BookingReminder() {
 
                 {/* Appointment Details Card */}
                 <View style={styles.detailsCard}>
-                  <View style={styles.cardHeader}>
-                    <FontAwesome5 name="info-circle" size={18} color="#4F46E5" />
-                    <Text style={styles.cardTitle}>Appointment Info</Text>
-                  </View>
+                  <Text style={styles.cardTitle}>Details</Text>
 
                   <DetailRow
-                    icon={<FontAwesome5 name="store" size={16} color="#4F46E5" />}
+                    icon={<FontAwesome5 name="store" size={14} color="#4F46E5" />}
                     title="Salon"
                     value={BOOKING_DATA.shopName}
                     subtitle={`⭐ ${BOOKING_DATA.rating} (${BOOKING_DATA.reviews} reviews)`}
                   />
                   <DetailRow
-                    icon={<Ionicons name="location" size={16} color="#4F46E5" />}
+                    icon={<Ionicons name="location" size={14} color="#4F46E5" />}
                     title="Address"
                     value={BOOKING_DATA.address}
                   />
                   <DetailRow
-                    icon={<FontAwesome5 name="cut" size={16} color="#4F46E5" />}
+                    icon={<FontAwesome5 name="cut" size={14} color="#4F46E5" />}
                     title="Service"
                     value={BOOKING_DATA.service}
                     subtitle={`${BOOKING_DATA.duration} • ${BOOKING_DATA.price}`}
                   />
                   <DetailRow
-                    icon={<FontAwesome5 name="user" size={16} color="#4F46E5" />}
+                    icon={<FontAwesome5 name="user" size={14} color="#4F46E5" />}
                     title="Stylist"
                     value={BOOKING_DATA.stylist}
                   />
                   <DetailRow
-                    icon={<Ionicons name="calendar" size={16} color="#4F46E5" />}
+                    icon={<Ionicons name="calendar" size={14} color="#4F46E5" />}
                     title="Date & Time"
                     value={`${formatDate()}`}
                     subtitle={formatTime()}
                   />
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity style={[styles.actionButton, styles.primaryBtn]}>
-                    <Ionicons name="time" size={20} color="white" />
-                    <Text style={styles.primaryBtnText}>Reschedule</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionButton, styles.secondaryBtn]}>
-                    <Ionicons name="navigate" size={20} color="#4F46E5" />
-                    <Text style={styles.secondaryBtnText}>Directions</Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Action Button */}
+                <TouchableOpacity style={styles.actionButton}>
+                  <Ionicons name="navigate" size={18} color="white" />
+                  <Text style={styles.actionButtonText}>Get Directions</Text>
+                </TouchableOpacity>
 
                 {/* Reminders Card */}
                 <View style={styles.remindersCard}>
-                  <View style={styles.cardHeader}>
-                    <MaterialIcons name="notifications-active" size={18} color="#DC2626" />
-                    <Text style={styles.cardTitle}>Important Reminders</Text>
-                  </View>
+                  <Text style={styles.remindersTitle}>Reminders</Text>
                   <ReminderItem text="Please arrive 10 minutes early" />
                   <ReminderItem text="Bring your booking confirmation" />
-                  <ReminderItem text="Cancel at least 24 hours in advance to avoid fees" />
-                </View>
-
-                {/* Help Section */}
-                <View style={styles.helpCard}>
-                  <FontAwesome5 name="question-circle" size={32} color="#4F46E5" />
-                  <View style={styles.helpContent}>
-                    <Text style={styles.helpTitle}>Need Help?</Text>
-                    <Text style={styles.helpText}>Contact us for any changes or questions</Text>
-                  </View>
+                  <ReminderItem text="Cancel at least 24 hours in advance" />
                 </View>
               </ScrollView>
             </View>
@@ -414,9 +352,7 @@ export default function BookingReminder() {
 
 const TimeBlock = ({ value, label }) => (
   <View style={styles.timeBlock}>
-    <View style={styles.timeValueContainer}>
-      <Text style={styles.timeValue}>{String(value).padStart(2, '0')}</Text>
-    </View>
+    <Text style={styles.timeValue}>{String(value).padStart(2, '0')}</Text>
     <Text style={styles.timeLabel}>{label}</Text>
   </View>
 );
@@ -440,12 +376,12 @@ const ReminderItem = ({ text }) => (
 );
 
 const styles = StyleSheet.create({
-  // Enhanced Fixed Widget
+  // Simplified Fixed Widget - Reduced Width
   fixedBottomWidget: {
     position: 'absolute',
-    bottom: "15%",
-    left: 20,
-    right: 20,
+    bottom: "12%",
+    left: '21%', // Center the widget with less width
+    right: '25%',
     zIndex: 1000,
   },
   widgetContent: {
@@ -453,17 +389,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 10,
-    minHeight: 56,
-    // Shadow
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(79, 70, 229, 0.1)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 48,
+    // Simple shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   leftSection: {
     flexDirection: 'row',
@@ -471,218 +406,148 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   clockIconContainer: {
-    position: 'relative',
-    marginRight: 10,
+    marginRight: 8,
   },
   clockIcon: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     backgroundColor: '#4F46E5',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  badgeContainer: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 16,
-    height: 16,
-    backgroundColor: '#EF4444',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 9,
-    fontWeight: '900',
   },
   timeInfo: {
     flex: 1,
   },
   widgetTitle: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '700',
     color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   countdownContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
   },
   countdownItem: {
     alignItems: 'center',
-    minWidth: 24,
+    minWidth: 20,
   },
   countdownNumber: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#111827',
-    marginBottom: 1,
+    marginBottom: 0,
   },
   countdownLabel: {
-    fontSize: 7,
+    fontSize: 6,
     fontWeight: '600',
     color: '#6B7280',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   countdownSeparator: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#D1D5DB',
-    marginHorizontal: 2,
-  },
-  shopName: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#4B5563',
+    marginHorizontal: 1,
   },
   viewButtonContainer: {
-    marginLeft: 10,
+    marginLeft: 6,
   },
   viewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#4F46E5',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    overflow: 'hidden',
-    position: 'relative',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  shimmerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    transform: [{ skewX: '-20deg' }],
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   viewButtonText: {
     color: 'white',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     marginRight: 3,
     letterSpacing: 0.3,
   },
 
-  // Modal Styles
+  // Modal Styles - Simplified
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    backgroundColor: '#F9FAFB',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
   },
   modalContent: {
-    paddingTop: 20,
+    paddingTop: 16,
     paddingHorizontal: 0,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 24,
   },
   scrollContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F1F5F9',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#111827',
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-  },
   closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // Cards
+  // Cards - No Shadows
   timerCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  timerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   timerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#111827',
-    marginLeft: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   timerGrid: {
     flexDirection: 'row',
@@ -691,70 +556,52 @@ const styles = StyleSheet.create({
   timeBlock: {
     alignItems: 'center',
   },
-  timeValueContainer: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-    minWidth: 60,
-    alignItems: 'center',
-  },
   timeValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: 'white',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#4F46E5',
+    marginBottom: 4,
   },
   timeLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   detailsCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#111827',
-    marginLeft: 8,
+    marginBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#F8FAFC',
   },
   detailIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#EEF2FF',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   detailContent: {
     flex: 1,
   },
   detailTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#6B7280',
     textTransform: 'uppercase',
@@ -762,106 +609,68 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   detailValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#111827',
     marginBottom: 2,
-    lineHeight: 22,
-  },
-  detailSubtitle: {
-    fontSize: 14,
-    color: '#4B5563',
-    fontWeight: '500',
     lineHeight: 20,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+  detailSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '400',
+    lineHeight: 18,
   },
+  
+  // Action Button
   actionButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 14,
+    backgroundColor: '#4F46E5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
     gap: 8,
   },
-  primaryBtn: {
-    backgroundColor: '#4F46E5',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryBtnText: {
+  actionButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     color: 'white',
-    letterSpacing: 0.3,
   },
-  secondaryBtn: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#4F46E5',
-    letterSpacing: 0.3,
-  },
+  
+  // Reminders Card
   remindersCard: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    bottom:10,
+    borderColor: '#F1F5F9',
+  },
+  remindersTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
   },
   reminderItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   reminderBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#DC2626',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#4F46E5',
     marginTop: 8,
-    marginRight: 12,
+    marginRight: 10,
   },
   reminderText: {
-    fontSize: 14,
-    color: '#374151',
-    flex: 1,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  helpCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  helpContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  helpTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  helpText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#4B5563',
+    flex: 1,
+    lineHeight: 18,
   },
 });

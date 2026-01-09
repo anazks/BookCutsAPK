@@ -20,6 +20,8 @@ import {
 
 import { findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import AdvancedFilter from '../Components/Filters/AdvancedFilter';
+import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
@@ -402,14 +404,9 @@ const getFilteredShops = () => {
             onPress={() => setShowCityDropdown(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="location-sharp" size={20} color="#EF4444" />
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.deliveryText}>Delivery to</Text>
-              <Text style={styles.cityText}>
-                {selectedCity} 
-                <Ionicons name="chevron-down" size={14} color="#4B5563" />
-              </Text>
-            </View>
+            <Ionicons name="location-sharp" size={16} color="#EF4444" />
+            <Text style={styles.cityText}>{selectedCity}</Text>
+            <Ionicons name="chevron-down" size={14} color="#4B5563" />
           </TouchableOpacity>
 
           {/* Logout Button */}
@@ -505,7 +502,11 @@ const getFilteredShops = () => {
       </Modal>
 
       {/* Main Content */}
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {searchQuery.length > 0 ? (
           <View style={{ flex: 1 }}>
             {isSearching ? (
@@ -648,7 +649,9 @@ const getFilteredShops = () => {
                 />
               </View>
             )}
-
+              <View style={styles.advancedFilterSection}>
+              <PaisAdd/>
+            </View>
             {/* Trending Styles */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -680,10 +683,17 @@ const getFilteredShops = () => {
                 )}
               />
             </View>
+          
 
-            <View style={styles.bottomSpacing} />
+            {/* Advanced Filter - Always shown at the bottom */}
+           
+
+            {/* Additional bottom padding for scroll */}
+            <View style={styles.bottomPadding} />
           </>
         )}
+              <AdvancedFilter/>
+
       </ScrollView>
     </View>
   );
@@ -725,22 +735,19 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  locationTextContainer: {
-    marginLeft: 8,
-  },
-  deliveryText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '400',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   cityText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#111827',
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginLeft: 8,
+    marginRight: 4,
   },
   logoutButton: {
     padding: 8,
@@ -749,7 +756,7 @@ const styles = StyleSheet.create({
   // Search Bar
   searchContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -757,7 +764,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   searchIcon: {
     marginRight: 8,
@@ -770,6 +777,10 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  // Advanced Filter Section
+  advancedFilterSection: {
+  
   },
   // Modal
   modalOverlay: {
@@ -837,6 +848,9 @@ const styles = StyleSheet.create({
   // Main Content
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding to ensure content is scrollable
   },
   // Search Results
   searchingContainer: {
@@ -1054,8 +1068,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#374151',
   },
-  bottomSpacing: {
-    height: 100,
+  bottomPadding: {
+    height: 40, // Extra padding at the bottom for scroll
   },
 });
 
