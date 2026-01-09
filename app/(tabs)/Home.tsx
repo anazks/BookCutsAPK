@@ -44,7 +44,7 @@ const Home = ({ navigation }) => {
   const [cities, setCities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);  
 
   const getLocation = async () => {
     try {
@@ -129,14 +129,22 @@ const Home = ({ navigation }) => {
           distanceKm(lat, lon, b.lat, b.lon)
       );
 
-      setCities(sorted);
-      return sorted;
+console.log("Nearby Cities (sorted):", sorted);
 
-    } catch (err) {
-      console.error("Failed to fetch nearby cities:", err);
-      return [];
-    }
-  };
+// ✅ update dropdown city list here
+setCities(sorted);
+
+return sorted;
+
+
+  } catch (err) {
+    console.error("Failed to fetch nearby cities:", err);
+    return [];
+  }
+};
+
+
+
 
   const findNearestShopApi = async () => {
     if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
@@ -273,16 +281,23 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const getFilteredShops = () => {
-    if (selectedCity === 'All Cities' || selectedCity === 'India') {
-      return shops;
-    }
+const getFilteredShops = () => {
 
-    return shops.filter(shop =>
-      shop.City?.toLowerCase().includes(selectedCity.toLowerCase()) ||
-      shop.city?.toLowerCase().includes(selectedCity.toLowerCase())
-    );
-  };
+  const cityName =
+    typeof selectedCity === "string"
+      ? selectedCity
+      : selectedCity?.name || "";
+
+  if (cityName === "All Cities" || cityName === "India") {
+    return shops;
+  }
+
+  return shops.filter(shop =>
+    shop.City?.toLowerCase().includes(cityName.toLowerCase()) ||
+    shop.city?.toLowerCase().includes(cityName.toLowerCase())
+  );
+};
+
 
   const transformShopData = (apiShops) => {
     return apiShops.map((shop) => {

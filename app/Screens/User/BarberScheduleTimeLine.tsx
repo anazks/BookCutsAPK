@@ -21,6 +21,10 @@ const BarberScheduleTimeLine = ({
   totalDuration = 60,
   onTimeSelect,
 }) => {
+
+  console.log('Schedule Data Received:', scheduleData);
+console.log('Free Slots:', scheduleData.freeSlots);
+console.log('Total Duration:', totalDuration);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const timeToMinutes = (time) => {
