@@ -544,12 +544,7 @@ const BookNow = ({ navigation }) => {
       
       {/* Enhanced Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerTitle}>
-          <Text style={styles.headerTitleText}>Find Your Barber</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredAndSortedShops.length} shops available near you
-          </Text>
-        </View>
+        
         
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color={colors.text.secondary} style={styles.searchIcon} />
