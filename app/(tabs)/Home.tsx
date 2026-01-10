@@ -628,7 +628,7 @@ const Home = ({ navigation }) => {
                           <Text style={styles.shopPrice}>{item.price}</Text>
                           <Text style={styles.shopCity}>{item.city}</Text>
                         </View>
-                      </View>
+                       </View>
                     </TouchableOpacity>
                   )}
                 />
