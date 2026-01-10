@@ -1,33 +1,58 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { fetchUniqueServices } from '@/app/api/Service/User';
 
-const services = [
-  { id: '1', name: 'All', icon: 'apps' },
-  { id: '2', name: 'Haircut', icon: 'cut' },
-  { id: '3', name: 'Beard Trim', icon: 'leaf' },
-  { id: '4', name: 'Face Wash', icon: 'water' },
-  { id: '5', name: 'Hair Color', icon: 'color-palette' },
-  { id: '6', name: 'Styling', icon: 'brush' },
-  { id: '7', name: 'Massage', icon: 'hand-left' },
-  { id: '8', name: 'Facial', icon: 'sparkles' },
-  { id: '9', name: 'Shave', icon: 'cut-outline' },
-  { id: '10', name: 'Waxing', icon: 'flame' },
-];
+type ServiceItem = {
+  id: string;
+  name: string;
+  icon: string;
+};
 
 export default function ServiceFilter() {
-  const [selectedService, setSelectedService] = useState('1');
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [selectedService, setSelectedService] = useState('all');
+
+  useEffect(() => {
+    fetchService();
+  }, []);
+
+  const fetchService = async () => {
+    try {
+      const response = await fetchUniqueServices();
+      console.log(response, 'UNIQUE SERVICE');
+
+      if (response?.success && response?.service) {
+        const formattedServices: ServiceItem[] = [
+          {
+            id: 'all',
+            name: 'All',
+            icon: 'apps',
+          },
+          ...response.service.map((name: string, index: number) => ({
+            id: index.toString(),
+            name,
+            icon: 'cut-outline', // default icon
+          })),
+        ];
+
+        setServices(formattedServices);
+      }
+    } catch (error) {
+      console.log('Service fetch error:', error);
+    }
+  };
 
   const handleServicePress = (serviceId: string) => {
     setSelectedService(serviceId);
-    // Add your filter logic here
     console.log('Selected service:', serviceId);
+    // 👉 filter logic can be added here
   };
 
   return (
@@ -39,6 +64,7 @@ export default function ServiceFilter() {
       >
         {services.map((service) => {
           const isSelected = selectedService === service.id;
+
           return (
             <TouchableOpacity
               key={service.id}
@@ -69,6 +95,7 @@ export default function ServiceFilter() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
