@@ -204,6 +204,8 @@ export default function BookingReminder() {
 
   if (!widgetVisible || !timeLeft) return null;
 
+ 
+
   return (
     <>
       {/* Floating Widget */}
@@ -483,7 +485,7 @@ const styles = StyleSheet.create({
   detailSubtitle: { fontSize: 14, color: '#4B5563', fontWeight: '500', lineHeight: 20 },
   actionButtons: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 14, gap: 8 },
-  primaryBtn: { backgroundColor: '#4F46E5', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  primaryBtn: { backgroundColor: '#4F46E5', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },        
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: 'white', letterSpacing: 0.3 },
   secondaryBtn: { backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB' },
   secondaryBtnText: { fontSize: 15, fontWeight: '700', color: '#4F46E5', letterSpacing: 0.3 },

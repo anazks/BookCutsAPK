@@ -18,13 +18,16 @@ import {
   View
 } from 'react-native';
 
-import { findNearestShops, search } from '../api/Service/Shop';
+import { findNearestShops, search,filterShopsByService } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
+import AdvancedFilter from '../Components/Filters/AdvancedFilter';
+import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
 
 const Home = ({ navigation }) => {
+  const [filteredShops, setFilteredShops] = useState([]);     
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,13 +39,15 @@ const Home = ({ navigation }) => {
   const [address, setAddress] = useState(null);
   const [coordinates, setCoordinates] = useState({
     latitude: 0,
-    longtitude: 0
+    longitude: 0
   });
 
   const [cities, setCities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState([]);
   const [isSearching, setIsSearching] = useState(false);  
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+
 
   const getLocation = async () => {
     try {
@@ -73,7 +78,7 @@ const Home = ({ navigation }) => {
 
       setCoordinates({
         latitude: loc.coords.latitude,
-        longtitude: loc.coords.longitude
+        longitude: loc.coords.longitude
       });
 
     } catch (error) {
@@ -83,10 +88,10 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const getNearByCities = async ({ latitude, longtitude }) => {
+  const getNearByCities = async ({ latitude, longitude }) => {
     try {
       const lat = Number(latitude.toFixed(4));
-      const lon = Number(longtitude.toFixed(4));
+      const lon = Number(longitude.toFixed(4));
 
       const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
 
@@ -145,7 +150,7 @@ return sorted;
 
 
   const findNearestShopApi = async () => {
-    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) {
       return;
     }
 
@@ -168,7 +173,7 @@ return sorted;
   };
 
   const getProfile = async () => {
-    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) {
       return;
     }
     
@@ -214,7 +219,7 @@ return sorted;
 
     setCoordinates({
       latitude: Number(city.lat),
-      longtitude: Number(city.lon),
+      longitude: Number(city.lon),
     });
 
     setShowCityDropdown(false);
@@ -240,7 +245,7 @@ return sorted;
   }, []);
 
   useEffect(() => {
-    if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
+    if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
       findNearestShopApi();
       getProfile();
       getNearByCities(coordinates); 
@@ -377,6 +382,78 @@ const getFilteredShops = () => {
     setSearchData([]);
   };
 
+const handleServiceChange = async (serviceName) => {
+  console.log("Selected service:", serviceName);
+
+  if (serviceName === 'All') {
+    setFilteredShops([]);
+    setSelectedService('All');
+    return;
+  }
+
+  // Clean array of IDs
+  const shopIds = shops
+    .map(shop => shop._id)
+    .filter(id => id && typeof id === 'string');
+
+  console.log("Sending shopIds:", shopIds); // ← debug
+
+  if (shopIds.length === 0) {
+    setFilteredShops([]);
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // ── CHOOSE ONE of these three patterns ──────────────────────
+
+    // Pattern A - Most common & recommended
+    const response = await filterShopsByService({
+      shopIds,
+      serviceName: serviceName
+    });
+
+    // Pattern B - Alternative (try if A fails)
+    // const response = await filterShopsByService(shopIds, serviceName);
+
+    // Pattern C - If backend wants different field name
+    // const response = await filterShopsByService({
+    //   shopIds: shopIds,
+    //   serviceName: serviceName
+    // });
+
+    // ─────────────────────────────────────────────────────────────
+    
+    console.log("Fic", response);
+    setShops(response.shops)
+
+    if (response?.success && response.shops) {
+      setFilteredShops(response.shops);
+    } else {
+      setFilteredShops([]);
+      Alert.alert("No shops", `No shops found offering "${serviceName}"`);
+    }
+  } catch (error) {
+    console.error("filterShopsByService error:", error);
+
+    // Very useful for debugging 400 errors:
+    if (error.response?.data) {
+      console.log("Backend detailed error:", error.response.data);
+      Alert.alert(
+        "Filter Failed",
+        error.response.data?.message || "Server rejected the request (400)"
+      );
+    } else {
+      Alert.alert("Error", "Couldn't connect to filter service");
+    }
+
+    setFilteredShops([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
@@ -402,14 +479,9 @@ const getFilteredShops = () => {
             onPress={() => setShowCityDropdown(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="location-sharp" size={20} color="#EF4444" />
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.deliveryText}>Delivery to</Text>
-              <Text style={styles.cityText}>
-                {selectedCity} 
-                <Ionicons name="chevron-down" size={14} color="#4B5563" />
-              </Text>
-            </View>
+            <Ionicons name="location-sharp" size={16} color="#EF4444" />
+            <Text style={styles.cityText}>{selectedCity}</Text>
+            <Ionicons name="chevron-down" size={14} color="#4B5563" />
           </TouchableOpacity>
 
           {/* Logout Button */}
@@ -505,7 +577,11 @@ const getFilteredShops = () => {
       </Modal>
 
       {/* Main Content */}
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {searchQuery.length > 0 ? (
           <View style={{ flex: 1 }}>
             {isSearching ? (
@@ -557,7 +633,7 @@ const getFilteredShops = () => {
                 <Text style={styles.sectionTitle}>Services</Text>
               </View>
               <View style={styles.quickServicesContainer}>
-                <ServiceFilter/>
+                <ServiceFilter onServiceChange={handleServiceChange}/>
               </View>
             </View>
 
@@ -648,7 +724,9 @@ const getFilteredShops = () => {
                 />
               </View>
             )}
-
+              <View style={styles.advancedFilterSection}>
+              <PaisAdd/>
+            </View>
             {/* Trending Styles */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -680,10 +758,17 @@ const getFilteredShops = () => {
                 )}
               />
             </View>
+          
 
-            <View style={styles.bottomSpacing} />
+            {/* Advanced Filter - Always shown at the bottom */}
+           
+
+            {/* Additional bottom padding for scroll */}
+            <View style={styles.bottomPadding} />
           </>
         )}
+              <AdvancedFilter/>
+
       </ScrollView>
     </View>
   );
@@ -725,22 +810,19 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  locationTextContainer: {
-    marginLeft: 8,
-  },
-  deliveryText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '400',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   cityText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#111827',
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginLeft: 8,
+    marginRight: 4,
   },
   logoutButton: {
     padding: 8,
@@ -749,7 +831,7 @@ const styles = StyleSheet.create({
   // Search Bar
   searchContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -757,7 +839,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   searchIcon: {
     marginRight: 8,
@@ -770,6 +852,10 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  // Advanced Filter Section
+  advancedFilterSection: {
+  
   },
   // Modal
   modalOverlay: {
@@ -837,6 +923,9 @@ const styles = StyleSheet.create({
   // Main Content
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding to ensure content is scrollable
   },
   // Search Results
   searchingContainer: {
@@ -1054,8 +1143,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#374151',
   },
-  bottomSpacing: {
-    height: 100,
+  bottomPadding: {
+    height: 40, // Extra padding at the bottom for scroll
   },
 });
 

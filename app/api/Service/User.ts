@@ -49,3 +49,13 @@ export const fetchUpcomingBooking  = async (userId) => {
         console.log(error)
     }
 }
+
+export const fetchPremiumShops = async () => {
+    try {
+        const response = await Axios.get('shop/getAllPremium')
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}
+
