@@ -1,9 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
-import { createOrder, verifyPayment } from '../../api/Service/Booking';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { createOrder, verifyPayment } from '../../api/Service/Booking';
 
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
@@ -105,12 +106,14 @@ export default function PayNow() {
       }
 
       // Prepare verification data with booking ID
+      let email = AsyncStorage.getItem('email');
       const verificationData = {
         razorpay_payment_id,
         razorpay_order_id,
         razorpay_signature,
         bookingId: finalBookingId,
         paymentType,
+        email,
         amount: paymentType === 'advance' ? advanceAmount : totalPrice,
         currency: 'INR'
       };
