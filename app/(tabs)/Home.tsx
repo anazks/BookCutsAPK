@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from "expo-location";
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
   Alert,
@@ -11,14 +12,14 @@ import {
   Modal,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  BackHandler
 } from 'react-native';
 
-import { findNearestShops, search } from '../api/Service/Shop';
+import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
 import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
@@ -26,25 +27,51 @@ import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
 
-const Home = ({ navigation }) => {
-  const [shops, setShops] = useState([]);
+const Home = () => {
+  const [shops, setShops] = useState([]);                    // All nearby shops (original list)
+  const [filteredShops, setFilteredShops] = useState([]);    // Shops after service filter
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+
+  // Location & City states
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [selectedCity, setSelectedCity] = useState('India');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [location, setLocation] = useState(null);
   const [address, setAddress] = useState(null);
-  const [coordinates, setCoordinates] = useState({
-    latitude: 0,
-    longtitude: 0
-  });
-
+  const [coordinates, setCoordinates] = useState({ latitude: 0, longitude: 0 });
   const [cities, setCities] = useState([]);
+
+  // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);  
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Service filter state
+  const [selectedService, setSelectedService] = useState(null); // null = All
+
+   useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          Alert.alert("Exit App", "Are you sure you want to exit?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "OK", onPress: () => BackHandler.exitApp() }
+          ]);
+          return true;
+        };
+  
+        // 1. Capture the subscription in a variable
+        const subscription = BackHandler.addEventListener(
+          'hardwareBackPress',
+          onBackPress
+        );
+  
+        // 2. Use .remove() in the cleanup function
+        return () => subscription.remove(); 
+        
+      }, [])
+    );
 
   const getLocation = async () => {
     try {
@@ -55,10 +82,7 @@ const Home = ({ navigation }) => {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
-      });
-
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
       setLocation(loc);
 
       const reverseGeocode = await Location.reverseGeocodeAsync({
@@ -75,9 +99,8 @@ const Home = ({ navigation }) => {
 
       setCoordinates({
         latitude: loc.coords.latitude,
-        longtitude: loc.coords.longitude
+        longitude: loc.coords.longitude
       });
-
     } catch (error) {
       console.error("Error getting location:", error);
       setError("Failed to get your location. Please check your settings.");
@@ -85,98 +108,69 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const getNearByCities = async ({ latitude, longtitude }) => {
+  const getNearByCities = async ({ latitude, longitude }) => {
     try {
       const lat = Number(latitude.toFixed(4));
-      const lon = Number(longtitude.toFixed(4));
-
+      const lon = Number(longitude.toFixed(4));
       const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
 
       const res = await fetch(url);
       const text = await res.text();
 
-      if (!text || text.trim() === "[[%s]]") {
-        return [];
-      }
+      if (!text || text.trim() === "[[%s]]") return [];
 
       const data = JSON.parse(text);
-
-      const cities = data.map(item => ({
+      const citiesList = data.map(item => ({
         name: item[1],
         lat: Number(item[8]),
         lon: Number(item[10])
       }));
 
+      // Simple sort by distance
       const toRad = deg => (deg * Math.PI) / 180;
-
       const distanceKm = (lat1, lon1, lat2, lon2) => {
         const R = 6371;
         const dLat = toRad(lat2 - lat1);
         const dLon = toRad(lon2 - lon1);
-
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(toRad(lat1)) *
-          Math.cos(toRad(lat2)) *
-          Math.sin(dLon / 2) ** 2;
-
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       };
 
-      const sorted = cities.sort(
-        (a, b) =>
-          distanceKm(lat, lon, a.lat, a.lon) -
-          distanceKm(lat, lon, b.lat, b.lon)
-      );
+      const sorted = citiesList.sort((a, b) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon));
 
-console.log("Nearby Cities (sorted):", sorted);
-
-// ✅ update dropdown city list here
-setCities(sorted);
-
-return sorted;
-
-
-  } catch (err) {
-    console.error("Failed to fetch nearby cities:", err);
-    return [];
-  }
-};
-
-
-
+      setCities(sorted);
+      return sorted;
+    } catch (err) {
+      console.error("Failed to fetch nearby cities:", err);
+      return [];
+    }
+  };
 
   const findNearestShopApi = async () => {
-    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
-      return;
-    }
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
 
     try {
       setLoading(true);
       const result = await findNearestShops(coordinates);
-      
-      if (result && result.success) {
-        setShops(result.shops);
+      if (result?.success) {
+        setShops(result.shops || []);
         setError(null);
       } else {
-        setError("Failed to fetch nearby shops. Please try again.");
+        setError("Failed to fetch nearby shops.");
       }
     } catch (error) {
-      console.error("Error fetching nearby shops:", error);
-      setError("Failed to load shops. Please check your connection and try again.");
+      console.error("Error fetching shops:", error);
+      setError("Failed to load shops. Check your connection.");
     } finally {
       setLoading(false);
     }
   };
 
   const getProfile = async () => {
-    if (coordinates.latitude === 0 && coordinates.longtitude === 0) {
-      return;
-    }
-    
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
     try {
       const response = await getmyProfile(coordinates);
-      if (response && response.success) {
+      if (response?.success) {
         setUserProfile(response.user);
       }
     } catch (error) {
@@ -189,10 +183,7 @@ return sorted;
       "Logout",
       "Are you sure you want to logout?",
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Logout",
           style: "destructive",
@@ -211,41 +202,58 @@ return sorted;
 
   const handleCitySelect = (city) => {
     if (!city) return;
-
     setSelectedCity(city.name);
-
-    setCoordinates({
-      latitude: Number(city.lat),
-      longtitude: Number(city.lon),
-    });
-
+    setCoordinates({ latitude: Number(city.lat), longitude: Number(city.lon) });
     setShowCityDropdown(false);
   };
 
-  const handleRefresh = () => {
-    getLocation();
+  const handleServiceChange = async (serviceName) => {
+    setSelectedService(serviceName);
+
+    if (serviceName === 'All' || !serviceName) {
+      setFilteredShops([]);
+      return;
+    }
+
+    if (!shops.length) {
+      setFilteredShops([]);
+      return;
+    }
+
+    try {
+      setFilterLoading(true);
+
+      const shopIds = shops.map(shop => shop._id).filter(Boolean);
+
+      const response = await filterShopsByService({
+        shopIds,
+        serviceName
+      });
+
+      if (response?.success && response.shops) {
+        setFilteredShops(response.shops);
+      } else {
+        setFilteredShops([]);
+        Alert.alert("No Results", `No shops found offering "${serviceName}"`);
+      }
+    } catch (error) {
+      console.error("Service filter error:", error);
+      setFilteredShops([]);
+    } finally {
+      setFilterLoading(false);
+    }
   };
 
-  const handleSearchPress = () => {
-    router.push('/Screens/User/Search');
-  };
-
-  const handleSeeAllPress = (section) => {
-    router.push({
-      pathname: '/Screens/User/SeeAllShops',
-      params: { section, city: selectedCity }
-    });
-  };
-
+  // ── Effects ────────────────────────────────────────────────
   useEffect(() => {
     getLocation();
   }, []);
 
   useEffect(() => {
-    if (coordinates.latitude !== 0 && coordinates.longtitude !== 0) {
+    if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
       findNearestShopApi();
       getProfile();
-      getNearByCities(coordinates); 
+      getNearByCities(coordinates);
     }
   }, [coordinates]);
 
@@ -256,61 +264,33 @@ return sorted;
       return;
     }
 
-    const delayDebounceFn = setTimeout(() => {
-      performSearch(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
+    const timer = setTimeout(() => performSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const performSearch = async (query) => {
     setIsSearching(true);
     try {
-      const response = await search(query.trim()); 
-      
-      if (response && response.shops) {
-        setSearchData(response.shops); 
-      } else {
-        setSearchData([]);
-      }
+      const response = await search(query.trim());
+      setSearchData(response?.shops || []);
     } catch (error) {
-      console.error("Search API Error:", error);
+      console.error("Search error:", error);
       setSearchData([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-const getFilteredShops = () => {
-
-  const cityName =
-    typeof selectedCity === "string"
-      ? selectedCity
-      : selectedCity?.name || "";
-
-  if (cityName === "All Cities" || cityName === "India") {
-    return shops;
-  }
-
-  return shops.filter(shop =>
-    shop.City?.toLowerCase().includes(cityName.toLowerCase()) ||
-    shop.city?.toLowerCase().includes(cityName.toLowerCase())
-  );
-};
-
-
+  // ── Data transformation helpers ────────────────────────────
   const transformShopData = (apiShops) => {
-    return apiShops.map((shop) => {
+    return apiShops.map(shop => {
       let shopName = 'Unknown Shop';
-
-      if (shop.ShopName && shop.ShopName.trim()) {
-        shopName = shop.ShopName.trim();
-      }
+      if (shop.ShopName?.trim()) shopName = shop.ShopName.trim();
 
       let imageUrl = shop.ProfileImage;
-      if (!imageUrl && shop.media && Array.isArray(shop.media) && shop.media.length > 0) {
-        const firstMedia = shop.media[0];
-        imageUrl = typeof firstMedia === 'string' ? firstMedia : firstMedia?.url;
+      if (!imageUrl && shop.media?.length > 0) {
+        const first = shop.media[0];
+        imageUrl = typeof first === 'string' ? first : first?.url;
       }
 
       return {
@@ -328,44 +308,26 @@ const getFilteredShops = () => {
     });
   };
 
-  const getPopularShops = () => {
-    const filteredShops = getFilteredShops();
-    const sortedByDistance = [...filteredShops].sort((a, b) => a.distance - b.distance);
-    const transformedShops = transformShopData(sortedByDistance);
-    return transformedShops.slice(0, 8);
-  };
+  const activeShops = selectedService && selectedService !== 'All'
+    ? filteredShops
+    : shops;
 
-  const getTopRatedShops = () => {
-    const filteredShops = getFilteredShops();
-    const transformedShops = transformShopData(filteredShops);
-    return transformedShops.slice(0, Math.min(8, transformedShops.length));
+  const transformedActiveShops = transformShopData(activeShops);
+
+  const getPopularShops = () => {
+    const sorted = [...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999));
+    return transformShopData(sorted).slice(0, 8);
   };
 
   const getAllTransformedShops = () => {
-    const filteredShops = getFilteredShops();
-    return transformShopData(filteredShops);
+    return transformShopData(activeShops);
   };
 
   const trendingDesigns = [
-    {
-      id: '1',
-      name: 'Fade Cut',
-      popularity: '92%',
-      image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8ZmFkZSUyMGhhaXJjdXQlMjBtZW58ZW58MHx8MHx8fDA%3D'
-    },
-    {
-      id: '2',
-      name: 'Pompadour',
-      popularity: '87%',
-      image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cG9tcGFkb3VyJTIwaGFpcmN1dCUyMG1lbnxlbnwwfHwwfHx8MA%3D%3D'
-    },
-    {
-      id: '3',
-      name: 'Undercut',
-      popularity: '89%',
-      image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8dW5kZXJjdXQlMjBoYWlyY3V0JTIwbWVufGVufDB8fDB8fHww'
-    },
-  ]; 
+    { id: '1', name: 'Fade Cut', popularity: '92%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
+    { id: '2', name: 'Pompadour', popularity: '87%', image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500' },
+    { id: '3', name: 'Undercut', popularity: '89%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
+  ];
 
   const handleShopPress = (shop) => {
     router.push({
@@ -374,126 +336,81 @@ const getFilteredShops = () => {
     });
   };
 
-  const handleResetSearch = () => {
-    setSearchQuery('');
-    setSearchData([]);
-  };
-
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-          <Text style={styles.loadingText}>Loading shops...</Text>
-        </View>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={{ marginTop: 16, color: '#64748B' }}>Loading shops...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-      
-      {/* Flat Zomato-style Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          {/* Location Section */}
-          <TouchableOpacity 
-            style={styles.locationContainer}
+
+      {/* Header */}
+      <View style={{ backgroundColor: '#FFF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#E5E7EB' }}
             onPress={() => setShowCityDropdown(true)}
-            activeOpacity={0.7}
           >
             <Ionicons name="location-sharp" size={16} color="#EF4444" />
-            <Text style={styles.cityText}>{selectedCity}</Text>
+            <Text style={{ marginLeft: 8, marginRight: 4, fontWeight: '600' }}>{selectedCity}</Text>
             <Ionicons name="chevron-down" size={14} color="#4B5563" />
           </TouchableOpacity>
 
-          {/* Logout Button */}
-          <TouchableOpacity 
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={22} color="#4B5563" />
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchContent}>
-            <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search for salons, services, or styles..."
-              placeholderTextColor="#9CA3AF"
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={handleResetSearch}
-                style={styles.clearButton}
-              >
-                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Search */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12 }}>
+          <Ionicons name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+          <TextInput
+            style={{ flex: 1, fontSize: 14 }}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search for salons, services, or styles..."
+            placeholderTextColor="#9CA3AF"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      <BookingReminder/>
-      
-      {/* City Dropdown Modal */}
-      <Modal
-        visible={showCityDropdown}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCityDropdown(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
+      <BookingReminder />
+
+      {/* City selection modal */}
+      <Modal visible={showCityDropdown} transparent animationType="fade" onRequestClose={() => setShowCityDropdown(false)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}
           activeOpacity={1}
           onPress={() => setShowCityDropdown(false)}
         >
-          <View style={styles.cityDropdownContainer}>
-            <View style={styles.cityDropdownHeader}>
-              <Text style={styles.cityDropdownTitle}>Select Your Location</Text>
-              <TouchableOpacity 
-                onPress={() => setShowCityDropdown(false)}
-                style={styles.closeButton}
-              >
+          <View style={{ backgroundColor: '#FFF', borderRadius: 12, width: '90%', maxHeight: '70%', shadowColor: '#000', shadowOpacity: 0.25, elevation: 5 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600' }}>Select Your Location</Text>
+              <TouchableOpacity onPress={() => setShowCityDropdown(false)}>
                 <Ionicons name="close" size={24} color="#4B5563" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.cityList} showsVerticalScrollIndicator={false}>
+
+            <ScrollView style={{ maxHeight: 400 }}>
               {cities.map((city, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[
-                    styles.cityItem,
-                    selectedCity === city.name && styles.selectedCityItem
-                  ]}
+                  style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
                   onPress={() => handleCitySelect(city)}
-                  activeOpacity={0.7}
                 >
-                  <Ionicons 
-                    name="location-outline" 
-                    size={20} 
-                    color={selectedCity === city.name ? "#EF4444" : "#9CA3AF"} 
-                  />
-                  <Text style={[
-                    styles.cityItemText,
-                    selectedCity === city.name && styles.selectedCityItemText
-                  ]}>
-                    {city.name}
-                  </Text>
-                  {selectedCity === city.name && (
-                    <Ionicons name="checkmark-circle" size={20} color="#EF4444" />
-                  )}
+                  <Ionicons name="location-outline" size={20} color={selectedCity === city.name ? "#EF4444" : "#9CA3AF"} />
+                  <Text style={{ flex: 1, marginLeft: 12 }}>{city.name}</Text>
+                  {selectedCity === city.name && <Ionicons name="checkmark-circle" size={20} color="#EF4444" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -501,576 +418,133 @@ const getFilteredShops = () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Main Content */}
-      <ScrollView 
-        style={styles.scrollContainer} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
         {searchQuery.length > 0 ? (
-          <View style={{ flex: 1 }}>
+          <>
             {isSearching ? (
-              <View style={styles.searchingContainer}>
+              <View style={{ paddingVertical: 60, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#EF4444" />
-                <Text style={styles.searchingText}>Searching salons...</Text>
+                <Text style={{ marginTop: 16, color: '#6B7280' }}>Searching salons...</Text>
               </View>
             ) : (
               <FlatList
                 data={searchData}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <ShopCard
-                    shop={item}
-                    onPress={() => handleShopPress({ id: item._id })}
-                  />
-                )}
+                keyExtractor={item => item._id}
+                renderItem={({ item }) => <ShopCard shop={item} onPress={() => handleShopPress({ id: item._id })} />}
                 ListEmptyComponent={() => (
-                  <View style={styles.noResultsContainer}>
+                  <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
                     <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-                    <Text style={styles.noResultsTitle}>
+                    <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center' }}>
                       No salons found for "{searchQuery}"
-                    </Text>
-                    <Text style={styles.noResultsSubtitle}>
-                      Try searching with different keywords
                     </Text>
                   </View>
                 )}
-                contentContainerStyle={styles.searchResultsContainer}
               />
             )}
-          </View>
+          </>
         ) : (
           <>
-            {/* Error Message */}
             {error && (
-              <View style={styles.errorContainer}>
+              <View style={{ flexDirection: 'row', backgroundColor: '#FEF2F2', margin: 16, padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
                 <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-                  <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
+                <Text style={{ flex: 1, marginLeft: 8 }}>{error}</Text>
               </View>
             )}
 
-            {/* Service Filters */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Services</Text>
-              </View>
-              <View style={styles.quickServicesContainer}>
-                <ServiceFilter/>
-              </View>
+            {/* Services Filter */}
+            <View style={{ marginVertical: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12 }}>Services</Text>
+              <ServiceFilter onServiceChange={handleServiceChange} />
             </View>
 
-            {/* Top Rated Shops */}
-            {getFilteredShops().length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Top Rated This Week</Text>
-                  <TouchableOpacity
-                    style={styles.seeAllButton}
-                    onPress={() => handleSeeAllPress('top-rated')}
-                  >
-                    <Text style={styles.seeAllText}>See All</Text>
-                    <Ionicons name="chevron-forward" size={16} color="#EF4444" />
-                  </TouchableOpacity>
-                </View>
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={getTopRatedShops()}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={styles.horizontalListContainer}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.shopCard}
-                      onPress={() => handleShopPress(item)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.shopImageContainer}>
-                        <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
-                        <View style={styles.topRatedBadge}>
-                          <Ionicons name="trophy" size={12} color="#FFF" />
-                          <Text style={styles.topRatedText}>TOP</Text>
-                        </View>
-                        <View style={styles.distanceBadge}>
-                          <Text style={styles.distanceText}>{item.distance}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.shopDetails}>
-                        <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.shopServices} numberOfLines={1}>{item.services}</Text>
-                        <View style={styles.shopFooter}>
-                          <Text style={styles.shopPrice}>{item.price}</Text>
-                          <Text style={styles.shopCity}>{item.city}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                />
+            {filterLoading ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#4F46E5" />
+                <Text style={{ marginTop: 12, color: '#6B7280' }}>Filtering salons...</Text>
               </View>
+            ) : (
+              <>
+                {/* Top Rated */}
+                {activeShops.length > 0 && (
+                  <View style={{ marginVertical: 16 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
+                      <Text style={{ fontSize: 18, fontWeight: '700' }}>Top Rated This Week</Text>
+                    </View>
+                    <FlatList
+                      horizontal
+                      data={getPopularShops()}
+                      keyExtractor={item => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}
+                          onPress={() => handleShopPress(item)}
+                        >
+                          <Image source={{ uri: item.image }} style={{ width: '100%', height: 100 }} />
+                          <View style={{ padding: 8 }}>
+                            <Text style={{ fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
+                            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>{item.services}</Text>
+                            <Text style={{ color: '#10B981', fontWeight: '600' }}>{item.price}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                )}
+
+                {/* All Shops */}
+                {activeShops.length > 0 && (
+                  <View style={{ marginVertical: 16 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12 }}>
+                      All Available Shops ({activeShops.length})
+                    </Text>
+                    <FlatList
+                      horizontal
+                      data={getAllTransformedShops()}
+                      keyExtractor={item => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}
+                          onPress={() => handleShopPress(item)}
+                        >
+                          <Image source={{ uri: item.image }} style={{ width: '100%', height: 100 }} />
+                          <View style={{ padding: 8 }}>
+                            <Text style={{ fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
+                            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>{item.services}</Text>
+                            <Text style={{ color: '#10B981', fontWeight: '600' }}>{item.price}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                )}
+
+                <PaisAdd />
+                <AdvancedFilter />
+              </>
             )}
 
-            {/* All Available Shops */}
-            {getFilteredShops().length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>All Available Shops</Text>
-                  <Text style={styles.shopsCount}>({getFilteredShops().length})</Text>
-                </View>
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={getAllTransformedShops()}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={styles.horizontalListContainer}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity 
-                      style={styles.shopCard} 
-                      onPress={() => handleShopPress(item)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.shopImageContainer}>
-                        <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
-                        <View style={styles.distanceBadge}>
-                          <Text style={styles.distanceText}>{item.distance}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.shopDetails}>
-                        <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.shopServices} numberOfLines={1}>{item.services}</Text>
-                        <View style={styles.shopFooter}>
-                          <Text style={styles.shopPrice}>{item.price}</Text>
-                          <Text style={styles.shopCity}>{item.city}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            )}
-              <View style={styles.advancedFilterSection}>
-              <PaisAdd/>
-            </View>
             {/* Trending Styles */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Trending Styles</Text>
-                <TouchableOpacity
-                  style={styles.seeAllButton}
-                  onPress={() => router.push('/Screens/User/TrendingStyles')}
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#EF4444" />
-                </TouchableOpacity>
+            <View style={{ marginVertical: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700' }}>Trending Styles</Text>
               </View>
               <FlatList
                 horizontal
-                showsHorizontalScrollIndicator={false}
                 data={trendingDesigns}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.horizontalListContainer}
+                keyExtractor={item => item.id}
                 renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.designCard} activeOpacity={0.8}>
-                    <View style={styles.designImageContainer}>
-                      <Image source={{ uri: item.image }} style={styles.designImage} resizeMode="cover" />
-                      <View style={styles.popularityBadge}>
-                        <Text style={styles.popularityText}>{item.popularity}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.designName}>{item.name}</Text>
-                  </TouchableOpacity>
+                  <View style={{ width: 140, marginRight: 12 }}>
+                    <Image source={{ uri: item.image }} style={{ width: '100%', height: 140, borderRadius: 8 }} />
+                    <Text style={{ marginTop: 6, textAlign: 'center', fontWeight: '500' }}>{item.name}</Text>
+                  </View>
                 )}
               />
             </View>
-          
-
-            {/* Advanced Filter - Always shown at the bottom */}
-           
-
-            {/* Additional bottom padding for scroll */}
-            <View style={styles.bottomPadding} />
           </>
         )}
-              <AdvancedFilter/>
-
       </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContent: {
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  // Flat Header Styles
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  cityText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: 8,
-    marginRight: 4,
-  },
-  logoutButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  // Search Bar
-  searchContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111827',
-    paddingVertical: 0,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  // Advanced Filter Section
-  advancedFilterSection: {
-  
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cityDropdownContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    maxHeight: '70%',
-    width: '90%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  cityDropdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  cityDropdownTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  cityList: {
-    maxHeight: 400,
-  },
-  cityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  selectedCityItem: {
-    backgroundColor: '#FEF2F2',
-  },
-  cityItemText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '400',
-  },
-  selectedCityItemText: {
-    color: '#EF4444',
-    fontWeight: '500',
-  },
-  // Main Content
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Extra padding to ensure content is scrollable
-  },
-  // Search Results
-  searchingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  searchingText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  searchResultsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  noResultsContainer: {
-    paddingVertical: 80,
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  noResultsTitle: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#374151',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  noResultsSubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  // Error
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
-  },
-  errorText: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 12,
-    color: '#991B1B',
-  },
-  retryButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: '#EF4444',
-    borderRadius: 4,
-  },
-  retryText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  // Sections
-  section: {
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  shopsCount: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '400',
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  seeAllText: {
-    color: '#EF4444',
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 4,
-  },
-  quickServicesContainer: {
-    paddingHorizontal: 8,
-  },
-  // Horizontal Lists
-  horizontalListContainer: {
-    paddingLeft: 16,
-    paddingRight: 8,
-  },
-  // Shop Card - Plain without shadow
-  shopCard: {
-    width: 140,
-    marginRight: 12,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  shopImageContainer: {
-    position: 'relative',
-  },
-  shopImage: {
-    width: '100%',
-    height: 100,
-    backgroundColor: '#F3F4F6',
-  },
-  topRatedBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#F59E0B',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  topRatedText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '600',
-    marginLeft: 2,
-  },
-  distanceBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  distanceText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  shopDetails: {
-    padding: 8,
-  },
-  shopName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  shopServices: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  shopFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  shopPrice: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  shopCity: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-  // Design Card - Plain without shadow
-  designCard: {
-    width: 140,
-    marginRight: 12,
-  },
-  designImageContainer: {
-    position: 'relative',
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  designImage: {
-    width: '100%',
-    height: 140,
-    backgroundColor: '#F3F4F6',
-  },
-  popularityBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  popularityText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  designName: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-    color: '#374151',
-  },
-  bottomPadding: {
-    height: 40, // Extra padding at the bottom for scroll
-  },
-});
 
 export default Home;

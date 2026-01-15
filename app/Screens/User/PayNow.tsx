@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import RazorpayCheckout from 'react-native-razorpay';
 import { createOrder, verifyPayment } from '../../api/Service/Booking';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
@@ -105,6 +106,8 @@ export default function PayNow() {
       }
 
       // Prepare verification data with booking ID
+      const email = await AsyncStorage.getItem('email')
+      console.log("SHOPPER EMAIL:",email)
       const verificationData = {
         razorpay_payment_id,
         razorpay_order_id,
@@ -112,7 +115,8 @@ export default function PayNow() {
         bookingId: finalBookingId,
         paymentType,
         amount: paymentType === 'advance' ? advanceAmount : totalPrice,
-        currency: 'INR'
+        currency: 'INR',
+        email
       };
 
       console.log('Sending verification data:', verificationData);
@@ -120,7 +124,9 @@ export default function PayNow() {
       const verificationResponse = await verifyPayment(verificationData);
       
       if (verificationResponse.success) {
-        console.log('Payment verified successfully:', verificationResponse);
+        // console.log('Payment verified successfully:', verificationResponse);
+        console.warn('Sending verification data:', verificationData);
+
         router.push({
           pathname: '/Screens/User/ConfirmBooking',
           params: {

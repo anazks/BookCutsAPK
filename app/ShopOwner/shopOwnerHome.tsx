@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
   Modal,
@@ -8,12 +9,35 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  BackHandler,
+  Alert
 } from 'react-native';
 import { getMyProfile } from '../api/Service/ShoperOwner';
 import Dashboard from '../Components/Shop/Dashboard';
 
 export default function ShopOwnerHome() {
+ useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert("Exit App", "Are you sure you want to exit?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "OK", onPress: () => BackHandler.exitApp() }
+        ]);
+        return true;
+      };
+
+      // 1. Capture the subscription in a variable
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+
+      // 2. Use .remove() in the cleanup function
+      return () => subscription.remove(); 
+      
+    }, [])
+  );
   const [profileData, setProfileData] = useState({
     firstName: '',
     mobileNo: '',

@@ -2,8 +2,30 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
 import React, { useEffect, useState } from 'react'
-import { Alert, FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { AddBarber, AddService, deleteBarberAPI, deleteServiceAPI, modifyBarber, modifyService, viewMyBarbers, viewMyService, viewMyShop } from '../api/Service/Shop'
+import { 
+  Alert, 
+  FlatList, 
+  Modal, 
+  SafeAreaView, 
+  ScrollView, 
+  StatusBar, 
+  StyleSheet, 
+  Text, 
+  TextInput,  // Added TextInput
+  TouchableOpacity, 
+  View 
+} from 'react-native'
+import { 
+  AddBarber, 
+  AddService, 
+  deleteBarberAPI, 
+  deleteServiceAPI, 
+  modifyBarber, 
+  modifyService, 
+  viewMyBarbers, 
+  viewMyService, 
+  viewMyShop 
+} from '../api/Service/Shop'
 
 export default function Settings() {
   const [barbers, setBarbers] = useState([])
@@ -46,27 +68,17 @@ export default function Settings() {
       setLoading(true)
       
       // Fetch shop data first
-      console.log('Fetching shop data...')
       const shopResponse = await viewMyShop()
-      console.log('Shop Response:', JSON.stringify(shopResponse, null, 2))
       
       if (shopResponse && shopResponse.data) {
         setShopData(shopResponse.data)
-        console.log('Shop data set:', shopResponse.data)
-        
         // Store shop ID globally in AsyncStorage
         await AsyncStorage.setItem('shopId', shopResponse.data._id)
-        console.log('Shop ID stored:', shopResponse.data._id)
-      } else {
-        console.log('No shop data found in response')
       }
       
       // Fetch other data
       const barbersData = await viewMyBarbers()
       const servicesData = await viewMyService()
-      
-      console.log('Barbers:', barbersData)
-      console.log('Services:', servicesData)
       
       setBarbers(barbersData?.data || [])
       setServices(servicesData?.data || [])
@@ -94,13 +106,24 @@ export default function Settings() {
         shopId: shopId
       }
 
-      const addedBarber = await AddBarber(newBarber)
-      setBarbers([...barbers, addedBarber])
+      const response = await AddBarber(newBarber)
+      // Use response.data if it exists, otherwise use the whole response
+      const addedBarber = response.data || response
+      
+      // Update state locally first for immediate feedback
+      setBarbers(prev => [...prev, addedBarber])
+      
+      // Reset form and close modal
       setBarberName('')
       setFrom('')
       setShowBarberModal(false)
+      
       Alert.alert('Success', 'Barber added successfully')
-      await fetchData()
+      
+      // Optional: Fetch fresh data in background but don't wait for it
+      setTimeout(() => {
+        fetchData().catch(console.error)
+      }, 100)
     } catch (error) {
       Alert.alert('Error', 'Failed to add barber')
       console.error(error)
@@ -123,14 +146,24 @@ export default function Settings() {
         shopId: shopId
       }
 
-      const addedService = await AddService(newService)
-      setServices([...services, addedService])
+      const response = await AddService(newService)
+      const addedService = response.data || response
+      
+      // Update state locally first for immediate feedback
+      setServices(prev => [...prev, addedService])
+      
+      // Reset form and close modal
       setServiceName('')
       setServicePrice('')
       setServiceDuration('')
       setShowServiceModal(false)
+      
       Alert.alert('Success', 'Service added successfully')
-      await fetchData()
+      
+      // Optional: Fetch fresh data in background
+      setTimeout(() => {
+        fetchData().catch(console.error)
+      }, 100)
     } catch (error) {
       Alert.alert('Error', 'Failed to add service')
       console.error(error)
@@ -159,21 +192,27 @@ export default function Settings() {
         shopId: shopId
       }
 
-      const result = await modifyBarber(editingBarber._id, updatedBarber)
-      console.log("updated barber data", result)
+      await modifyBarber(editingBarber._id, updatedBarber)
       
-      setBarbers(barbers.map(barber => 
+      // Update state locally
+      setBarbers(prev => prev.map(barber => 
         barber._id === editingBarber._id 
-          ? { ...barber, BarberName: editBarberName.trim(), From: editFrom.trim() }
+          ? { ...barber, ...updatedBarber }
           : barber
       ))
       
+      // Reset and close
       setEditBarberName('')
       setEditFrom('')
       setEditingBarber(null)
       setShowEditBarberModal(false)
+      
       Alert.alert('Success', 'Barber updated successfully')
-      await fetchData()
+      
+      // Optional: Fetch fresh data in background
+      setTimeout(() => {
+        fetchData().catch(console.error)
+      }, 100)
     } catch (error) {
       Alert.alert('Error', 'Failed to update barber')
       console.error(error)
@@ -191,25 +230,26 @@ export default function Settings() {
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("Deleting barber with ID:", id);
-              const response = await deleteBarberAPI(id);
-              console.log("Delete barber response:", response);
+              await deleteBarberAPI(id)
 
-              setBarbers((prevBarbers) =>
-                prevBarbers.filter((barber) => barber._id !== id)
-              );
+              // Update state locally
+              setBarbers(prev => prev.filter(barber => barber._id !== id))
 
-              Alert.alert("Success", "Barber deleted successfully!");
-              await fetchData()
+              Alert.alert("Success", "Barber deleted successfully!")
+              
+              // Optional: Fetch fresh data in background
+              setTimeout(() => {
+                fetchData().catch(console.error)
+              }, 100)
             } catch (error) {
-              console.error("Failed to delete barber:", error);
-              Alert.alert("Error", "Failed to delete barber");
+              console.error("Failed to delete barber:", error)
+              Alert.alert("Error", "Failed to delete barber")
             }
           },
         },
       ]
-    );
-  };
+    )
+  }
 
   const deleteService = async (id) => {
     Alert.alert(
@@ -222,25 +262,26 @@ export default function Settings() {
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("Deleting service with ID:", id);
-              const response = await deleteServiceAPI(id);
-              console.log("Delete service response:", response);
+              await deleteServiceAPI(id)
 
-              setServices((prevServices) =>
-                prevServices.filter((service) => service._id !== id)
-              );
+              // Update state locally
+              setServices(prev => prev.filter(service => service._id !== id))
 
-              Alert.alert("Success", "Service deleted successfully!");
-              await fetchData()
+              Alert.alert("Success", "Service deleted successfully!")
+              
+              // Optional: Fetch fresh data in background
+              setTimeout(() => {
+                fetchData().catch(console.error)
+              }, 100)
             } catch (error) {
-              console.error("Failed to delete service:", error);
-              Alert.alert("Error", "Failed to delete service");
+              console.error("Failed to delete service:", error)
+              Alert.alert("Error", "Failed to delete service")
             }
           },
         },
       ]
-    );
-  };
+    )
+  }
 
   const editService = (service) => {
     setEditingService(service)
@@ -266,22 +307,28 @@ export default function Settings() {
         shopId: shopId
       }
 
-      const result = await modifyService(editingService._id, updatedService)
-      console.log("updated service data", result)
+      await modifyService(editingService._id, updatedService)
 
-      setServices(services.map(service => 
+      // Update state locally
+      setServices(prev => prev.map(service => 
         service._id === editingService._id
           ? { ...service, ...updatedService }
           : service
       ))
 
+      // Reset and close
       setEditServiceName('')
       setEditServicePrice('')
       setEditServiceDuration('')
       setEditingService(null)
       setShowEditServiceModal(false)
+      
       Alert.alert('Success', 'Service updated successfully')
-      await fetchData()
+      
+      // Optional: Fetch fresh data in background
+      setTimeout(() => {
+        fetchData().catch(console.error)
+      }, 100)
     } catch (error) {
       Alert.alert('Error', 'Failed to update service')
       console.error(error)
@@ -343,6 +390,34 @@ export default function Settings() {
       </View>
     </View>
   )
+
+  const handleCloseBarberModal = () => {
+    setBarberName('')
+    setFrom('')
+    setShowBarberModal(false)
+  }
+
+  const handleCloseEditBarberModal = () => {
+    setEditBarberName('')
+    setEditFrom('')
+    setEditingBarber(null)
+    setShowEditBarberModal(false)
+  }
+
+  const handleCloseServiceModal = () => {
+    setServiceName('')
+    setServicePrice('')
+    setServiceDuration('')
+    setShowServiceModal(false)
+  }
+
+  const handleCloseEditServiceModal = () => {
+    setEditServiceName('')
+    setEditServicePrice('')
+    setEditServiceDuration('')
+    setEditingService(null)
+    setShowEditServiceModal(false)
+  }
 
   if (loading) {
     return (
@@ -493,11 +568,11 @@ export default function Settings() {
           </View>
         </View>
 
-        {/* Add Shop Working Hours Button - NOW VISIBLE */}
+        {/* Add Shop Working Hours Button */}
         <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
           <TouchableOpacity
             style={styles.workingHoursButton}
-            onPress={() => navigation.navigate('Screens/Shop/WorkingHoursScreen')} // Use this screen name
+            onPress={() => navigation.navigate('Screens/Shop/WorkingHoursScreen')}
           >
             <MaterialIcons name="access-time" size={24} color="#4F46E5" />
             <Text style={styles.workingHoursButtonText}>Add Shop Working Hours</Text>
@@ -507,27 +582,303 @@ export default function Settings() {
 
       </ScrollView>
 
-      {/* All Modals Remain Unchanged */}
-      <Modal visible={showBarberModal} animationType="slide" transparent={true} onRequestClose={() => setShowBarberModal(false)}>
-        {/* ... (your existing Add Barber Modal) ... */}
+      {/* Add Barber Modal */}
+      <Modal 
+        visible={showBarberModal} 
+        animationType="slide" 
+        transparent={true}
+        onRequestClose={handleCloseBarberModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add New Barber</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={handleCloseBarberModal}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Barber Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter barber name"
+                      value={barberName}
+                      onChangeText={setBarberName}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>From (City/Region)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Where is the barber from?"
+                      value={from}
+                      onChangeText={setFrom}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={handleCloseBarberModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={addBarber}
+                >
+                  <Text style={styles.confirmButtonText}>Add Barber</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={showEditBarberModal} animationType="slide" transparent={true} onRequestClose={() => { setShowEditBarberModal(false); setEditingBarber(null); setEditBarberName(''); setEditFrom(''); }}>
-        {/* ... (your existing Edit Barber Modal) ... */}
+      {/* Edit Barber Modal */}
+      <Modal 
+        visible={showEditBarberModal} 
+        animationType="slide" 
+        transparent={true}
+        onRequestClose={handleCloseEditBarberModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Barber</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={handleCloseEditBarberModal}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Barber Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter barber name"
+                      value={editBarberName}
+                      onChangeText={setEditBarberName}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>From (City/Region)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Where is the barber from?"
+                      value={editFrom}
+                      onChangeText={setEditFrom}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={handleCloseEditBarberModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={updateBarber}
+                >
+                  <Text style={styles.confirmButtonText}>Update Barber</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={showServiceModal} animationType="slide" transparent={true} onRequestClose={() => setShowServiceModal(false)}>
-        {/* ... (your existing Add Service Modal) ... */}
+      {/* Add Service Modal */}
+      <Modal 
+        visible={showServiceModal} 
+        animationType="slide" 
+        transparent={true}
+        onRequestClose={handleCloseServiceModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add New Service</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={handleCloseServiceModal}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Service Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter service name"
+                      value={serviceName}
+                      onChangeText={setServiceName}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Price (₹)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter price"
+                      value={servicePrice}
+                      onChangeText={setServicePrice}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Duration</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g., 30 mins, 1 hour"
+                      value={serviceDuration}
+                      onChangeText={setServiceDuration}
+                    />
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={handleCloseServiceModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={addService}
+                >
+                  <Text style={styles.confirmButtonText}>Add Service</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={showEditServiceModal} animationType="slide" transparent={true} onRequestClose={() => { setShowEditServiceModal(false); setEditingService(null); setEditServiceName(''); setEditServicePrice(''); setEditServiceDuration(''); }}>
-        {/* ... (your existing Edit Service Modal) ... */}
+      {/* Edit Service Modal */}
+      <Modal 
+        visible={showEditServiceModal} 
+        animationType="slide" 
+        transparent={true}
+        onRequestClose={handleCloseEditServiceModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Service</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={handleCloseEditServiceModal}
+                >
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Service Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter service name"
+                      value={editServiceName}
+                      onChangeText={setEditServiceName}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Price (₹)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter price"
+                      value={editServicePrice}
+                      onChangeText={setEditServicePrice}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Duration</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g., 30 mins, 1 hour"
+                      value={editServiceDuration}
+                      onChangeText={setEditServiceDuration}
+                    />
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={handleCloseEditServiceModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={updateService}
+                >
+                  <Text style={styles.confirmButtonText}>Update Service</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
 
     </SafeAreaView>
   )
 }
 
+// Your existing styles remain exactly the same...
 const styles = StyleSheet.create({
   workingHoursButton: {
     flexDirection: 'row',

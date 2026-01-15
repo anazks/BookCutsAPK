@@ -27,6 +27,8 @@ export default function Login() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  
+
   const handleLogin = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
@@ -55,7 +57,10 @@ export default function Login() {
         response.result.token &&
         !response.result.message
       ) {
+
+        await AsyncStorage.setItem('userId',response.result.userData.id)
         await AsyncStorage.setItem('accessToken', response.result.token);
+        await AsyncStorage.setItem('email',email)
         router.replace('/(tabs)/Home');
       } else {
         const errorMessage =
