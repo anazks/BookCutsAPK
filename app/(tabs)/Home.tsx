@@ -1,27 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from "expo-location";
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Modal,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  BackHandler
+  View
 } from 'react-native';
 
-import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
+import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
-import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
@@ -272,7 +271,7 @@ const Home = () => {
     setIsSearching(true);
     try {
       const response = await search(query.trim());
-      setSearchData(response?.shops || []);
+      setSearchData(transformShopData(response?.shops || []));
     } catch (error) {
       console.error("Search error:", error);
       setSearchData([]);
@@ -429,8 +428,8 @@ const Home = () => {
             ) : (
               <FlatList
                 data={searchData}
-                keyExtractor={item => item._id}
-                renderItem={({ item }) => <ShopCard shop={item} onPress={() => handleShopPress({ id: item._id })} />}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => <ShopCard shop={item} onPress={() => handleShopPress(item)} />}
                 ListEmptyComponent={() => (
                   <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
                     <Ionicons name="search-outline" size={64} color="#D1D5DB" />
@@ -464,26 +463,28 @@ const Home = () => {
               </View>
             ) : (
               <>
-                {/* Top Rated */}
+                {/* Nearest Salons */}
                 {activeShops.length > 0 && (
-                  <View style={{ marginVertical: 16 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                      <Text style={{ fontSize: 18, fontWeight: '700' }}>Top Rated This Week</Text>
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>Nearest Salons</Text>
                     </View>
                     <FlatList
                       horizontal
+                      showsHorizontalScrollIndicator={false}
                       data={getPopularShops()}
                       keyExtractor={item => item.id}
+                      contentContainerStyle={styles.horizontalListContainer}
                       renderItem={({ item }) => (
                         <TouchableOpacity
-                          style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}
+                          style={styles.popularShopCard}
                           onPress={() => handleShopPress(item)}
                         >
-                          <Image source={{ uri: item.image }} style={{ width: '100%', height: 100 }} />
-                          <View style={{ padding: 8 }}>
-                            <Text style={{ fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
-                            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>{item.services}</Text>
-                            <Text style={{ color: '#10B981', fontWeight: '600' }}>{item.price}</Text>
+                          <Image source={{ uri: item.image }} style={styles.popularShopImage} resizeMode="cover" />
+                          <View style={styles.popularShopDetails}>
+                            <Text style={styles.popularShopName} numberOfLines={1}>{item.name}</Text>
+                            <Text style={styles.popularShopServices} numberOfLines={1}>{item.services}</Text>
+                            <Text style={styles.popularShopPrice}>{item.price}</Text>
                           </View>
                         </TouchableOpacity>
                       )}
@@ -491,69 +492,201 @@ const Home = () => {
                   </View>
                 )}
 
-            {/* All Available Shops */}
-            {getFilteredShops().length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>All Available Shops</Text>
-                  <Text style={styles.shopsCount}>({getFilteredShops().length})</Text>
-                </View>
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={getAllTransformedShops()}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={styles.horizontalListContainer}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity 
-                      style={styles.shopCard} 
-                      onPress={() => handleShopPress(item)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.shopImageContainer}>
-                        <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
-                        <View style={styles.distanceBadge}>
-                          <Text style={styles.distanceText}>{item.distance}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.shopDetails}>
-                        <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.shopServices} numberOfLines={1}>{item.services}</Text>
-                        <View style={styles.shopFooter}>
-                          <Text style={styles.shopPrice}>{item.price}</Text>
-                          <Text style={styles.shopCity}>{item.city}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            )}
-              <View style={styles.advancedFilterSection}>
-              <PaisAdd/>
-            </View>
-            {/* Trending Styles */}
-            <View style={{ marginVertical: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700' }}>Trending Styles</Text>
-              </View>
-              <FlatList
-                horizontal
-                data={trendingDesigns}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <View style={{ width: 140, marginRight: 12 }}>
-                    <Image source={{ uri: item.image }} style={{ width: '100%', height: 140, borderRadius: 8 }} />
-                    <Text style={{ marginTop: 6, textAlign: 'center', fontWeight: '500' }}>{item.name}</Text>
+                {/* All Available Shops */}
+                {activeShops.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>All Available Shops</Text>
+                      <Text style={styles.shopsCount}>({activeShops.length})</Text>
+                    </View>
+                    <FlatList
+                      data={getAllTransformedShops()}
+                      keyExtractor={(item) => item.id}
+                      contentContainerStyle={styles.verticalListContainer}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity 
+                          style={styles.shopCard} 
+                          onPress={() => handleShopPress(item)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.shopImageContainer}>
+                            <Image source={{ uri: item.image }} style={styles.shopImage} resizeMode="cover" />
+                            <View style={styles.distanceBadge}>
+                              <Text style={styles.distanceText}>{item.distance}</Text>
+                            </View>
+                          </View>
+                          <View style={styles.shopDetails}>
+                            <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
+                            <Text style={styles.shopServices} numberOfLines={1}>{item.services}</Text>
+                            <View style={styles.shopFooter}>
+                              <Text style={styles.shopPrice}>{item.price}</Text>
+                              <Text style={styles.shopCity}>{item.city}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                    />
                   </View>
                 )}
-              />
-            </View>
+                <View style={styles.advancedFilterSection}>
+                  <PaisAdd/>
+                </View>
+                {/* Trending Styles */}
+                <View style={{ marginVertical: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700' }}>Trending Styles</Text>
+                  </View>
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={trendingDesigns}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.horizontalListContainer}
+                    renderItem={({ item }) => (
+                      <View style={styles.trendingItem}>
+                        <Image source={{ uri: item.image }} style={styles.trendingImage} />
+                        <Text style={styles.trendingName}>{item.name}</Text>
+                      </View>
+                    )}
+                  />
+                </View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  section: {
+    marginVertical: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  shopsCount: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  horizontalListContainer: {
+    paddingHorizontal: 16,
+  },
+  verticalListContainer: {
+    paddingHorizontal: 16,
+  },
+  popularShopCard: {
+    width: 140,
+    marginRight: 12,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  popularShopImage: {
+    width: '100%',
+    height: 100,
+  },
+  popularShopDetails: {
+    padding: 8,
+  },
+  popularShopName: {
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  popularShopServices: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  popularShopPrice: {
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  shopCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  shopImageContainer: {
+    position: 'relative',
+  },
+  shopImage: {
+    width: '100%',
+    height: 160,
+  },
+  distanceBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  distanceText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  shopDetails: {
+    padding: 12,
+  },
+  shopName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  shopServices: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  shopFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  shopPrice: {
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  shopCity: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  advancedFilterSection: {
+    marginVertical: 16,
+    paddingHorizontal: 16,
+  },
+  trendingItem: {
+    width: 140,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  trendingImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
+  },
+  trendingName: {
+    marginTop: 6,
+    textAlign: 'center',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+});
 
 export default Home;
