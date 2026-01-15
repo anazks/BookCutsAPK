@@ -30,3 +30,32 @@ export const getmyProfile = async (userId: string) => {
         throw error?.response?.data || { message: "Failed to fetch profile" };
     }
 }
+
+export const fetchUniqueServices = async () => {
+    try {
+        const response = await Axios.get('/shop/fetchAllUniqueService')
+        return response.data
+    } catch (error) {
+        throw error?.response?.data || { message: "Faild to fetch unique service" }
+    }
+}
+
+export const fetchUpcomingBooking  = async (userId) => {
+    try {
+    console.log("USER ID:",userId)
+    const response = await Axios.get(`booking/fetchUpComingBooking/${userId}`)
+        return response.data   
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export const fetchPremiumShops = async () => {
+    try {
+        const response = await Axios.get('shop/getAllPremium')
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}
+

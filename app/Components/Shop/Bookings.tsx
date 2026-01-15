@@ -166,24 +166,24 @@ export default function Bookings() {
 
   const getStatusColor = (status) => {
     const colors = {
-      completed: '#059669',
-      confirmed: '#3B82F6', 
+      completed: '#10B981',
+      confirmed: '#4F46E5', 
       pending: '#F59E0B',
       cancelled: '#EF4444',
       rescheduled: '#8B5CF6'
     };
-    return colors[status] || '#6B7280';
+    return colors[status] || '#64748B';
   };
 
   const getStatusBgColor = (status) => {
     const colors = {
-      completed: '#ECFDF5',
+      completed: '#F0FDF4',
       confirmed: '#EFF6FF',
-      pending: '#FFFBEB',
+      pending: '#FEF3C7',
       cancelled: '#FEF2F2',
-      rescheduled: '#F5F3FF'
+      rescheduled: '#F3E8FF'
     };
-    return colors[status] || '#F9FAFB';
+    return colors[status] || '#F1F5F9';
   };
 
   const toggleExpandBooking = (id) => {
@@ -198,11 +198,11 @@ export default function Bookings() {
     );
   };
 
-  const renderStatCard = (title, value, icon, color = '#3B82F6') => (
+  const renderStatCard = (title, value, icon, color = '#4F46E5') => (
     <View style={styles.statCard}>
       <View style={styles.statContent}>
         <View style={styles.statHeader}>
-          <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
+          <View style={[styles.statIcon, { backgroundColor: color + '10' }]}>
             <MaterialIcons name={icon} size={20} color={color} />
           </View>
           <View style={styles.statInfo}>
@@ -226,19 +226,19 @@ export default function Bookings() {
             'Total Earnings', 
             `₹${paymentSummary.totalEarnings.toLocaleString('en-IN')}`, 
             'account-balance-wallet', 
-            '#059669'
+            '#10B981'
           )}
           {renderStatCard(
             'Total Bookings', 
             paymentSummary.totalBookings, 
             'event-note', 
-            '#3B82F6'
+            '#4F46E5'
           )}
           {renderStatCard(
             'Completed', 
             paymentSummary.completedBookings, 
             'check-circle', 
-            '#059669'
+            '#10B981'
           )}
           {renderStatCard(
             'Pending Amount', 
@@ -262,7 +262,7 @@ export default function Bookings() {
         <View style={styles.customerSection}>
           <Text style={styles.customerName}>{item.customer}</Text>
           <View style={styles.serviceRow}>
-            <MaterialIcons name="content-cut" size={14} color="#6B7280" />
+            <MaterialIcons name="content-cut" size={14} color="#64748B" />
             <Text style={styles.serviceName}>{item.service}</Text>
           </View>
         </View>
@@ -279,22 +279,22 @@ export default function Bookings() {
       <View style={styles.metaSection}>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <MaterialIcons name="access-time" size={16} color="#6B7280" />
+            <MaterialIcons name="access-time" size={16} color="#64748B" />
             <Text style={styles.metaText}>{item.formattedDate}</Text>
           </View>
           <View style={styles.metaItem}>
-            <MaterialIcons name="schedule" size={16} color="#6B7280" />
+            <MaterialIcons name="schedule" size={16} color="#64748B" />
             <Text style={styles.metaText}>{item.time} - {item.timeSlotEnd}</Text>
           </View>
         </View>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <MaterialIcons name="person-outline" size={16} color="#6B7280" />
+            <MaterialIcons name="person-outline" size={16} color="#64748B" />
             <Text style={styles.metaText}>{item.staff}</Text>
           </View>
           {item.duration && (
             <View style={styles.metaItem}>
-              <MaterialIcons name="timer" size={16} color="#6B7280" />
+              <MaterialIcons name="timer" size={16} color="#64748B" />
               <Text style={styles.metaText}>{item.duration}</Text>
             </View>
           )}
@@ -351,11 +351,11 @@ export default function Bookings() {
               <Text style={styles.detailLabel}>Payment Status</Text>
               <View style={[
                 styles.paymentStatusBadge,
-                { backgroundColor: item.paymentStatus === 'paid' ? '#ECFDF5' : '#FEF2F2' }
+                { backgroundColor: item.paymentStatus === 'paid' ? '#F0FDF4' : '#FEF2F2' }
               ]}>
                 <Text style={[
                   styles.paymentStatusText,
-                  { color: item.paymentStatus === 'paid' ? '#059669' : '#DC2626' }
+                  { color: item.paymentStatus === 'paid' ? '#10B981' : '#EF4444' }
                 ]}>
                   {item.paymentStatus.toUpperCase()}
                 </Text>
@@ -387,7 +387,7 @@ export default function Bookings() {
             
             {item.customerPhone !== 'N/A' && (
               <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]}>
-                <MaterialIcons name="phone" size={16} color="#059669" />
+                <MaterialIcons name="phone" size={16} color="#10B981" />
                 <Text style={styles.secondaryBtnText}>Call</Text>
               </TouchableOpacity>
             )}
@@ -402,7 +402,7 @@ export default function Bookings() {
       <SafeAreaView style={styles.container}>
         <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.loadingText}>Loading bookings...</Text>
         </View>
       </SafeAreaView>
@@ -436,8 +436,8 @@ export default function Bookings() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#3B82F6']}
-            tintColor="#3B82F6"
+            colors={['#4F46E5']}
+            tintColor="#4F46E5"
           />
         }
       >
@@ -507,7 +507,7 @@ export default function Bookings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   content: {
     flex: 1,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: '#64748B',
   },
   errorContainer: {
     flex: 1,
@@ -530,14 +530,14 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 18,
-    color: '#1F2937',
+    color: '#1E293B',
     fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#4F46E5',
     borderRadius: 8,
   },
   retryButtonText: {
@@ -556,48 +556,44 @@ const styles = StyleSheet.create({
   
   // Summary Section
   summarySection: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
     marginBottom: 16,
   },
   statsGrid: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
 
   statsRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start', // was 'center'
-},
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
 
-// Keep card content starting at the top
-statCard: {
-  alignItems: 'center',
-  justifyContent: 'flex-start', // add this
-  flex: 1,
-  paddingHorizontal: 8,
-},
+  statCard: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    flex: 1,
+    paddingHorizontal: 8,
+  },
 
   statHeader: {
     alignItems: 'center',
   },
   statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -606,27 +602,27 @@ statCard: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
     marginBottom: 4,
     textAlign: 'center',
   },
   statLabel: {
-  fontSize: 11,
-  color: '#6B7280',
-  fontWeight: '500',
-  textAlign: 'center',
-  lineHeight: 14,
-  minHeight: 28, // add this
-},
-statContent: {
-  alignItems: 'center',
-},
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 14,
+    minHeight: 28,
+  },
+  statContent: {
+    alignItems: 'center',
+  },
 
   // Filter Section
   filterSection: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 20,
   },
   filterContainer: {
@@ -636,18 +632,18 @@ statContent: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E2E8F0',
     marginRight: 8,
   },
   activeFilterChip: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
   filterText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '500',
   },
   activeFilterText: {
@@ -657,22 +653,17 @@ statContent: {
 
   // Bookings Section
   bookingsSection: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 20,
   },
   
   // Booking Card
   bookingCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   
   // Card Header
@@ -680,18 +671,18 @@ statContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
-    minHeight: 60, // Ensure consistent height
+    marginBottom: 12,
+    minHeight: 60,
   },
   customerSection: {
     flex: 1,
-    marginRight: 16, // Add right margin to prevent touching
+    marginRight: 16,
   },
   customerName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
     flexWrap: 'wrap',
   },
   serviceRow: {
@@ -700,8 +691,8 @@ statContent: {
     flexWrap: 'wrap',
   },
   serviceName: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#64748B',
     marginLeft: 6,
     fontWeight: '500',
     flex: 1,
@@ -710,16 +701,16 @@ statContent: {
   priceSection: {
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
-    minWidth: 80, // Ensure consistent width
+    minWidth: 80,
   },
   priceText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   paidAmount: {
-    fontSize: 12,
-    color: '#059669',
+    fontSize: 11,
+    color: '#10B981',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -728,7 +719,7 @@ statContent: {
   metaSection: {
     flexDirection: 'column',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   metaRow: {
     flexDirection: 'row',
@@ -740,11 +731,11 @@ statContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 0,
-    minWidth: 0, // Allow shrinking
+    minWidth: 0,
   },
   metaText: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 12,
+    color: '#64748B',
     marginLeft: 6,
     fontWeight: '500',
   },
@@ -763,7 +754,7 @@ statContent: {
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   slotBadge: {
@@ -774,7 +765,7 @@ statContent: {
   },
   slotText: {
     fontSize: 11,
-    color: '#3B82F6',
+    color: '#4F46E5',
     fontWeight: '600',
   },
   expandButton: {
@@ -783,10 +774,10 @@ statContent: {
 
   // Expanded Section
   expandedSection: {
-    marginTop: 20,
-    paddingTop: 20,
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#E2E8F0',
   },
   detailsGrid: {
     marginBottom: 16,
@@ -797,16 +788,16 @@ statContent: {
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: '#F1F5F9',
   },
   detailLabel: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '500',
   },
   detailValue: {
-    fontSize: 13,
-    color: '#1F2937',
+    fontSize: 12,
+    color: '#1E293B',
     fontWeight: '600',
   },
   paymentStatusBadge: {
@@ -830,11 +821,11 @@ statContent: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 8,
     gap: 6,
   },
   primaryBtn: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#4F46E5',
   },
   secondaryBtn: {
     backgroundColor: '#F0FDF4',
@@ -847,7 +838,7 @@ statContent: {
     fontWeight: '600',
   },
   secondaryBtnText: {
-    color: '#059669',
+    color: '#10B981',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -857,19 +848,19 @@ statContent: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 48,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
     marginTop: 8,
   },
   emptyTitle: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#1E293B',
     fontWeight: '600',
     marginTop: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#94A3B8',
     marginTop: 4,
     textAlign: 'center',
     paddingHorizontal: 32,

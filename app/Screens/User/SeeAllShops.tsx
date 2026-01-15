@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Dimensions,
@@ -16,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Import the API service function
 import { getAllShops } from '../../api/Service/Shop';
 
@@ -24,18 +24,18 @@ const CARD_WIDTH = (width - 48) / 2;
 
 // Color palette
 const colors = {
-  primary: '#6366f1',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  background: '#F8F9FA',
-  surface: '#ffffff',
+  primary: '#4F46E5',
+  secondary: '#10B981',
+  accent: '#F59E0B',
+  danger: '#EF4444',
+  background: '#F8FAFC',
+  surface: '#FFFFFF',
   text: {
-    primary: '#111827',
-    secondary: '#6b7280',
-    light: '#9ca3af',
+    primary: '#1E293B',
+    secondary: '#64748B',
+    light: '#94A3B8',
   },
-  border: '#e5e7eb',
+  border: '#E2E8F0',
 };
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -208,7 +208,7 @@ const SeeAllShops = () => {
               resizeMode="cover"
             />
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={10} color="#FFD700" />
+              <Ionicons name="star" size={10} color={colors.accent} />
               <Text style={styles.ratingText}>4.5</Text>
             </View>
           </View>
@@ -218,13 +218,13 @@ const SeeAllShops = () => {
               {item.ShopName || 'Unknown Shop'}
             </Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location" size={12} color="#666" />
+              <Ionicons name="location" size={12} color={colors.text.secondary} />
               <Text style={styles.cityText} numberOfLines={1}>
                 {item.City || 'Unknown City'}
               </Text>
             </View>
             <View style={styles.servicesBadge}>
-              <Ionicons name="cut-outline" size={11} color="#FF6B6B" />
+              <Ionicons name="cut-outline" size={11} color={colors.primary} />
               <Text style={styles.servicesText}>
                 Services Available
               </Text>
@@ -239,47 +239,61 @@ const SeeAllShops = () => {
     <Modal
       visible={showFilters}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={() => setShowFilters(false)}
     >
-      <View style={styles.modalOverlay}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowFilters(false)}
+      >
         <View style={styles.filterModal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filters</Text>
-            <TouchableOpacity onPress={() => setShowFilters(false)}>
+            <Text style={styles.modalTitle}>Select City</Text>
+            <TouchableOpacity 
+              onPress={() => setShowFilters(false)}
+              style={styles.closeButton}
+            >
               <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>City</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterOptionsRow}>
-                {cities.map((city, index) => (
-                  <TouchableOpacity
-                    key={`${city}-${index}`}
-                    style={[
-                      styles.filterOption,
-                      selectedCity === city && styles.filterOptionActive
-                    ]}
-                    onPress={() => {
-                      setSelectedCity(city);
-                      setShowFilters(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.filterOptionText,
-                      selectedCity === city && styles.filterOptionTextActive
-                    ]}>
-                      {city}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+          <ScrollView 
+            style={styles.cityList} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.filterOptionsContainer}
+          >
+            {cities.map((city, index) => (
+              <TouchableOpacity
+                key={`${city}-${index}`}
+                style={[
+                  styles.filterOption,
+                  selectedCity === city && styles.filterOptionActive
+                ]}
+                onPress={() => {
+                  setSelectedCity(city);
+                  setShowFilters(false);
+                }}
+              >
+                <Ionicons 
+                  name="location-outline" 
+                  size={20} 
+                  color={selectedCity === city ? colors.primary : colors.text.secondary} 
+                />
+                <Text style={[
+                  styles.filterOptionText,
+                  selectedCity === city && styles.filterOptionTextActive
+                ]}>
+                  {city}
+                </Text>
+                {selectedCity === city && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 
@@ -287,14 +301,21 @@ const SeeAllShops = () => {
     <Modal
       visible={showSortModal}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={() => setShowSortModal(false)}
     >
-      <View style={styles.modalOverlay}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowSortModal(false)}
+      >
         <View style={styles.sortModal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Sort By</Text>
-            <TouchableOpacity onPress={() => setShowSortModal(false)}>
+            <TouchableOpacity 
+              onPress={() => setShowSortModal(false)}
+              style={styles.closeButton}
+            >
               <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
@@ -330,14 +351,14 @@ const SeeAllShops = () => {
             ))}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#333" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading shops...</Text>
       </View>
     );
@@ -346,7 +367,7 @@ const SeeAllShops = () => {
   if (error) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
-        <Ionicons name="alert-circle-outline" size={64} color="#999" />
+        <Ionicons name="alert-circle-outline" size={64} color={colors.text.secondary} />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={fetchAllShops}>
           <Text style={styles.retryText}>Retry</Text>
@@ -405,7 +426,7 @@ const SeeAllShops = () => {
       {/* Shop Grid */}
       {filteredAndSortedShops.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="storefront-outline" size={64} color="#E0E0E0" />
+          <Ionicons name="storefront-outline" size={64} color={colors.text.light} />
           <Text style={styles.emptyText}>
             {searchQuery ? 'No shops found' : 'No shops available'}
           </Text>
@@ -440,14 +461,15 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 16,
     backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '600',
     color: colors.text.primary,
-    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',
@@ -462,10 +484,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     paddingHorizontal: 16,
-    height: 50,
+    height: 44,
     marginRight: 12,
   },
   searchIcon: {
@@ -507,6 +529,9 @@ const styles = StyleSheet.create({
   resultsCount: {
     paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   resultsText: {
     fontSize: 14,
@@ -514,7 +539,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   gridContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 32,
   },
   row: {
@@ -528,12 +553,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   cardContent: {
-    padding: 16,
+    padding: 12,
   },
   imageContainer: {
     position: 'relative',
@@ -557,8 +582,8 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '500',
+    color: colors.text.primary,
     marginLeft: 3,
   },
   shopInfo: {
@@ -566,7 +591,7 @@ const styles = StyleSheet.create({
   },
   shopName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.text.primary,
   },
   locationRow: {
@@ -575,13 +600,13 @@ const styles = StyleSheet.create({
   },
   cityText: {
     fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
+    color: colors.text.secondary,
+    fontWeight: '400',
     marginLeft: 4,
     flex: 1,
   },
   servicesBadge: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F1F5F9',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -591,8 +616,8 @@ const styles = StyleSheet.create({
   },
   servicesText: {
     fontSize: 11,
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: '500',
     marginLeft: 3,
   },
   loadingContainer: {
@@ -624,12 +649,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 12,
     backgroundColor: colors.primary,
-    borderRadius: 24,
+    borderRadius: 8,
   },
   retryText: {
     color: '#FFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
@@ -639,7 +664,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.text.primary,
     textAlign: 'center',
     marginTop: 16,
@@ -652,82 +677,92 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterModal: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    borderRadius: 16,
+    marginHorizontal: 20,
     maxHeight: '70%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sortModal: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    borderRadius: 16,
+    marginHorizontal: 20,
     maxHeight: '70%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text.primary,
   },
-  filterSection: {
-    marginBottom: 24,
+  closeButton: {
+    padding: 4,
   },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    paddingHorizontal: 20,
-    marginBottom: 12,
+  cityList: {
+    maxHeight: 400,
   },
-  filterOptionsRow: {
-    flexDirection: 'row',
+  filterOptionsContainer: {
     paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   filterOption: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   filterOptionActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
   },
   filterOptionText: {
-    fontSize: 14,
-    color: colors.text.secondary,
+    fontSize: 16,
+    color: colors.text.primary,
+    marginLeft: 12,
+    flex: 1,
   },
   filterOptionTextActive: {
-    color: '#ffffff',
+    color: colors.primary,
     fontWeight: '500',
   },
   sortOptionsContainer: {
     paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 8,
   },
   sortOptionActive: {
-    backgroundColor: colors.primary + '10',
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
   },
   sortOptionText: {
     fontSize: 16,
@@ -737,7 +772,7 @@ const styles = StyleSheet.create({
   },
   sortOptionTextActive: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });
 

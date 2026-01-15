@@ -1,3 +1,4 @@
+import axios from 'axios';
 import Axios from '../axios';
 
  
@@ -181,10 +182,10 @@ export const deleteServiceAPI  = async (serviceId) => {
   export const findNearestShops = async (coordinates) => {
   try {
     console.log(coordinates, "in shop.ts");
-    const { latitude, longtitude } = coordinates; // fixed typo
+    const { latitude, longitude } = coordinates; // fixed typo longitude
     const lat = latitude;
-    const lng = longtitude; // API expects 'lng'
-    console.log(lng,"lng")
+    const lng = longitude; // API expects 'lng'  longitude
+    console.log("Type of lng:", typeof lng, "Value:", lng);
 
     const shops = await Axios.get('/shop/findNearByShops', {
       params: { lat, lng }, // fixed 'lgn' -> 'lng'
@@ -234,4 +235,61 @@ export const saveToCloud = async (shopId: string, data: FormData) => {
             throw { message: 'Failed to store in cloud' };
         }
     }
+};
+
+export const search = async (q) => {
+  try {
+    // Use template literal with proper query parameter
+    const response = await Axios.get(`/shop/search?q=${encodeURIComponent(q)}`);
+    console.log("search result",JSON.stringify(response , null, 2))
+    return response.data;
+
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export const addWorkingHours = async (shopId, days) => {
+  try {
+    const response = await Axios.post('/shop/workingHours/addWorkingHours', {
+      shopId,
+      days
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+}
+
+export const updateWorkinghours = async (data) => {
+  try {
+    const  response = await Axios.put('/shop/workingHours/updateWorkingHours',data)
+    return response.data
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const getWorkingHours = async (shopId) => {
+  try {
+    const response = await Axios.get(`/shop/workingHours/getWorkingHoursByShop/${shopId}`)
+    return response.data
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const filterShopsByService = async ({ shopIds, serviceName }) => {
+  try {
+    const response = await Axios.post('/shop/filterShopsByService', {
+      shopIds,    // array
+      serviceName     // string
+    });
+    return response.data;
+  } catch (error) {
+    console.error("filterShopsByService error:", error);
+    throw error;
+  }
 };

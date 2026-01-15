@@ -1,22 +1,43 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
-  Dimensions,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  BackHandler,
+  Alert
 } from 'react-native';
 import { getMyProfile } from '../api/Service/ShoperOwner';
 import Dashboard from '../Components/Shop/Dashboard';
 
-const { width } = Dimensions.get('window');
-
 export default function ShopOwnerHome() {
+ useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert("Exit App", "Are you sure you want to exit?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "OK", onPress: () => BackHandler.exitApp() }
+        ]);
+        return true;
+      };
+
+      // 1. Capture the subscription in a variable
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+
+      // 2. Use .remove() in the cleanup function
+      return () => subscription.remove(); 
+      
+    }, [])
+  );
   const [profileData, setProfileData] = useState({
     firstName: '',
     mobileNo: '',
@@ -31,7 +52,6 @@ export default function ShopOwnerHome() {
         const response = await getMyProfile();
         console.log("Profile data fetched:", JSON.stringify(response));
         if (response.success && response.data) {
-
           setProfileData(response.data);
         }
       } catch (error) {
@@ -52,31 +72,28 @@ export default function ShopOwnerHome() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Standard Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerContent}>
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.shopName}>{profileData.firstName || 'Shop Owner'}</Text>
-          <Text style={styles.shopLocation}>
-            <MaterialIcons name="location-on" size={14} color="#666" />
-            {profileData.city || 'Your City'}
-          </Text>
+          <View style={styles.shopLocationContainer}>
+            <MaterialIcons name="location-on" size={14} color="#64748B" />
+            <Text style={styles.shopLocation}>{profileData.city || 'Your City'}</Text>
+          </View>
         </View>
         <TouchableOpacity 
           style={styles.profileButton}
-          // onPress={() => router.push('/Screens/Shop/UploadMediaScreen')}
-             onPress={() => router.push('/Screens/Shop/ProfileScreen')}
-
-
+          onPress={() => router.push('/Screens/Shop/ProfileScreen')}
         >
-          <MaterialIcons name="account-circle" size={32} color="#FF6B6B" />
+          <MaterialIcons name="account-circle" size={32} color="#4F46E5" />
         </TouchableOpacity>
       </View>
 
@@ -85,17 +102,16 @@ export default function ShopOwnerHome() {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
       >
-        <Dashboard/>
+        <Dashboard />
       </ScrollView>
 
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        // onPress={() => setShowAddShopModal(true)}
         onPress={() => router.push('/Components/Shop/AddShop')}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={24} color="#fff" />
+        <Ionicons name="add" size={24} color="#FFF" />
       </TouchableOpacity>
 
       {/* Add Shop Modal */}
@@ -111,7 +127,7 @@ export default function ShopOwnerHome() {
               style={styles.closeButton}
               onPress={() => router.push('/Components/Shop/AddShop')}
             >
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color="#64748B" />
             </TouchableOpacity>
             
             {/* <AddShop onShopAdded={handleShopAdded} /> */}
@@ -125,35 +141,41 @@ export default function ShopOwnerHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#E2E8F0',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerContent: {
+    flex: 1,
+  },
   welcomeText: {
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
     marginBottom: 2,
   },
   shopName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FF6B6B',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  shopLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
   shopLocation: {
     fontSize: 13,
-    color: '#666',
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#64748B',
+    marginLeft: 4,
   },
   profileButton: {
     padding: 6,
@@ -162,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
     paddingBottom: 20,
@@ -174,25 +196,20 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#4F46E5',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
     zIndex: 10,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContent: {
     width: '90%',
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
     maxHeight: '80%',

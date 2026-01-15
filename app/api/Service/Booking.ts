@@ -14,7 +14,7 @@ export const myBookings = async ()=>{
    try {
         const response = await Axios.post('/booking/myBookings');
         console.log("Response from myBookings:", response);
-        return response.data;
+        return response.data;   
    } catch (error) {
       console.log(error)
    }
@@ -23,7 +23,7 @@ export const myBookings = async ()=>{
 export const createOrder = async (data:any)=>{
     try {
         const response = await Axios.post('/booking/create-order',data);
-        console.log(response)
+        console.log("order:",response)
         return response.data
     } catch (error) {
         console.log(error)
@@ -38,7 +38,62 @@ export const verifyPayment = async(data:any)=>{
         console.log(response)
         return response.data
     } catch (error) {
-        console.log(error)
+        console.log(error)  
         return null   
     }
+}
+
+
+export const getBarberFreeTime = async (barberId, dateStr,shopId) => {
+  try {
+    const dateObject = new Date(dateStr);
+    const isoDate = dateObject.toISOString();
+    console.log("date:",dateStr)
+    console.log("Sending Date to Backend:", JSON.stringify(dateStr));
+    const response = await Axios.post('/booking/getBarberFreeTime', {
+      barberId,
+      bookingDate: dateStr,
+      shopId
+    });
+
+    const data = response.data;
+
+    // Matching your nested logic: data.success && data.availableHours.success
+    if (data.success) {
+      return data || [];
+    }
+
+    console.error('Unexpected data structure:', data);
+    return [];
+
+  } catch (error) {
+    // Your interceptor already logs the error, so we just return the fallback here
+    // But you can add specific UI logic here if needed
+    return [];
+  }
+};
+
+export const fetchAllAvailableTimeSlots = async (shopId,dateStr) => {
+  try {
+       const dateObject = new Date(dateStr);
+    const isoDate = dateObject.toISOString();
+    console.log("date:",dateStr)
+    console.log("Sending Date to Backend:", JSON.stringify(dateStr));
+    const response = await Axios.post('/booking/fetchAllAvailableTimeSlots', {
+      bookingDate: dateStr,
+      shopId
+    });
+        console.log("shop available slots:",response.data)
+
+    const data = response.data;
+
+    if (data.success) {
+      return data || [];
+    }
+
+    console.error('Unexpected data structure:', data);
+    return [];
+  } catch (error) {
+    return []
+  }
 }

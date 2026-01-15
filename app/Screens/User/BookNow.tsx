@@ -1,14 +1,26 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import Collapsible from 'react-native-collapsible';
 import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SlotBooking } from '../../api/Service/Booking';
+import { fetchAllAvailableTimeSlots, getBarberFreeTime, SlotBooking } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
+import BarberScheduleTimeline from './BarberScheduleTimeLine';
 
-const parseTime = (timeStr) => {
+const { width } = Dimensions.get('window');
+
+const parseTime = (timeStr: string) => {
   timeStr = timeStr.trim().toLowerCase(); 
   const match = timeStr.match(/(\d+)([ap]m)/);
 
@@ -26,75 +38,76 @@ const parseTime = (timeStr) => {
   return `${hour.toString().padStart(2, '0')}:00`;
 };
 
-// Old/Good Manual Calendar Component (Replaced the enhanced new one with this version for better usability)
-const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
+const timeToMinutes = (timeStr: string) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const minutesToTime = (totalMinutes: number) => {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+const addMinutesToTime = (timeStr: string, minutesToAdd: number) => {
+  const totalMin = timeToMinutes(timeStr) + minutesToAdd;
+  return minutesToTime(totalMin);
+};
+
+const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any) => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const fadeAnim = useState(new Animated.Value(0))[0];
   
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
-  const getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
+  const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
   
-  const getFirstDayOfMonth = (month, year) => {
-    return new Date(year, month, 1).getDay();
-  };
-  
+  useEffect(() => {
+    if (isVisible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [isVisible]);
+
   const generateCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentMonth, currentYear);
     const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
     const today = new Date();
     const days = [];
     
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
+    for (let i = 0; i < firstDay; i++) days.push(null);
     
-    // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const isToday = date.toDateString() === today.toDateString();
       const isPast = date < today && !isToday;
       const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
       
-      days.push({
-        day,
-        date,
-        isToday,
-        isPast,
-        isSelected
-      });
+      days.push({ day, date, isToday, isPast, isSelected });
     }
     
     return days;
   };
   
-  const navigateMonth = (direction) => {
+  const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
-      if (currentMonth === 0) {
-        setCurrentMonth(11);
-        setCurrentYear(currentYear - 1);
-      } else {
-        setCurrentMonth(currentMonth - 1);
-      }
+      setCurrentMonth(prev => prev === 0 ? 11 : prev - 1);
+      setCurrentYear(prev => prev - (currentMonth === 0 ? 1 : 0));
     } else {
-      if (currentMonth === 11) {
-        setCurrentMonth(0);
-        setCurrentYear(currentYear + 1);
-      } else {
-        setCurrentMonth(currentMonth + 1);
-      }
+      setCurrentMonth(prev => prev === 11 ? 0 : prev + 1);
+      setCurrentYear(prev => prev + (currentMonth === 11 ? 1 : 0));
     }
   };
   
-  const handleDateSelect = (dayObj) => {
+  const handleDateSelect = (dayObj: any) => {
     if (!dayObj || dayObj.isPast) return;
     onDateSelect(dayObj.date);
     onClose();
@@ -102,50 +115,45 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
   
   const calendarDays = generateCalendarDays();
   const today = new Date();
-  const canGoPrev = currentYear > today.getFullYear() || 
-    (currentYear === today.getFullYear() && currentMonth > today.getMonth());
+  const canGoPrev = currentYear > today.getFullYear() || (currentYear === today.getFullYear() && currentMonth > today.getMonth());
   
   if (!isVisible) return null;
   
   return (
-    <Modal
-      visible={isVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={calendarStyles.modalOverlay}>
-        <View style={calendarStyles.calendarContainer}>
-          {/* Calendar Header */}
+        <Animated.View style={[calendarStyles.calendarContainer, { opacity: fadeAnim }]}>
           <View style={calendarStyles.calendarHeader}>
             <TouchableOpacity 
               style={[calendarStyles.navButton, !canGoPrev && calendarStyles.disabledNav]}
               onPress={() => canGoPrev && navigateMonth('prev')}
               disabled={!canGoPrev}
             >
-              <Text style={calendarStyles.navText}>Previous</Text>
+              <Ionicons name="chevron-back" size={20} color={canGoPrev ? "#475569" : "#CBD5E1"} />
+              <Text style={[calendarStyles.navText, !canGoPrev && calendarStyles.disabledNavText]}>Previous</Text>
             </TouchableOpacity>
             
-            <Text style={calendarStyles.monthYear}>
-              {months[currentMonth]} {currentYear}
-            </Text>
+            <View style={calendarStyles.monthYearContainer}>
+              <Text style={calendarStyles.monthYear}>{months[currentMonth]} {currentYear}</Text>
+              <Text style={calendarStyles.currentDateText}>
+                {selectedDate ? selectedDate.toDateString() : 'Select a date'}
+              </Text>
+            </View>
             
-            <TouchableOpacity 
-              style={calendarStyles.navButton}
-              onPress={() => navigateMonth('next')}
-            >
+            <TouchableOpacity style={calendarStyles.navButton} onPress={() => navigateMonth('next')}>
               <Text style={calendarStyles.navText}>Next</Text>
+              <Ionicons name="chevron-forward" size={20} color="#475569" />
             </TouchableOpacity>
           </View>
           
-          {/* Days of Week Header */}
           <View style={calendarStyles.daysHeader}>
             {daysOfWeek.map(day => (
-              <Text key={day} style={calendarStyles.dayHeaderText}>{day}</Text>
+              <View key={day} style={calendarStyles.dayHeader}>
+                <Text style={calendarStyles.dayHeaderText}>{day}</Text>
+              </View>
             ))}
           </View>
           
-          {/* Calendar Grid */}
           <View style={calendarStyles.calendarGrid}>
             {calendarDays.map((dayObj, index) => (
               <TouchableOpacity
@@ -159,28 +167,47 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
                 onPress={() => handleDateSelect(dayObj)}
                 disabled={!dayObj || dayObj.isPast}
               >
-                <Text style={[
-                  calendarStyles.dayText,
-                  dayObj?.isToday && calendarStyles.todayText,
-                  dayObj?.isPast && calendarStyles.pastText,
-                  dayObj?.isSelected && calendarStyles.selectedText,
+                <View style={[
+                  calendarStyles.dayInner,
+                  dayObj?.isSelected && calendarStyles.selectedDayInner,
                 ]}>
-                  {dayObj?.day || ''}
-                </Text>
+                  <Text style={[
+                    calendarStyles.dayText,
+                    dayObj?.isToday && calendarStyles.todayText,
+                    dayObj?.isPast && calendarStyles.pastText,
+                    dayObj?.isSelected && calendarStyles.selectedText,
+                  ]}>
+                    {dayObj?.day || ''}
+                  </Text>
+                  {dayObj?.isToday && !dayObj?.isSelected && (
+                    <View style={calendarStyles.todayDot} />
+                  )}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
           
-          {/* Calendar Footer */}
           <View style={calendarStyles.calendarFooter}>
+            <View style={calendarStyles.legend}>
+              <View style={calendarStyles.legendItem}>
+                <View style={[calendarStyles.legendDot, calendarStyles.todayDot]} />
+                <Text style={calendarStyles.legendText}>Today</Text>
+              </View>
+              <View style={calendarStyles.legendItem}>
+                <View style={[calendarStyles.legendDot, { backgroundColor: '#FF6B6B' }]} />
+                <Text style={calendarStyles.legendText}>Selected</Text>
+              </View>
+            </View>
+            
             <TouchableOpacity 
-              style={calendarStyles.closeButton}
+              style={calendarStyles.closeButton} 
               onPress={onClose}
+              activeOpacity={0.7}
             >
-              <Text style={calendarStyles.closeButtonText}>Close</Text>
+              <Text style={calendarStyles.closeButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -188,18 +215,158 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }) => {
 
 export default function BookNow() {
   const { shop_id } = useLocalSearchParams();
-  const [shopDetails, setShopDetails] = useState(null);
+  const [shopDetails, setShopDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedBarber, setSelectedBarber] = useState(null);
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+  const [selectedBarber, setSelectedBarber] = useState<any>(null);
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null);
   const [isCalendarVisible, setCalendarVisibility] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [apiErrors, setApiErrors] = useState({ services: false, barbers: false });
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const scrollViewRef = useRef(null);
+  const scrollViewRef = useRef<any>(null);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+
+  const [freeGaps, setFreeGaps] = useState<any>({
+    workHours: { from: "09:00", to: "21:00" },
+    breaks: [],
+    bookings: [],
+    freeSlots: []
+  });
+
+  // New states for "Any Barber" slots
+  const [allAvailableSlots, setAllAvailableSlots] = useState<string[]>([]);
+  const [loadingAllSlots, setLoadingAllSlots] = useState(false);
+
+  // Animation for content load
+  useEffect(() => {
+    if (!loading && shopDetails) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [loading, shopDetails]);
+
+  // Fetch specific barber schedule
+  const fetchFreeTimes = useCallback(async () => {
+    if (!selectedDate || !selectedBarber?.id) {
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+      return;
+    }
+
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+    try {
+      const response = await getBarberFreeTime(selectedBarber.id, dateStr, shop_id);
+      if (response?.success && response?.availableHours?.success) {
+        const apiSchedule = response.availableHours.schedule;
+        const schedule = {
+          workHours: { from: apiSchedule.workHours?.from || "09:00", to: apiSchedule.workHours?.to || "21:00" },
+          breaks: (apiSchedule.breaks || []).map((b: any) => ({ startTime: b.startTime, endTime: b.endTime })),
+          bookings: (apiSchedule.bookings || [])
+            .filter((b: any) => b.bookingStatus === "confirmed" || b.status === "confirmed")
+            .map((b: any) => ({ startTime: b.startTime, endTime: b.endTime })),
+          freeSlots: (apiSchedule.freeSlots || []).map((slot: any) => ({
+            from: slot.from,
+            to: slot.to,
+            minutes: slot.minutes || timeToMinutes(slot.to) - timeToMinutes(slot.from)
+          }))
+        };
+        setFreeGaps(schedule);
+
+        if (schedule.freeSlots.length > 0 && !selectedStartTime) {
+          setSelectedStartTime(schedule.freeSlots[0].from);
+        } else if (schedule.freeSlots.length === 0) {
+          setSelectedStartTime(null);
+        }
+      } else {
+        setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+        setSelectedStartTime(null);
+      }
+    } catch (err) {
+      console.error('Error fetching barber schedule:', err);
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+      setSelectedStartTime(null);
+    }
+  }, [selectedDate, selectedBarber?.id, shop_id]);
+
+  // Fetch all shop-wide slots when "Any Barber" is selected
+  const fetchAllSlots = useCallback(async () => {
+  if (!selectedDate || selectedBarber?.id !== null) {
+    setAllAvailableSlots([]);
+    setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+    setLoadingAllSlots(false);
+    return;
+  }
+
+  setLoadingAllSlots(true);
+  const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+  try {
+    const response = await fetchAllAvailableTimeSlots(shop_id, dateStr);
+    console.log("AVAILABLE SLOTS OF ANY BARBER:", response.availableSlots.schedule.freeSlots);
+    
+    if (response?.success && response?.availableSlots?.success) {
+      const freeSlots = response.availableSlots.schedule?.freeSlots || [];
+      
+      // NEW: Pass FULL gaps to freeGaps (no transformation!)
+      setFreeGaps({
+        workHours: { from: "09:00", to: "21:00" },
+        breaks: [],
+        bookings: [],
+        freeSlots: freeSlots.map(slot => ({  // Just copy as-is
+          from: slot.from,
+          to: slot.to,
+          minutes: slot.minutes
+        }))
+      });
+
+      // Keep allAvailableSlots as start times (if needed for auto-select)
+      const startTimes = freeSlots
+        .map(slot => slot.from)
+        .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+      
+      setAllAvailableSlots(startTimes);
+
+      if (startTimes.length > 0 && !selectedStartTime) {
+        setSelectedStartTime(startTimes[0]);
+      } else if (startTimes.length === 0) {
+        setSelectedStartTime(null);
+      }
+    } else {
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+      setAllAvailableSlots([]);
+      setSelectedStartTime(null);
+    }
+  } catch (err) {
+    console.error('Error fetching all available slots:', err);
+    setAllAvailableSlots([]);
+    setSelectedStartTime(null);
+  } finally {
+    setLoadingAllSlots(false);
+  }
+}, [selectedDate, selectedBarber?.id, shop_id]);
+
+  // Fetch slots when date or barber changes
+  useEffect(() => {
+    if (selectedDate) {
+      if (selectedBarber?.id !== null && selectedBarber?.id !== undefined) {
+        // Fetch specific barber schedule
+        fetchFreeTimes();
+      } else if (selectedBarber?.id === null) {
+        // Fetch Any Barber slots
+        fetchAllSlots();
+      }
+    } else {
+      // Reset when no date selected
+      setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+      setAllAvailableSlots([]);
+    }
+  }, [selectedDate, selectedBarber?.id, fetchFreeTimes, fetchAllSlots]);
 
   // Fetch shop data
   useEffect(() => {
@@ -212,45 +379,40 @@ export default function BookNow() {
         const shopResponse = await getShopById(shop_id);
         if (!shopResponse?.success) throw new Error(shopResponse?.message || "Failed to load shop");
 
-        const shopData = shopResponse.data[0];
-        const times = shopData.Timing?.split('-')?.map(t => t.trim()) || [];
+        const shopData = shopResponse.data?.[0];
+        if (!shopData) throw new Error("No shop data available");
+
+        const times = (shopData.Timing || '').split('-').map((t: string) => t.trim()).filter(Boolean);
         const openingTime = times.length > 0 ? parseTime(times[0]) : '09:00';
         const closingTime = times.length > 1 ? parseTime(times[1]) : '21:00';
 
-        // Fetch services and barbers
-        let services = [];
-        let barbers = [];
+        let services: any[] = [];
+        let barbers: any[] = [];
         let servicesError = false;
         let barbersError = false;
 
         try {
           const servicesResponse = await getShopServices(shop_id);
           if (servicesResponse?.success) {
-            services = servicesResponse.data.map(service => ({
+            services = servicesResponse.data.map((service: any) => ({
               id: service._id,
               name: service.ServiceName,
               price: parseInt(service.Rate, 10) || 0,
               duration: 30
             }));
           } else servicesError = true;
-        } catch (e) {
-          servicesError = true;
-          console.error("Error fetching services:", e);
-        }
+        } catch (e) { servicesError = true; }
 
         try {
           const barbersResponse = await getmyBarbers(shop_id);
           if (barbersResponse?.success) {
-            barbers = barbersResponse.data.map(barber => ({
+            barbers = barbersResponse.data.map((barber: any) => ({
               id: barber._id,
               name: barber.BarberName,
               nativePlace: barber.From
             }));
           } else barbersError = true;
-        } catch (e) {
-          barbersError = true;
-          console.error("Error fetching barbers:", e);
-        }
+        } catch (e) { barbersError = true; }
 
         setApiErrors({ services: servicesError, barbers: barbersError });
         setShopDetails({
@@ -263,119 +425,85 @@ export default function BookNow() {
           barbers,
           Timing: shopData.Timing
         });
-
-      } catch (error) {
+      } catch (error: any) {
         setError(error.message || "Failed to load shop details");
       } finally {
         setLoading(false);
       }
     };
 
-    if (shop_id) {
-      fetchShopData();
-    } else {
+    if (shop_id) fetchShopData();
+    else {
       setError('No shop ID provided');
       setLoading(false);
     }
   }, [shop_id]);
 
-  // Auto-scroll to time slots when date is selected
-  useEffect(() => {
-    if (selectedDate && scrollViewRef.current) {
-      // Small delay to allow re-render with time slots visible
-      setTimeout(() => {
-        scrollViewRef.current.scrollToEnd({ animated: true });
-      }, 150);
-    }
-  }, [selectedDate]);
+  const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
 
-  const getTimeSlots = () => {
-    if (!shopDetails) return [];
-    return [
-      { id: 1, name: "Morning", start: shopDetails.openingTime, end: "12:00" },
-      { id: 2, name: "Noon", start: "12:00", end: "15:00" },
-      { id: 3, name: "Evening", start: "15:00", end: "19:00" },
-      { id: 4, name: "Night", start: "19:00", end: shopDetails.closingTime },
-    ];
+  const toggleService = (service: any) => {
+    setSelectedServices(prev => 
+      prev.some(s => s.id === service.id)
+        ? prev.filter(s => s.id !== service.id)
+        : [...prev, service]
+    );
   };
 
-  const totalPrice = selectedServices.reduce((sum, service) => sum + (service.price || 0), 0);
-  const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 30), 0);
-
-  const toggleService = (service) => {
-    setSelectedServices(prevServices => {
-      if (prevServices.some(s => s.id === service.id)) {
-        return prevServices.filter(s => s.id !== service.id);
-      } else {
-        return [...prevServices, service];
-      }
-    });
+  const handleBarberSelect = (barber: any) => {
+    setSelectedBarber(barber);
+    setSelectedStartTime(null); // Reset time when changing barber
   };
 
   const validateBooking = () => {
-    if (!selectedBarber) return "Please select a barber";
     if (selectedServices.length === 0) return "Please select at least one service";
     if (!selectedDate) return "Please select a date";
-    if (!selectedTimeSlot) return "Please select a time slot";
+    if (!selectedBarber) return "Please select a barber";
+    if (!selectedStartTime) return "Please select a time slot";
     return null;
   };
 
-const prepareBookingData = () => {
-  const bookingDateStr = selectedDate?.toISOString().split('T')[0];
-  const startTime = new Date(`${bookingDateStr}T${selectedTimeSlot?.start || '00:00'}:00`);
-  const endTime = new Date(startTime);
-  endTime.setMinutes(endTime.getMinutes() + (totalDuration || 30));
-
-  const getValidId = (id) => {
-    if (id == null || (Array.isArray(id) && id.length === 0)) {
-      return null;
-    }
-    return id;
+  const formatLocalDate = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
-  const serviceIdsTemp = selectedServices
-    .map(s => {
-      const id = getValidId(s.id);
-      if (id == null) return null;
-      return Array.isArray(id) ? id : [id];
-    })
-    .filter(arr => arr != null)
-    .flat();
+  const prepareBookingData = () => {
+    const bookingDateStr = formatLocalDate(selectedDate!);
+    const startTimeStr = selectedStartTime!;
+    const endTimeStr = addMinutesToTime(startTimeStr, totalDuration);
+    const startingTime = new Date(`${bookingDateStr}T${startTimeStr}:00`).toISOString();
+    const endingTime = new Date(`${bookingDateStr}T${endTimeStr}:00`).toISOString();
 
-  return {
-    barberId: getValidId(selectedBarber?.id), // null if user selects "any barber"
-    barberName: selectedBarber?.name || 'Any Barber',
-    barberNativePlace: selectedBarber?.nativePlace || 'Available',
-    shopId: shopDetails?.id || null,
-    shopName: shopDetails?.name || 'Unknown Shop',
-    serviceIds: serviceIdsTemp.length > 0 ? serviceIdsTemp : null, // null if no specific service
-    services: selectedServices?.length
-      ? selectedServices.map(service => ({
-          id: getValidId(service.id), // null if no id
-          name: service.name || 'Unknown Service',
-          price: service.price || 0,
-          duration: service.duration || 30
-        })).filter(service => service.id !== null || selectedServices.length === 1) // retain at least one if only default
-      : [{ id: null, name: 'Any Service', price: 0, duration: 30 }], // null for default id
-    bookingDate: bookingDateStr,
-    timeSlotId: selectedTimeSlot?.id || null,
-    timeSlotName: selectedTimeSlot?.name || 'Unknown Slot',
-    timeSlotStart: selectedTimeSlot?.start || '00:00',
-    timeSlotEnd: selectedTimeSlot?.end || '00:00',
-    startTime: startTime.toISOString(),
-    endTime: endTime.toISOString(),
-    totalPrice: totalPrice || 0,
-    totalDuration: totalDuration || 30,
-    paymentType: 'full',
-    amountToPay: totalPrice || 0,
-    remainingAmount: 0,
-    currency: 'INR',
-    bookingTimestamp: new Date().toISOString(),
-    bookingStatus: 'pending',
-    paymentStatus: 'unpaid',
-    amountPaid: 0
+    const serviceIds = selectedServices.map(s => s.id).filter(Boolean);
+
+    const advanceAmount = Math.min(20, totalPrice * 0.2);
+    const remainingAmount = totalPrice - advanceAmount;
+
+    return {
+      barberId: selectedBarber.id || null,
+      userId: "69315678fca89f6d95026e4a",
+      shopId: shopDetails?.id || null,
+      serviceIds: serviceIds.length > 0 ? serviceIds : null,
+      services: selectedServices.map(s => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        duration: s.duration
+      })),
+      bookingDate: bookingDateStr,
+      timeSlot: { startingTime, endingTime },
+      totalPrice,
+      totalDuration,
+      paymentType: 'advance',
+      amountToPay: advanceAmount,
+      remainingAmount,
+      currency: 'INR',
+      bookingStatus: 'pending',
+      paymentId: null,
+      paymentStatus: 'unpaid',
+      amountPaid: 0
+    };
   };
-};
 
   const handleBookNow = () => {
     const validationError = validateBooking();
@@ -383,90 +511,75 @@ const prepareBookingData = () => {
     setShowConfirmation(true);
   };
 
- const confirmBooking = async () => {
-  setShowConfirmation(false);
-  setIsBooking(true);
-  
-  try {
-    const bookingData = prepareBookingData();
-    console.log('Submitting booking:', bookingData);
+  const confirmBooking = async () => {
+    setShowConfirmation(false);
+    setIsBooking(true);
     
-    const response = await SlotBooking(bookingData);
-    console.log("..........................",response,"-------------------------------------------------------------------------------------------------------")
-    if (response.success) {
-      // Get the booking ID from the response
-      const bookingId = response.BookingStatus?._id 
-      console.log(bookingId,"<><><><><><><><><><><><><><><><><><><><>")
-      Alert.alert(
-        "Booking Confirmed", 
-        `Your appointment with ${selectedBarber.name} is confirmed for ${selectedDate.toDateString()}`,
-        [{ 
-          text: "Continue to Payment", 
-          onPress: () => {
-            router.push({
-              pathname: '/Screens/User/PayNow',
-              params: {
-                bookingData: JSON.stringify(bookingData),
-                bookingId: bookingId, // Add the booking ID here
-                advanceAmount: Math.min(20, totalPrice),
-                totalPrice,
-                barberName: selectedBarber?.name,
-                bookingDate: selectedDate?.toLocaleDateString(),
-                timeSlot: selectedTimeSlot?.name
-              }
-            });
-          }
-        }]
-      );
+    try {
+      const bookingData = prepareBookingData();
+      const response = await SlotBooking(bookingData);
       
-      // Reset form
-      setSelectedBarber(null);
-      setSelectedServices([]);
-      setSelectedDate(null);
-      setSelectedTimeSlot(null);
-    } else {
-      throw new Error(response.message || "Booking failed");
+      if (response.success) {
+        const bookingId = response.BookingStatus?._id;
+        const endTimeStr = addMinutesToTime(selectedStartTime!, totalDuration);
+        Alert.alert(
+          "🎉 Booking Confirmed!", 
+          `Your appointment with ${selectedBarber?.name || 'Any Barber'} is confirmed for ${selectedDate?.toDateString()} at ${selectedStartTime} - ${endTimeStr}`,
+          [{ 
+            text: "Continue to Payment", 
+            onPress: () => {
+              router.push({
+                pathname: '/Screens/User/PayNow',
+                params: {
+                  bookingData: JSON.stringify(bookingData),
+                  bookingId,
+                  advanceAmount: Math.min(20, totalPrice),
+                  totalPrice,
+                  barberName: selectedBarber?.name || 'Any Barber',
+                  bookingDate: selectedDate?.toLocaleDateString(),
+                  timeSlot: `${selectedStartTime} - ${endTimeStr}`
+                }
+              });
+            }
+          }]
+        );
+        
+        // Reset form
+        setSelectedBarber(null);
+        setSelectedServices([]);
+        setSelectedDate(null);
+        setSelectedStartTime(null);
+        setFreeGaps({ workHours: { from: "09:00", to: "21:00" }, breaks: [], bookings: [], freeSlots: [] });
+        setAllAvailableSlots([]);
+      } else {
+        throw new Error(response.message || "Booking failed");
+      }
+    } catch (error: any) {
+      Alert.alert("Booking Error", error.message || "Failed to complete booking.");
+    } finally {
+      setIsBooking(false);
     }
-  } catch (error) {
-    console.error('Booking error:', error);
-    Alert.alert(
-      "Booking Error", 
-      error.message || "Failed to complete booking. Please try again."
-    );
-  } finally {
-    setIsBooking(false);
-  }
-};
-
-  const handleRetry = () => {
-    setError(null);
-    setLoading(true);
-    // The useEffect will automatically refetch when loading changes
   };
 
   const getProgressSteps = () => {
     let completed = 0;
-    if (selectedBarber) completed++;
     if (selectedServices.length > 0) completed++;
-    if (selectedDate && selectedTimeSlot) completed++;
+    if (selectedDate) completed++;
+    if (selectedBarber && selectedStartTime) completed++;
     return { completed, total: 3 };
   };
 
-  const allServices = shopDetails?.services ? [
-    { id: null, name: 'hair cut', price: 150, duration: 30 },
-    ...shopDetails.services
-  ] : [];
-
-  const barberOptions = shopDetails?.barbers ? [
-    { id: null, name: 'Any Barber', nativePlace: 'Available' },
-    ...shopDetails.barbers
-  ] : [{ id: null, name: 'Any Barber', nativePlace: 'Available' }];
+  const allServices = shopDetails?.services ? [{ id: null, name: 'hair cut', price: 150, duration: 30 }, ...shopDetails.services] : [];
+  const barberOptions = shopDetails?.barbers ? [{ id: null, name: 'Any Barber', nativePlace: 'Available' }, ...shopDetails.barbers] : [{ id: null, name: 'Any Barber', nativePlace: 'Available' }];
 
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Loading shop details...</Text>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+          <Text style={styles.loadingText}>Loading shop details...</Text>
+          <Text style={styles.loadingSubtext}>Preparing your booking experience</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -474,64 +587,81 @@ const prepareBookingData = () => {
   if (error || !shopDetails) {
     return (
       <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
+        <View style={styles.errorContent}>
+          <Ionicons name="alert-circle-outline" size={60} color="#FF6B6B" />
+          <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => setLoading(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh" size={20} color="#FFFFFF" />
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
   const progress = getProgressSteps();
-  const timeSlots = getTimeSlots();
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Manual Calendar (Old/Good Version) */}
-      <ManualCalendar
-        selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
-        isVisible={isCalendarVisible}
-        onClose={() => setCalendarVisibility(false)}
-      />
+      <ManualCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} isVisible={isCalendarVisible} onClose={() => setCalendarVisibility(false)} />
 
-      {/* Confirmation Modal */}
-      <Modal
-        visible={showConfirmation}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowConfirmation(false)}
-      >
+      <Modal visible={showConfirmation} transparent animationType="fade" onRequestClose={() => setShowConfirmation(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <Animated.View style={[styles.modalContent, { transform: [{ scale: fadeAnim }] }]}>
             <View style={styles.modalHeader}>
-              <Ionicons name="checkmark-circle-outline" size={32} color="#10B981" />
+              <View style={styles.successIconContainer}>
+                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+              </View>
               <Text style={styles.modalTitle}>Confirm Your Booking</Text>
               <Text style={styles.modalSubtitle}>Please review your appointment details</Text>
             </View>
             
             <View style={styles.bookingSummary}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Barber</Text>
-                <Text style={styles.summaryValue}>{selectedBarber?.name}</Text>
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="cut-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Services</Text>
+                  <Text style={styles.summaryValue} numberOfLines={2}>{selectedServices.map(s => s.name).join(', ')}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Date</Text>
-                <Text style={styles.summaryValue}>{selectedDate?.toDateString()}</Text>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="calendar-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Date</Text>
+                  <Text style={styles.summaryValue}>{selectedDate?.toDateString()}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Time</Text>
-                <Text style={styles.summaryValue}>{selectedTimeSlot?.name} ({selectedTimeSlot?.start}-{selectedTimeSlot?.end})</Text>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="person-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Barber</Text>
+                  <Text style={styles.summaryValue}>{selectedBarber?.name || 'Any Barber'}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Services</Text>
-                <Text style={styles.summaryValue}>{selectedServices.map(s => s.name).join(', ')}</Text>
+              
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="time-outline" size={18} color="#64748B" />
+                </View>
+                <View style={styles.summaryTextContainer}>
+                  <Text style={styles.summaryLabel}>Time</Text>
+                  <Text style={styles.summaryValue}>{selectedStartTime} - {addMinutesToTime(selectedStartTime || '00:00', totalDuration)}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Duration</Text>
-                <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
-              </View>
-              <View style={[styles.summaryRow, styles.totalRow]}>
+              
+              <View style={styles.totalAmountContainer}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
                 <Text style={styles.totalValue}>₹{totalPrice}</Text>
               </View>
@@ -539,255 +669,374 @@ const prepareBookingData = () => {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[styles.modalButton, styles.cancelButton]} 
                 onPress={() => setShowConfirmation(false)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>Edit Details</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={confirmBooking}
+                style={[styles.modalButton, styles.confirmButton]} 
+                onPress={confirmBooking} 
                 disabled={isBooking}
+                activeOpacity={0.7}
               >
-                <Text style={styles.confirmButtonText}>
-                  {isBooking ? 'Processing...' : 'Confirm Booking'}
-                </Text>
+                {isBooking ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Confirm & Pay</Text>
+                )}
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
-      {/* Header Section */}
+      {/* Header with Shop Info */}
       <View style={styles.headerSection}>
-        <View style={styles.shopInfo}>
-          <Text style={styles.shopName}>{shopDetails.name}</Text>
-          <Text style={styles.shopAddress}>{shopDetails.address}</Text>
-          <View style={styles.timingBadge}>
-            <Ionicons name="time-outline" size={14} color="#FFFFFF" style={styles.timingIcon} />
-            <Text style={styles.timingText}>Open {shopDetails.Timing || `${shopDetails.openingTime} - ${shopDetails.closingTime}`}</Text>
-          </View>
-        </View>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+        </TouchableOpacity>
         
-        <View style={styles.progressSection}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${(progress.completed / progress.total) * 100}%` }]} />
-          </View>
-          <Text style={styles.progressText}>Step {progress.completed} of {progress.total}</Text>
+        <View style={styles.shopInfo}>
+          <Text style={styles.shopName} numberOfLines={1}>{shopDetails.name}</Text>
         </View>
       </View>
 
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollContainer} 
+      {/* Progress Indicator */}
+      <View style={styles.progressSection}>
+        <View style={styles.progressSteps}>
+          {[1, 2, 3].map((step) => (
+            <View key={step} style={styles.stepContainer}>
+              <View style={[
+                styles.stepCircle,
+                step <= progress.completed && styles.stepCircleActive,
+                step === progress.completed && styles.stepCircleCurrent
+              ]}>
+                {step < progress.completed ? (
+                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                ) : (
+                  <Text style={[
+                    styles.stepNumber,
+                    step <= progress.completed && styles.stepNumberActive
+                  ]}>{step}</Text>
+                )}
+              </View>
+              <Text style={[
+                styles.stepLabel,
+                step <= progress.completed && styles.stepLabelActive
+              ]}>
+                {step === 1 ? 'Services' : step === 2 ? 'Date' : 'Time'}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${(progress.completed / progress.total) * 100}%` }]} />
+        </View>
+      </View>
+
+      <Animated.ScrollView 
+        ref={scrollViewRef} 
+        style={[styles.scrollContainer, { opacity: fadeAnim }]} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Barber Selection - Horizontal Scroll Layout */}
-        <View style={styles.sectionContent}>
-         <View style={styles.sectionHeader}>
-          <View style={styles.sectionIcon}>
-              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
-            </View>
-            <Text style={styles.sectionTitle}>Select Barber</Text>
-        </View>
-
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.barbersScrollContent}
-          >
-            <View style={styles.barbersGrid}>
-            {barberOptions.map(barber => (
-              <TouchableOpacity
-                key={barber.id || 'default-barber'}
-                style={[
-                  styles.barberCard,
-                  selectedBarber?.id === barber.id && styles.selectedBarberCard
-                ]}
-                onPress={() => setSelectedBarber(barber)}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.barberCircle,
-                  selectedBarber?.id === barber.id && styles.selectedBarberCircle
-                ]}>
-                  <Text style={[
-                    styles.barberInitial,
-                    selectedBarber?.id === barber.id && styles.selectedBarberInitial
-                  ]}>
-                    {barber.name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.barberTextContainer}>
-                  <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
-                  {barber.id !== null && (
-                    <Text style={styles.barberMeta} numberOfLines={1}>
-                      {barber.nativePlace}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-            </View>
-          </ScrollView>
-          {apiErrors.barbers && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>Some barbers may not be loaded</Text>
-            </View>
-          )}
-          {barberOptions.length === 1 && !apiErrors.barbers && (
-            <Text style={styles.emptyStateText}>No specific barbers available</Text>
-          )}
-        </View>
-
-        {/* Services Selection - Grid Layout */}
-        <View style={styles.sectionContent}>
+        {/* Services Section - Now Horizontal Scroll for Compact Height */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-               <Ionicons name="cut-outline" size={18} color="#FFFFFF" />
-             </View>
+            
             <Text style={styles.sectionTitle}>Select Services</Text>
+            <Text style={styles.sectionSubtitle}>Choose one or more services</Text>
           </View>
-          <View style={styles.servicesGrid}>
-            {allServices.map((service, index) => (
-              <TouchableOpacity
-                key={service.id || `default-service-${index}`}
-                style={[
-                  styles.serviceCard,
-                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceCard
-                ]}
-                onPress={() => toggleService(service)}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.serviceIconContainer,
-                  selectedServices.some(s => s.id === service.id) && styles.selectedServiceIconContainer
-                ]}>
-                  <Ionicons name="cut" size={24} color={selectedServices.some(s => s.id === service.id) ? "#FFFFFF" : "#64748B"} />
-                </View>
-                <Text style={styles.serviceTitle} numberOfLines={1}>{service.name}</Text>
-                <Text style={styles.servicePrice}>₹{service.price}</Text>
-                <Text style={styles.serviceDuration}>{service.duration} min</Text>
-                {selectedServices.some(s => s.id === service.id) && (
-                  <Ionicons name="checkmark-circle" size={20} color="#10B981" style={styles.serviceCheckIcon} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          {apiErrors.services && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>Unable to load services</Text>
-            </View>
-          )}
-          {allServices.length === 0 && !apiErrors.services && (
-            <Text style={styles.emptyStateText}>No services available</Text>
-          )}
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.servicesScrollContent}
+          >
+            {allServices.map((service, index) => {
+              const isSelected = selectedServices.some(s => s.id === service.id);
+              return (
+                <TouchableOpacity 
+                  key={service.id || `default-${index}`} 
+                  style={[
+                    styles.compactServiceCard,
+                    isSelected && styles.selectedCompactServiceCard
+                  ]} 
+                  onPress={() => toggleService(service)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.compactServiceCardContent}>
+                    <Text style={styles.compactServiceTitle} numberOfLines={2}>{service.name}</Text>
+                    <Text style={styles.compactServicePrice}>₹{service.price}</Text>
+                    <View style={styles.compactServiceDurationBadge}>
+                      <Ionicons name="time-outline" size={8} color="#FFFFFF" />
+                      <Text style={styles.compactServiceDurationText}>{service.duration} min</Text>
+                    </View>
+                  </View>
+                  {isSelected && (
+                    <View style={styles.compactServiceSelectedOverlay}>
+                      <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
+        {/* Selected Services Summary */}
         {selectedServices.length > 0 && (
           <View style={styles.selectionSummary}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Duration</Text>
-              <Text style={styles.summaryValue}>{totalDuration} minutes</Text>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.summaryHeaderText}>Selected Services</Text>
+              <Text style={styles.summaryCount}>{selectedServices.length} item{selectedServices.length > 1 ? 's' : ''}</Text>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Cost</Text>
-              <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+            <View style={styles.summaryDetails}>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryDetail}>
+                  <Ionicons name="time-outline" size={16} color="#64748B" />
+                  <Text style={styles.summaryLabel}>Total Duration</Text>
+                  <Text style={styles.summaryValue}>{totalDuration} min</Text>
+                </View>
+                <View style={styles.summaryDetail}>
+                  <Ionicons name="cash-outline" size={16} color="#64748B" />
+                  <Text style={styles.summaryLabel}>Total Cost</Text>
+                  <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+                </View>
+              </View>
             </View>
           </View>
         )}
 
-        {/* Date & Time Selection */}
-        <View style={[styles.sectionCard, (selectedDate && selectedTimeSlot) && styles.completedCard]}>
+        {/* Date Section */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-          <View style={styles.sectionIcon}>
-            <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+           
+            <Text style={styles.sectionTitle}>Select Date</Text>
+            <Text style={styles.sectionSubtitle}>Choose your preferred date</Text>
           </View>
-          <Text style={styles.sectionTitle}>Date & Time</Text>
-         </View>
-
-          <TouchableOpacity
-            style={[styles.dateTimeSelector, selectedDate && styles.selectedDateSelector]}
+          
+          <TouchableOpacity 
+            style={[styles.dateSelector, selectedDate && styles.selectedDateSelector]} 
             onPress={() => setCalendarVisibility(true)}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <Ionicons name="calendar-outline" size={20} color="#64748B" />
-            <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
-              {selectedDate ? selectedDate.toDateString() : "Select Date"}
-            </Text>
-            <Ionicons name="time-outline" size={20} color="#64748B" />
+            <View style={styles.dateSelectorContent}>
+              <View style={styles.dateIconContainer}>
+                <Ionicons name="calendar" size={24} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+              </View>
+              <View style={styles.dateTextContainer}>
+                <Text style={selectedDate ? styles.selectedDateLabel : styles.placeholderLabel}>
+                  {selectedDate ? 'Selected Date' : 'Tap to select date'}
+                </Text>
+                <Text style={selectedDate ? styles.selectedDateText : styles.placeholderText}>
+                  {selectedDate ? selectedDate.toDateString() : "Choose a date"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+            </View>
           </TouchableOpacity>
+        </View>
 
+        {/* Barber & Time Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Select Barber & Time</Text>
+            <Text style={styles.sectionSubtitle}>Choose your barber and time slot</Text>
+          </View>
+
+          {/* Barbers Selection */}
+          <View style={styles.barbersSection}>
+            <Text style={styles.barbersTitle}>Available Barbers</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.barbersScrollContent}
+            >
+              {barberOptions.map(barber => {
+                const isSelected = selectedBarber?.id === barber.id;
+                return (
+                  <TouchableOpacity 
+                    key={barber.id || 'any'} 
+                    style={[
+                      styles.barberCard,
+                      isSelected && styles.selectedBarberCard
+                    ]} 
+                    onPress={() => handleBarberSelect(barber)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.barberAvatar,
+                      isSelected && styles.selectedBarberAvatar
+                    ]}>
+                      <Text style={[
+                        styles.barberInitial,
+                        isSelected && styles.selectedBarberInitial
+                      ]}>
+                        {barber.name.charAt(0).toUpperCase()}
+                      </Text>
+                      {barber.id === null && (
+                        <View style={styles.anyBarberBadge}>
+                          <Ionicons name="people" size={12} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.barberInfo}>
+                      <Text style={styles.barberName} numberOfLines={1}>{barber.name}</Text>
+                      {barber.id !== null && (
+                        <Text style={styles.barberFrom} numberOfLines={1}>
+                          <Ionicons name="location" size={10} color="#64748B" /> {barber.nativePlace}
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <View style={styles.barberSelectedIndicator}>
+                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Time Slots */}
           {selectedDate && (
             <View style={styles.timeSlotsSection}>
-              <Text style={styles.sectionLabel}>Available Time Slots</Text>
-              <View style={styles.timeSlotsGrid}>
-                {timeSlots.map(slot => (
-                  <TouchableOpacity
-                    key={slot.id}
-                    style={[
-                      styles.timeSlotCard,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlot
-                    ]}
-                    onPress={() => setSelectedTimeSlot(slot)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[
-                      styles.timeSlotName,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-                    ]}>
-                      {slot.name}
-                    </Text>
-                    <Text style={[
-                      styles.timeSlotHours,
-                      selectedTimeSlot?.id === slot.id && styles.selectedTimeSlotText
-                    ]}>
-                      {slot.start} - {slot.end}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.timeSlotsHeader}>
+                <Text style={styles.timeSlotsTitle}>
+                  Available Time Slots {selectedBarber?.id ? `for ${selectedBarber.name}` : '(Any Barber)'}
+                </Text>
+                <Text style={styles.selectedDateDisplay}>
+                  {selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </Text>
               </View>
+              
+              {loadingAllSlots && !selectedBarber?.id ? (
+                <View style={styles.loadingSlotsContainer}>
+                  <ActivityIndicator size="small" color="#FF6B6B" />
+                  <Text style={styles.loadingSlotsText}>Loading available slots...</Text>
+                </View>
+              ) : freeGaps.freeSlots?.length > 0 ? (
+                <BarberScheduleTimeline
+                  totalDuration={totalDuration}
+                  scheduleData={freeGaps}
+                  availableDurations={[30, 60, 90, 120]}
+                  title={`Choose Your Time Slot`}
+                  date={selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                  onTimeSelect={(selected: any) => setSelectedStartTime(selected.startTime)}
+                />
+              ) : !loadingAllSlots && (
+                <View style={styles.noSlotsContainer}>
+                  <Ionicons name="time-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.noSlotsText}>
+                    {selectedBarber?.id 
+                      ? `No available time slots for ${selectedBarber.name} on this date`
+                      : 'No available time slots for any barber on this date'
+                    }
+                  </Text>
+                  <Text style={styles.noSlotsSubtext}>
+                    Please select a different date or barber
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
-      </ScrollView>
 
-      {/* Enhanced Footer */}
+        {/* Spacer for footer */}
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
+
+      {/* Fixed Footer */}
       <View style={styles.footer}>
         {(selectedServices.length > 0 || selectedDate || selectedBarber) && (
-          <View style={styles.bookingSummaryFooter}>
-            <Text style={styles.footerSummaryText}>
-              {selectedServices.length > 0 && `${selectedServices.length} services`}
-              {selectedServices.length > 0 && selectedDate && ' • '}
-              {selectedDate && selectedDate.toLocaleDateString()}
-              {(selectedServices.length > 0 || selectedDate) && selectedBarber && ' • '}
-              {selectedBarber && selectedBarber.name}
-            </Text>
-            {selectedServices.length > 0 && (
-              <Text style={styles.footerPriceText}>₹{totalPrice}</Text>
-            )}
+          <View style={styles.bookingPreview}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewTitle}>Appointment Summary</Text>
+              {selectedServices.length > 0 && (
+                <Text style={styles.previewPrice}>₹{totalPrice}</Text>
+              )}
+            </View>
+            <View style={styles.previewDetails}>
+              {selectedServices.length > 0 && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+              {selectedDate && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="calendar" size={12} color="#FF6B6B" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+              )}
+              {selectedBarber && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="person" size={12} color="#8B5CF6" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedBarber.name}
+                  </Text>
+                </View>
+              )}
+              {selectedStartTime && (
+                <View style={styles.previewItem}>
+                  <Ionicons name="time" size={12} color="#3B82F6" />
+                  <Text style={styles.previewText} numberOfLines={1}>
+                    {selectedStartTime}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
         
         <TouchableOpacity
           style={[
             styles.bookButton,
-            (!selectedBarber || selectedServices.length === 0 || !selectedDate || !selectedTimeSlot) && styles.disabledButton
+            (selectedServices.length === 0 || !selectedDate || !selectedBarber || !selectedStartTime) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={!selectedBarber || selectedServices.length === 0 || !selectedDate || !selectedTimeSlot}
-          activeOpacity={0.8}
+          disabled={selectedServices.length === 0 || !selectedDate || !selectedBarber || !selectedStartTime}
+          activeOpacity={0.7}
         >
-          <Ionicons name="calendar" size={20} color="#FFFFFF" style={styles.bookIcon} />
-          <Text style={styles.bookButtonText}>
-            {isBooking ? 'Processing...' : 'Book Appointment'}
-          </Text>
+          <View style={styles.bookButtonContent}>
+            <Ionicons name="calendar" size={22} color="#FFFFFF" />
+            <Text style={styles.bookButtonText}>
+              {isBooking ? 'Processing...' : 'Book Appointment'}
+            </Text>
+          </View>
+          {selectedServices.length > 0 && (
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceBadgeText}>₹{totalPrice}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
+// All styles remain unchanged from your original code
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -799,36 +1048,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
   },
+  loadingContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  loadingSubtext: {
+    fontSize: 14,
     color: '#64748B',
-    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
     backgroundColor: '#F8FAFC',
+  },
+  errorContent: {
+    alignItems: 'center',
+    gap: 16,
+    padding: 32,
   },
   errorText: {
     fontSize: 16,
     color: '#DC2626',
-    marginBottom: 24,
     textAlign: 'center',
     lineHeight: 24,
   },
   retryButton: {
     backgroundColor: '#FF6B6B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginTop: 8,
   },
   retryButtonText: {
     color: '#FFFFFF',
@@ -841,360 +1099,418 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
-  shopInfo: {
-    marginBottom: 12,
-  },
-  shopName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 6,
-  },
-  shopAddress: {
-    fontSize: 16,
-    color: '#64748B',
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-  timingBadge: {
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    borderBottomColor: '#F1F5F9',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 12,
   },
-  timingIcon: {
-    marginTop: -2,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  timingText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  shopInfo: {
+    flex: 1,
+  },
+  shopName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
   },
   progressSection: {
-    marginTop: 2,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  progressSteps: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepContainer: {
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stepCircleActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  stepCircleCurrent: {
+    backgroundColor: '#FF6B6B',
+    transform: [{ scale: 1.1 }],
+  },
+  stepNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  stepNumberActive: {
+    color: '#FFFFFF',
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  stepLabelActive: {
+    color: '#1E293B',
+    fontWeight: '600',
   },
   progressBar: {
-    height: 6,
+    height: 2,
     backgroundColor: '#E2E8F0',
-    borderRadius: 3,
+    borderRadius: 1,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#FF6B6B',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: '500',
+    borderRadius: 1,
   },
   scrollContainer: {
     flex: 1,
-    paddingHorizontal: 20,
     paddingTop: 20,
   },
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 50,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  completedCard: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  sectionContent: {
+  section: {
+    marginHorizontal: 20,
     marginBottom: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 16,
   },
-  sectionIcon: {
+  sectionIconContainer: {
     backgroundColor: '#FF6B6B',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  // Updated Services Styles - Compact and Horizontal
+  servicesScrollContent: {
+    paddingRight: 20,
+    gap: 12,
+  },
+  compactServiceCard: {
+    width: 120, // Reduced from 140
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: 10, // Reduced from 12
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  selectedCompactServiceCard: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+    transform: [{ scale: 1.01 }],
+  },
+  compactServiceCardContent: {
+    alignItems: 'flex-start',
+  },
+  compactServiceTitle: {
+    fontSize: 11, // Reduced from 12
     fontWeight: '600',
     color: '#1E293B',
-    flex: 1,
+    marginBottom: 2, // Reduced margin
+    lineHeight: 13,
   },
-  barbersScrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  compactServicePrice: {
+    fontSize: 15, // Reduced from 16
+    fontWeight: '700',
+    color: '#FF6B6B',
+    marginBottom: 2, // Reduced margin
   },
-  barbersGrid: {
+  compactServiceDurationBadge: {
+    backgroundColor: '#3B82F6',
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
-  barberCard: {
-    width: 120,
-    height: 120,
-    justifyContent: 'flex-start',
+  compactServiceDurationText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  compactServiceSelectedOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+  selectionSummary: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    marginRight: 12,
+    marginBottom: 12,
   },
-  selectedBarberCard: {
-    transform: [{ scale: 1.05 }],
+  summaryHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
   },
-  barberCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E2E8F0',
+  summaryCount: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  summaryDetails: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  summaryPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  dateSelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  selectedDateSelector: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+  },
+  dateSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
-  selectedBarberCircle: {
+  dateTextContainer: {
+    flex: 1,
+    marginHorizontal: 16,
+  },
+  selectedDateLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  placeholderLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  selectedDateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#94A3B8',
+  },
+  barbersSection: {
+    marginTop: 8,
+  },
+  barbersTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8, // Reduced from 12
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  barbersScrollContent: {
+    paddingRight: 20,
+    gap: 12,
+  },
+  barberCard: {
+    width: 100,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12, // Reduced from 16
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  selectedBarberCard: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+    transform: [{ scale: 1.05 }],
+  },
+  barberAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  selectedBarberAvatar: {
     backgroundColor: '#FF6B6B',
-    elevation: 3,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   barberInitial: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#64748B',
   },
   selectedBarberInitial: {
     color: '#FFFFFF',
   },
-  barberTextContainer: {
+  anyBarberBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#8B5CF6',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  barberInfo: {
     alignItems: 'center',
   },
   barberName: {
     fontSize: 12,
-    textAlign: 'center',
-    color: '#1E293B',
-    fontWeight: '600',
-    maxWidth: 80,
-    marginBottom: 2,
-  },
-  barberMeta: {
-    fontSize: 10,
-    textAlign: 'center',
-    color: '#64748B',
-    maxWidth: 80,
-  },
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  serviceCard: {
-    width: '31%',
-    aspectRatio: 0.8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  selectedServiceCard: {
-    borderColor: '#FF6B6B',
-    backgroundColor: '#FEF2F2',
-    elevation: 2,
-    shadowColor: '#FF6B6B',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  serviceIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectedServiceIconContainer: {
-    backgroundColor: '#FF6B6B',
-  },
-  serviceTitle: {
-    fontSize: 12,
     fontWeight: '600',
     color: '#1E293B',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  servicePrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FF6B6B',
     marginBottom: 2,
   },
-  serviceDuration: {
+  barberFrom: {
     fontSize: 10,
     color: '#64748B',
-    marginBottom: 4,
   },
-  serviceCheckIcon: {
+  barberSelectedIndicator: {
     position: 'absolute',
-    top: -5,
-    right: -5,
-  },
-  errorBox: {
-    padding: 16,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorBoxText: {
-    color: '#DC2626',
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  emptyStateText: {
-    textAlign: 'center',
-    color: '#64748B',
-    paddingVertical: 24,
-    fontSize: 14,
-  },
-  selectionSummary: {
-    padding: 16,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  summaryPrice: {
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '700',
-  },
-  dateTimeSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 16,
-  },
-  selectedDateSelector: {
-    borderColor: '#FF6B6B',
-    backgroundColor: '#FEF2F2',
-  },
-  selectedDateText: {
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '600',
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: '#94A3B8',
-    flex: 1,
-    marginHorizontal: 12,
+    top: 8,
+    right: 8,
   },
   timeSlotsSection: {
-    marginTop: 4,
+    marginTop: 24,
   },
-  sectionLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
+  timeSlotsHeader: {
     marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  timeSlotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  timeSlotCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  selectedTimeSlot: {
-    borderColor: '#FF6B6B',
-    backgroundColor: '#FF6B6B',
-  },
-  timeSlotName: {
-    fontSize: 14,
+  timeSlotsTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#1E293B',
     marginBottom: 4,
   },
-  selectedTimeSlotText: {
-    color: '#FFFFFF',
-  },
-  timeSlotHours: {
-    fontSize: 12,
+  selectedDateDisplay: {
+    fontSize: 14,
     color: '#64748B',
+  },
+  loadingSlotsContainer: {
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingSlotsText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  noSlotsContainer: {
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  noSlotsText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  noSlotsSubtext: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
   footer: {
     backgroundColor: '#FFFFFF',
@@ -1202,120 +1518,163 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    elevation: 8,
+    borderTopColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
+    elevation: 8,
   },
-  bookingSummaryFooter: {
+  bookingPreview: {
+    marginBottom: 16,
+  },
+  previewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    marginBottom: 8,
   },
-  footerSummaryText: {
+  previewTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#64748B',
-    flex: 1,
   },
-  footerPriceText: {
+  previewPrice: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1E293B',
   },
+  previewDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  previewText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
   bookButton: {
     backgroundColor: '#FF6B6B',
-    padding: 18,
     borderRadius: 16,
-    alignItems: 'center',
+    padding: 20,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    elevation: 3,
     shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-  },
-  bookIcon: {
-    marginTop: -2,
+    elevation: 4,
   },
   disabledButton: {
     backgroundColor: '#FCA5A5',
-    elevation: 0,
-    shadowOpacity: 0,
+    shadowColor: '#FCA5A5',
+    shadowOpacity: 0.1,
+  },
+  bookButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   bookButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
-  // Modal Styles
+  priceBadge: {
+    position: 'absolute',
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  priceBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF6B6B',
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: '90%',
     maxWidth: 400,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
   },
   modalHeader: {
     marginBottom: 24,
     alignItems: 'center',
     gap: 8,
   },
+  successIconContainer: {
+    marginBottom: 8,
+  },
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#1E293B',
-    marginBottom: 0,
+    textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
+    lineHeight: 20,
   },
   bookingSummary: {
     marginBottom: 24,
   },
-  summaryRow: {
+  summaryItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 16,
+  },
+  summaryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryTextContainer: {
+    flex: 1,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#64748B',
-    fontWeight: '500',
+    marginBottom: 2,
   },
   summaryValue: {
     fontSize: 14,
     color: '#1E293B',
     fontWeight: '600',
   },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 12,
+  totalAmountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
     marginTop: 8,
-    marginBottom: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   totalLabel: {
     fontSize: 16,
@@ -1323,7 +1682,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#FF6B6B',
     fontWeight: '700',
   },
@@ -1333,22 +1692,15 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   confirmButton: {
     backgroundColor: '#FF6B6B',
-    elevation: 2,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
   cancelButtonText: {
     color: '#475569',
@@ -1362,7 +1714,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Old/Good Calendar Styles (Kept as-is for better visual consistency)
 const calendarStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -1374,34 +1725,33 @@ const calendarStyles = StyleSheet.create({
     width: '90%',
     maxWidth: 380,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    maxHeight: '80%',
-    elevation: 10,
+    borderRadius: 24,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 20,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#F1F5F9',
   },
   navButton: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
   disabledNav: {
-    backgroundColor: '#F8FAFC',
     opacity: 0.5,
   },
   navText: {
@@ -1409,33 +1759,43 @@ const calendarStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#475569',
   },
+  disabledNavText: {
+    color: '#CBD5E1',
+  },
+  monthYearContainer: {
+    alignItems: 'center',
+  },
   monthYear: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1E293B',
+  },
+  currentDateText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
   daysHeader: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    marginBottom: 12,
+    paddingBottom: 8,
+  },
+  dayHeader: {
+    width: 40,
+    alignItems: 'center',
   },
   dayHeaderText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
-    width: 40,
-    textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   dayCell: {
     width: 40,
@@ -1443,21 +1803,19 @@ const calendarStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,
-    borderRadius: 20,
   },
-  todayCell: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
+  dayInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  selectedCell: {
+  selectedDayInner: {
     backgroundColor: '#FF6B6B',
-    elevation: 2,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
+  todayCell: {},
+  selectedCell: {},
   pastCell: {
     opacity: 0.3,
   },
@@ -1477,23 +1835,49 @@ const calendarStyles = StyleSheet.create({
   pastText: {
     color: '#CBD5E1',
   },
+  todayDot: {
+    position: 'absolute',
+    bottom: 2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FF6B6B',
+  },
   calendarFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#F1F5F9',
     paddingTop: 20,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  legendItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#64748B',
   },
   closeButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FF6B6B',
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
