@@ -53,7 +53,7 @@ export default function Login() {
         console.log("shopId:", shopId);
         await AsyncStorage.setItem('shopId', shopId);
         Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
+          { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') }
         ]);
       } else {
         Alert.alert('Login Error', response.message || 'Login failed. Please try again.');

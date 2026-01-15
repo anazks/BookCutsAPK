@@ -14,8 +14,8 @@ type ServiceItem = {
   name: string;
   icon: string;
 };
-
-export default function ServiceFilter() {
+  export default function ServiceFilter({ onServiceChange }) {
+  console.log("ServiceFilter rendered !!!!!!!!!!!!");
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [selectedService, setSelectedService] = useState('all');
 
@@ -49,10 +49,9 @@ export default function ServiceFilter() {
     }
   };
 
-  const handleServicePress = (serviceId: string) => {
-    setSelectedService(serviceId);
-    console.log('Selected service:', serviceId);
-    // 👉 filter logic can be added here
+  const handleServicePress = (serviceName: string) => {
+    setSelectedService(serviceName);
+    onServiceChange?.(serviceName)
   };
 
   return (
@@ -72,7 +71,7 @@ export default function ServiceFilter() {
                 styles.filterBox,
                 isSelected && styles.filterBoxSelected,
               ]}
-              onPress={() => handleServicePress(service.id)}
+              onPress={() => handleServicePress(service.name)}
               activeOpacity={0.7}
             >
               <Ionicons

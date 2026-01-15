@@ -38,7 +38,7 @@ export const verifyPayment = async(data:any)=>{
         console.log(response)
         return response.data
     } catch (error) {
-        console.log(error)
+        console.log(error)  
         return null   
     }
 }

@@ -1,156 +1,173 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import { useRouter } from 'expo-router'; // Make sure you're using expo-router
+import { fetchPremiumShops } from '@/app/api/Service/User';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const SHOP_ADS = [
-  {
-    id: '1',
-    shopName: 'Elite Barbershop',
-    tagline: 'Premium Grooming Experience',
-    discount: '30% OFF',
-    description: 'On all haircut services',
-    image: 'https://images.pexels.com/photos/1319460/pexels-photo-1319460.jpeg',
-    rating: 4.8,
-    reviews: 124,
-    distance: '1.2 km',
-    color: '#EF4444', // Changed to theme red
-  },
-  {
-    id: '2',
-    shopName: 'Beard & Co.',
-    tagline: 'Specialized Beard Care',
-    discount: 'BUY 1 GET 1',
-    description: 'Beard grooming packages',
-    image: 'https://images.pexels.com/photos/3993467/pexels-photo-3993467.jpeg',
-    rating: 4.9,
-    reviews: 156,
-    distance: '3.1 km',
-    color: '#EF4444', // Changed to theme red
-  },
-  {
-    id: '3',
-    shopName: 'Modern Men Salon',
-    tagline: 'Trendy Styles & Cuts',
-    discount: '50% OFF',
-    description: 'First time customers',
-    image: 'https://images.pexels.com/photos/897270/pexels-photo-897270.jpeg',
-    rating: 4.6,
-    reviews: 89,
-    distance: '2.5 km',
-    color: '#EF4444', // Changed to theme red
-  },
-];
+interface PremiumShop {
+  _id: string;
+  ShopName: string;
+  media: Array<{
+    url: string;
+    title?: string;
+    description?: string;
+  }>;
+  ProfileImage?: string;
+}
 
 export default function ShopCarousel() {
+  const [shops, setShops] = useState<PremiumShop[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef(null);
+  const flatListRef = useRef<FlatList>(null);
+  const router = useRouter();
+
+  // Navigate to shop detail page
+  const handleShopPress = (shopId: string) => {
+    router.push({
+      pathname: '/Screens/User/BarberShopFeed',
+      params: { shop_id: shopId },
+    });
+  };
 
   useEffect(() => {
+    const loadPremiumShops = async () => {
+      try {
+        const response = await fetchPremiumShops();
+        if (response.success && response.premiumShops) {
+          const validShops = response.premiumShops.filter(
+            (shop: PremiumShop) => shop.media && shop.media.length > 0
+          );
+          setShops(validShops);
+        }
+      } catch (error) {
+        console.error('Error fetching premium shops:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPremiumShops();
+  }, []);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (shops.length === 0 || loading) return;
+
     const timer = setInterval(() => {
-      setActiveIndex(prev => {
-        const newIndex = (prev + 1) % SHOP_ADS.length;
+      setActiveIndex((prev) => {
+        const newIndex = (prev + 1) % shops.length;
         flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
         return newIndex;
       });
     }, 3500);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [shops.length, loading]);
 
-  const handleScroll = (event) => {
+  const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / (SCREEN_WIDTH - 32));
     setActiveIndex(index);
   };
 
-  const renderShopCard = ({ item }) => (
-    <View style={styles.cardContainer}>
-      <View style={styles.card}>
-        {/* Image Container */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: item.image }} style={styles.image} />
-          
-          {/* Discount Badge - Theme matched */}
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{item.discount}</Text>
-          </View>
+  const renderShopCard = ({ item }: { item: PremiumShop }) => {
+    const firstImage = item.media[0]?.url || item.ProfileImage;
 
-          {/* Rating Badge */}
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={12} color="#FFFFFF" />
-            <Text style={styles.ratingText}>{item.rating}</Text>
-          </View>
+    return (
+      <View style={styles.cardContainer}>
+        {/* Full Card Touchable - Navigate on press */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => handleShopPress(item._id)}
+          style={styles.cardTouchable}
+        >
+          <View style={styles.card}>
+            <View style={styles.imageContainer}>
+              {firstImage ? (
+                <Image source={{ uri: firstImage }} style={styles.image} />
+              ) : (
+                <View style={[styles.image, styles.placeholderImage]}>
+                  <Ionicons name="image-outline" size={50} color="#9CA3AF" />
+                </View>
+              )}
 
-          {/* Overlay Info */}
-          <View style={styles.infoContainer}>
-            {/* Shop Name & Tagline */}
-            <View style={styles.nameContainer}>
-              <Text style={styles.shopName}>{item.shopName}</Text>
-              <Text style={styles.tagline}>{item.tagline}</Text>
-            </View>
-
-            {/* Details Row */}
-            <View style={styles.detailsRow}>
-              <View style={styles.detailItem}>
-                <Ionicons name="location-outline" size={14} color="#9CA3AF" />
-                <Text style={styles.detailText}>{item.distance}</Text>
+              {/* Premium Badge */}
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>PREMIUM</Text>
               </View>
-              
-              <View style={styles.detailItem}>
-                <Ionicons name="people-outline" size={14} color="#9CA3AF" />
-                <Text style={styles.detailText}>{item.reviews} reviews</Text>
+
+              {/* Overlay Info */}
+              <View style={styles.infoContainer}>
+                <View style={styles.nameContainer}>
+                  <Text style={styles.shopName}>{item.ShopName}</Text>
+                  <Text style={styles.tagline}>Premium Grooming Experience</Text>
+                </View>
+
+                {/* Book Button - Also navigates (optional: you can keep or remove onPress here) */}
+                <TouchableOpacity
+                  style={styles.bookButton}
+                  activeOpacity={0.7}
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent double navigation if parent is also pressed
+                    handleShopPress(item._id);
+                  }}
+                >
+                  <Text style={styles.bookButtonText}>Book Now</Text>
+                  <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             </View>
-
-            {/* Description */}
-            <Text style={styles.description}>{item.description}</Text>
-
-            {/* Book Button */}
-            <TouchableOpacity 
-              style={styles.bookButton}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.bookButtonText}>Book Now</Text>
-              <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
-  // Pagination Dots
   const renderPagination = () => (
     <View style={styles.paginationContainer}>
-      {SHOP_ADS.map((_, index) => (
-        <View 
-          key={index} 
+      {shops.map((_, index) => (
+        <View
+          key={index}
           style={[
             styles.paginationDot,
-            activeIndex === index && styles.activePaginationDot
-          ]} 
+            activeIndex === index && styles.activePaginationDot,
+          ]}
         />
       ))}
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#EF4444" />
+      </View>
+    );
+  }
+
+  if (shops.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
-        data={SHOP_ADS}
+        data={shops}
         renderItem={renderShopCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -159,6 +176,7 @@ export default function ShopCarousel() {
         style={styles.carousel}
         snapToInterval={SCREEN_WIDTH - 32}
         decelerationRate="fast"
+        onScrollToIndexFailed={() => {}}
       />
       {renderPagination()}
     </View>
@@ -171,20 +189,28 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
+  loadingContainer: {
+    height: 240,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   carousel: {
     flexGrow: 0,
   },
   cardContainer: {
     width: SCREEN_WIDTH - 32,
     paddingHorizontal: 8,
-    height: 240, // Matched with Home's shop card proportions
+    height: 240,
+  },
+  cardTouchable: {
+    flex: 1,
   },
   card: {
     flex: 1,
-    borderRadius: 8, // Matched border radius
+    borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E5E7EB', // Theme border color
+    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
   imageContainer: {
@@ -195,36 +221,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  placeholderImage: {
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   discountBadge: {
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: '#EF4444', // Theme red
+    backgroundColor: '#EF4444',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12, // Slightly rounded like theme
+    borderRadius: 12,
   },
   discountText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
-  },
-  ratingBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   infoContainer: {
     position: 'absolute',
@@ -233,11 +247,9 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   nameContainer: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   shopName: {
     fontSize: 16,
@@ -250,32 +262,6 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
     fontWeight: '400',
   },
-  detailsRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 8,
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  detailText: {
-    fontSize: 12,
-    color: '#9CA3AF', // Theme tertiary color
-    fontWeight: '400',
-  },
-  description: {
-    fontSize: 13,
-    color: '#F3F4F6',
-    lineHeight: 18,
-    marginBottom: 12,
-    fontWeight: '400',
-  },
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -283,7 +269,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 6,
     gap: 8,
-    backgroundColor: '#EF4444', // Theme red
+    backgroundColor: '#EF4444',
   },
   bookButtonText: {
     color: '#FFFFFF',
@@ -305,6 +291,6 @@ const styles = StyleSheet.create({
   },
   activePaginationDot: {
     width: 24,
-    backgroundColor: '#EF4444', // Theme red
+    backgroundColor: '#EF4444',
   },
 });
