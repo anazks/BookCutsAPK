@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from "expo-location";
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router'
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +15,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  BackHandler
 } from 'react-native';
 
 import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
@@ -48,6 +50,28 @@ const Home = () => {
 
   // Service filter state
   const [selectedService, setSelectedService] = useState(null); // null = All
+
+   useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          Alert.alert("Exit App", "Are you sure you want to exit?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "OK", onPress: () => BackHandler.exitApp() }
+          ]);
+          return true;
+        };
+  
+        // 1. Capture the subscription in a variable
+        const subscription = BackHandler.addEventListener(
+          'hardwareBackPress',
+          onBackPress
+        );
+  
+        // 2. Use .remove() in the cleanup function
+        return () => subscription.remove(); 
+        
+      }, [])
+    );
 
   const getLocation = async () => {
     try {

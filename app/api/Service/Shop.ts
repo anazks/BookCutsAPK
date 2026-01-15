@@ -250,12 +250,16 @@ export const search = async (q) => {
   }
 };
 
-export const addWorkingHours = async (data) => {
+export const addWorkingHours = async (shopId, days) => {
   try {
-    const response = await Axios.post('/shop/workingHours/addWorkingHours',{data})
-    return response.data
+    const response = await Axios.post('/shop/workingHours/addWorkingHours', {
+      shopId,
+      days
+    });
+    return response.data;
   } catch (error) {
-    console.log(error)
+    console.error('API Error:', error);
+    throw error;
   }
 }
 

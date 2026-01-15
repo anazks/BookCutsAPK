@@ -8,8 +8,9 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { updateWorkinghours, getWorkingHours, addWorkingHours } from '@/app/api/Service/Shop';
@@ -20,17 +21,25 @@ const WorkingHoursManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
-  const [shopId, setShopId] = useState(null);
-  const [editingDay, setEditingDay] = useState(null);
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [editingDay, setEditingDay] = useState<number | null>(null);
+
   const [workingHours, setWorkingHours] = useState(
     DAYS.map((_, index) => ({
       day: index,
       isClosed: false,
-      open: 540, // 9:00 AM
-      close: 1020, // 5:00 PM
-      breaks: [],
+      open: 540, // 9:00 AM in minutes
+      close: 1020, // 5:00 PM in minutes
+      breaks: [] as { start: number; end: number }[],
     }))
   );
+
+  // State for controlling which time picker is visible
+  const [showPicker, setShowPicker] = useState<{
+    dayIndex: number | null;
+    field: 'open' | 'close' | 'break-start' | 'break-end' | null;
+    breakIndex?: number;
+  }>({ dayIndex: null, field: null });
 
   useEffect(() => {
     loadWorkingHours();
@@ -40,14 +49,19 @@ const WorkingHoursManager = () => {
     try {
       const id = await AsyncStorage.getItem('shopId');
       setShopId(id);
-      
+
       if (id) {
         const response = await getWorkingHours(id);
-        
-        if (response && response.days && response.days.length > 0) {
-          setWorkingHours(response.days);
+        console.log('API Response:', response);
+
+        const daysData = response?.result?.days || response?.days;
+
+        if (daysData && Array.isArray(daysData) && daysData.length > 0) {
+          console.log('Loaded working hours:', daysData);
+          setWorkingHours(daysData);
           setIsNewUser(false);
         } else {
+          console.log('No working hours found, treating as new user');
           setIsNewUser(true);
         }
       }
@@ -59,8 +73,8 @@ const WorkingHoursManager = () => {
     }
   };
 
-  const minutesToTime = (minutes) => {
-    if (minutes === null) return '12:00 AM';
+  const minutesToTime = (minutes: number | null) => {
+    if (minutes === null) return 'Closed';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     const period = hours >= 12 ? 'PM' : 'AM';
@@ -68,36 +82,18 @@ const WorkingHoursManager = () => {
     return `${displayHours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')} ${period}`;
   };
 
-  const timeToMinutes = (time) => {
-    const [timePart, period] = time.split(' ');
-    const [hours, minutes] = timePart.split(':').map(Number);
-    let totalMinutes = minutes;
-    
-    if (period === 'PM' && hours !== 12) {
-      totalMinutes += (hours + 12) * 60;
-    } else if (period === 'AM' && hours === 12) {
-      totalMinutes += 0;
-    } else {
-      totalMinutes += hours * 60;
-    }
-    
-    return totalMinutes;
+  const minutesToDate = (minutes: number): Date => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setMinutes(minutes);
+    return date;
   };
 
-  const generateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
-        const totalMinutes = hour * 60 + minute;
-        times.push({ label: minutesToTime(totalMinutes), value: totalMinutes });
-      }
-    }
-    return times;
+  const dateToMinutes = (date: Date): number => {
+    return date.getHours() * 60 + date.getMinutes();
   };
 
-  const timeOptions = generateTimeOptions();
-
-  const handleToggleClosed = (dayIndex) => {
+  const handleToggleClosed = (dayIndex: number) => {
     const updated = [...workingHours];
     updated[dayIndex].isClosed = !updated[dayIndex].isClosed;
     if (updated[dayIndex].isClosed) {
@@ -111,27 +107,40 @@ const WorkingHoursManager = () => {
     setWorkingHours(updated);
   };
 
-  const handleTimeChange = (dayIndex, field, value) => {
+  const handleTimeSelected = (selectedDate?: Date) => {
+    if (!selectedDate || showPicker.dayIndex === null || showPicker.field === null) {
+      setShowPicker({ dayIndex: null, field: null });
+      return;
+    }
+
+    const minutes = dateToMinutes(selectedDate);
+    const { dayIndex, field, breakIndex } = showPicker;
+
     const updated = [...workingHours];
-    updated[dayIndex][field] = value;
+
+    if (field === 'open') {
+      updated[dayIndex].open = minutes;
+    } else if (field === 'close') {
+      updated[dayIndex].close = minutes;
+    } else if (field === 'break-start' && breakIndex !== undefined) {
+      updated[dayIndex].breaks[breakIndex].start = minutes;
+    } else if (field === 'break-end' && breakIndex !== undefined) {
+      updated[dayIndex].breaks[breakIndex].end = minutes;
+    }
+
+    setWorkingHours(updated);
+    setShowPicker({ dayIndex: null, field: null });
+  };
+
+  const handleAddBreak = (dayIndex: number) => {
+    const updated = [...workingHours];
+    updated[dayIndex].breaks.push({ start: 720, end: 750 }); // 12:00 - 12:30
     setWorkingHours(updated);
   };
 
-  const handleAddBreak = (dayIndex) => {
-    const updated = [...workingHours];
-    updated[dayIndex].breaks.push({ start: 720, end: 750 });
-    setWorkingHours(updated);
-  };
-
-  const handleRemoveBreak = (dayIndex, breakIndex) => {
+  const handleRemoveBreak = (dayIndex: number, breakIndex: number) => {
     const updated = [...workingHours];
     updated[dayIndex].breaks.splice(breakIndex, 1);
-    setWorkingHours(updated);
-  };
-
-  const handleBreakChange = (dayIndex, breakIndex, field, value) => {
-    const updated = [...workingHours];
-    updated[dayIndex].breaks[breakIndex][field] = value;
     setWorkingHours(updated);
   };
 
@@ -143,18 +152,18 @@ const WorkingHoursManager = () => {
 
     setSaving(true);
     try {
-      await addWorkingHours({ shopId, days: workingHours });
+      await addWorkingHours(shopId, workingHours);
       Alert.alert('Success', 'Working hours saved successfully');
       setIsNewUser(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to save working hours');
-      console.error(error);
+      console.error('Save error:', error);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUpdateDay = async (dayIndex) => {
+  const handleUpdateDay = async (dayIndex: number) => {
     if (!shopId) {
       Alert.alert('Error', 'Shop ID not found');
       return;
@@ -186,7 +195,31 @@ const WorkingHoursManager = () => {
     }
   };
 
-  const renderDayCard = (day, index) => {
+  const canEdit = (index: number) => isNewUser || editingDay === index;
+
+  const renderTimeField = (
+    value: number | null,
+    label: string,
+    onPress: () => void,
+    disabled: boolean
+  ) => (
+    <View style={styles.timeGroup}>
+      <Text style={styles.timeLabel}>{label}</Text>
+      <TouchableOpacity
+        style={[styles.timeDisplay, disabled && styles.timeDisplayDisabled]}
+        onPress={onPress}
+        disabled={disabled}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.timeDisplayText}>
+          {value !== null ? minutesToTime(value) : 'Select time'}
+        </Text>
+        <Ionicons name="time-outline" size={20} color="#6366F1" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderDayCard = (day: typeof workingHours[0], index: number) => {
     const isEditing = editingDay === index;
 
     return (
@@ -214,7 +247,7 @@ const WorkingHoursManager = () => {
               onValueChange={() => handleToggleClosed(index)}
               trackColor={{ false: '#D1D5DB', true: '#10B981' }}
               thumbColor="#fff"
-              disabled={!isNewUser && !isEditing}
+              disabled={!canEdit(index)}
             />
           </View>
         </View>
@@ -222,43 +255,25 @@ const WorkingHoursManager = () => {
         {!day.isClosed && (
           <View style={styles.dayContent}>
             <View style={styles.timeRow}>
-              <View style={styles.timeGroup}>
-                <Text style={styles.timeLabel}>Opening Time</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={day.open}
-                    onValueChange={(value) => handleTimeChange(index, 'open', value)}
-                    style={styles.picker}
-                    enabled={isNewUser || isEditing}
-                  >
-                    {timeOptions.map((time) => (
-                      <Picker.Item key={time.value} label={time.label} value={time.value} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
+              {renderTimeField(
+                day.open,
+                'Opening Time',
+                () => canEdit(index) && setShowPicker({ dayIndex: index, field: 'open' }),
+                !canEdit(index)
+              )}
 
-              <View style={styles.timeGroup}>
-                <Text style={styles.timeLabel}>Closing Time</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={day.close}
-                    onValueChange={(value) => handleTimeChange(index, 'close', value)}
-                    style={styles.picker}
-                    enabled={isNewUser || isEditing}
-                  >
-                    {timeOptions.map((time) => (
-                      <Picker.Item key={time.value} label={time.label} value={time.value} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
+              {renderTimeField(
+                day.close,
+                'Closing Time',
+                () => canEdit(index) && setShowPicker({ dayIndex: index, field: 'close' }),
+                !canEdit(index)
+              )}
             </View>
 
             <View style={styles.breaksSection}>
               <View style={styles.breaksSectionHeader}>
                 <Text style={styles.breaksTitle}>Breaks</Text>
-                {(isNewUser || isEditing) && (
+                {canEdit(index) && (
                   <TouchableOpacity
                     style={styles.addBreakButton}
                     onPress={() => handleAddBreak(index)}
@@ -270,45 +285,35 @@ const WorkingHoursManager = () => {
               </View>
 
               {day.breaks.map((breakItem, breakIndex) => (
-                <View key={breakIndex} style={styles.breakItem}>
+                <View key={`break-${index}-${breakIndex}`} style={styles.breakItem}>
                   <View style={styles.breakTimeRow}>
-                    <View style={styles.breakTimeGroup}>
-                      <Text style={styles.breakLabel}>Start</Text>
-                      <View style={styles.breakPickerContainer}>
-                        <Picker
-                          selectedValue={breakItem.start}
-                          onValueChange={(value) =>
-                            handleBreakChange(index, breakIndex, 'start', value)
-                          }
-                          style={styles.breakPicker}
-                          enabled={isNewUser || isEditing}
-                        >
-                          {timeOptions.map((time) => (
-                            <Picker.Item key={time.value} label={time.label} value={time.value} />
-                          ))}
-                        </Picker>
-                      </View>
-                    </View>
+                    {renderTimeField(
+                      breakItem.start,
+                      'Start',
+                      () =>
+                        canEdit(index) &&
+                        setShowPicker({
+                          dayIndex: index,
+                          field: 'break-start',
+                          breakIndex,
+                        }),
+                      !canEdit(index)
+                    )}
 
-                    <View style={styles.breakTimeGroup}>
-                      <Text style={styles.breakLabel}>End</Text>
-                      <View style={styles.breakPickerContainer}>
-                        <Picker
-                          selectedValue={breakItem.end}
-                          onValueChange={(value) =>
-                            handleBreakChange(index, breakIndex, 'end', value)
-                          }
-                          style={styles.breakPicker}
-                          enabled={isNewUser || isEditing}
-                        >
-                          {timeOptions.map((time) => (
-                            <Picker.Item key={time.value} label={time.label} value={time.value} />
-                          ))}
-                        </Picker>
-                      </View>
-                    </View>
+                    {renderTimeField(
+                      breakItem.end,
+                      'End',
+                      () =>
+                        canEdit(index) &&
+                        setShowPicker({
+                          dayIndex: index,
+                          field: 'break-end',
+                          breakIndex,
+                        }),
+                      !canEdit(index)
+                    )}
 
-                    {(isNewUser || isEditing) && (
+                    {canEdit(index) && (
                       <TouchableOpacity
                         style={styles.removeBreakButton}
                         onPress={() => handleRemoveBreak(index, breakIndex)}
@@ -350,6 +355,25 @@ const WorkingHoursManager = () => {
               </View>
             )}
           </View>
+        )}
+
+        {/* Time Picker Modal */}
+        {showPicker.dayIndex === index && showPicker.field && (
+          <DateTimePicker
+            value={
+              showPicker.field === 'open'
+                ? minutesToDate(workingHours[index].open ?? 540)
+                : showPicker.field === 'close'
+                ? minutesToDate(workingHours[index].close ?? 1020)
+                : showPicker.field === 'break-start' && showPicker.breakIndex !== undefined
+                ? minutesToDate(workingHours[index].breaks[showPicker.breakIndex].start)
+                : minutesToDate(workingHours[index].breaks[showPicker.breakIndex!].end)
+            }
+            mode="time"
+            is24Hour={false}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(_, date) => handleTimeSelected(date)}
+          />
         )}
       </View>
     );
@@ -504,15 +528,25 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
-  pickerContainer: {
-    borderWidth: 2,
+  timeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
     borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     backgroundColor: '#F9FAFB',
-    overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  timeDisplayDisabled: {
+    backgroundColor: '#F3F4F6',
+    opacity: 0.7,
+  },
+  timeDisplayText: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
   },
   breaksSection: {
     marginTop: 8,
@@ -551,31 +585,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 8,
   },
-  breakTimeGroup: {
-    flex: 1,
-  },
-  breakLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  breakPickerContainer: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  breakPicker: {
-    height: 40,
-  },
   removeBreakButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 40,
-    height: 40,
-    marginBottom: 0,
+    width: 44,
+    height: 44,
   },
   noBreaksText: {
     fontSize: 14,
