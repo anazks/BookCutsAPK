@@ -14,6 +14,33 @@ const API_BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 const PRIMARY_COLOR = '#FF6B6B';
 const SECONDARY_BG = '#FFF8F8';
 
+// --- NO SHOP FOUND SCREEN COMPONENT ---
+const NoShopFoundScreen = ({ onAddShopPress }) => (
+  <View style={styles.noShopContainer}>
+    <View style={styles.noShopContent}>
+      <View style={styles.noShopIconContainer}>
+        <Ionicons name="storefront-outline" size={80} color={PRIMARY_COLOR} />
+      </View>
+      <Text style={styles.noShopTitle}>No Shop Found</Text>
+      <Text style={styles.noShopDescription}>
+        You haven't created a shop yet. Create your shop to start managing your business profile, showcase your work, and connect with customers.
+      </Text>
+      
+      <TouchableOpacity 
+        style={styles.addShopButton}
+        onPress={onAddShopPress}
+      >
+        <Ionicons name="add-circle" size={24} color="white" />
+        <Text style={styles.addShopButtonText}>Add Your Shop</Text>
+      </TouchableOpacity>
+      
+      <Text style={styles.noShopHelpText}>
+        Need help? Contact support at support@bookmycuts.com
+      </Text>
+    </View>
+  </View>
+);
+
 // --- REUSABLE DETAIL ROW COMPONENT ---
 const DetailRow = ({ icon, label, value, color = '#333' }) => (
   <View style={styles.detailRow}>
@@ -161,6 +188,7 @@ const ProfileScreen = () => {
   const [editingImage, setEditingImage] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [hasShop, setHasShop] = useState(true); // Track if user has a shop
 
   useEffect(() => {
     initializeData();
@@ -189,19 +217,47 @@ const ProfileScreen = () => {
       setLoading(true);
       const response = await viewMyShop();
       
-      if (response.success) {
+      console.log('API Response:', response); // Debug log
+      
+      // Fix: Handle string "false" vs boolean false
+      const isSuccess = response.success === true || response.success === 'true';
+      
+      if (isSuccess) {
         setShopData(response.data);
+        setHasShop(true);
         // Set profile image if exists in shop data
-        setProfileImage(response.data.ProfileImage || null);
+        setProfileImage(response.data?.ProfileImage || null);
       } else {
-        Alert.alert('Error', response.message || 'Failed to load shop data');
+        // If no shop found, set hasShop to false
+        setHasShop(false);
+        setShopData(null);
+        console.log('No shop found for user:', response.message);
+        
+        // Only show alert if it's not a "not found" message
+        if (response.message && !response.message.toLowerCase().includes('not found')) {
+          Alert.alert('Error', response.message || 'Failed to load shop data');
+        }
       }
     } catch (error) {
-      console.error('Error fetching shop data:', error);
-      Alert.alert('Error', 'Failed to load shop data. Please try again.');
+      console.log('Error fetching shop data:', error);
+      setHasShop(false);
+      setShopData(null);
+      
+      // Check if it's a "not found" error
+      const errorMessage = error.message || '';
+      if (errorMessage.toLowerCase().includes('not found')) {
+        console.log('No shop found (catch block)');
+      } else {
+        Alert.alert('Error', 'Failed to load shop data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddShop = () => {
+    // Navigate to AddShop screen
+    router.push('/Components/Shop/AddShop');
   };
 
   const handleLogout = async () => {
@@ -305,13 +361,19 @@ const ProfileScreen = () => {
       const result = await response.json();
       console.log('API Response:', result);
 
-      if (response.ok && result.success) {
-        // Response structure: result.result.shop.ProfileImage
-        const profileImageUrl = result.result?.shop?.ProfileImage || result.result?.url || imageUri;
-        setProfileImage(profileImageUrl);
-        Alert.alert('Success', 'Profile picture updated successfully');
-        // Refresh shop data to get updated profile image
-        await fetchShopData();
+      if (response.ok) {
+        // Handle both string and boolean success values
+        const isSuccess = result.success === true || result.success === 'true';
+        if (isSuccess) {
+          // Response structure: result.result.shop.ProfileImage
+          const profileImageUrl = result.result?.shop?.ProfileImage || result.result?.url || imageUri;
+          setProfileImage(profileImageUrl);
+          Alert.alert('Success', 'Profile picture updated successfully');
+          // Refresh shop data to get updated profile image
+          await fetchShopData();
+        } else {
+          Alert.alert('Error', result.message || 'Failed to upload profile image');
+        }
       } else {
         Alert.alert('Error', result.message || 'Failed to upload profile image');
       }
@@ -418,13 +480,19 @@ const ProfileScreen = () => {
       const result = await response.json();
       console.log('Update API Response:', result);
 
-      if (response.ok && result.success) {
-        Alert.alert('Success', 'Image details updated successfully');
-        await fetchShopData();
-        setIsEditModalVisible(false);
-        setEditingImage(null);
-        setEditTitle('');
-        setEditDescription('');
+      if (response.ok) {
+        // Handle both string and boolean success values
+        const isSuccess = result.success === true || result.success === 'true';
+        if (isSuccess) {
+          Alert.alert('Success', 'Image details updated successfully');
+          await fetchShopData();
+          setIsEditModalVisible(false);
+          setEditingImage(null);
+          setEditTitle('');
+          setEditDescription('');
+        } else {
+          Alert.alert('Error', result.message || 'Failed to update image details');
+        }
       } else {
         Alert.alert('Error', result.message || 'Failed to update image details');
       }
@@ -467,9 +535,15 @@ const ProfileScreen = () => {
         console.log('Delete API Response:', result);
       }
 
-      if (response.ok && result.success) {
-        Alert.alert('Success', 'Image deleted successfully');
-        await fetchShopData();
+      if (response.ok) {
+        // Handle both string and boolean success values
+        const isSuccess = result.success === true || result.success === 'true';
+        if (isSuccess) {
+          Alert.alert('Success', 'Image deleted successfully');
+          await fetchShopData();
+        } else {
+          Alert.alert('Error', result?.message || 'Failed to delete image');
+        }
       } else {
         Alert.alert('Error', result?.message || 'Failed to delete image');
       }
@@ -543,6 +617,7 @@ const ProfileScreen = () => {
     await fetchShopData();
   };
 
+  // Show loading screen
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -552,17 +627,12 @@ const ProfileScreen = () => {
     );
   }
 
-  if (!shopData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>No shop data available</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchShopData}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  // Show "No Shop Found" screen if user doesn't have a shop
+  if (!hasShop) {
+    return <NoShopFoundScreen onAddShopPress={handleAddShop} />;
   }
 
+  // Show regular profile screen if user has a shop
   return (
    <SafeAreaView style={{ flex: 1, backgroundColor: SECONDARY_BG }}>
      <ScrollView style={styles.container}>
@@ -599,26 +669,26 @@ const ProfileScreen = () => {
       <View style={styles.headerCard}>
         <Ionicons name="cut" size={50} color={PRIMARY_COLOR} />
         <Text style={styles.greetingText}>Welcome, Owner</Text>
-        <Text style={styles.ownerName}>{shopData.ShopName}</Text>
+        <Text style={styles.ownerName}>{shopData?.ShopName || 'My Shop'}</Text>
       </View>
 
       {/* Shop Details Card */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Shop Details</Text>
         <DetailRow 
-          icon={shopData.IsPremium ? "star" : "ribbon-outline"} 
+          icon={shopData?.IsPremium ? "star" : "ribbon-outline"} 
           label="Membership Status" 
-          value={shopData.IsPremium ? "Premium Member" : "Standard User"} 
-          color={shopData.IsPremium ? '#E59400' : '#555'}
+          value={shopData?.IsPremium ? "Premium Member" : "Standard User"} 
+          color={shopData?.IsPremium ? '#E59400' : '#555'}
         />
-        <DetailRow icon="time-outline" label="Timing" value={shopData.Timing} />
+        <DetailRow icon="time-outline" label="Timing" value={shopData?.Timing || 'Not set'} />
         <DetailRow 
           icon="pin-outline" 
           label="Location" 
-          value={`${shopData.ExactLocation}, ${shopData.City}`} 
+          value={`${shopData?.ExactLocation || 'Not set'}, ${shopData?.City || 'Not set'}`} 
         />
-        <DetailRow icon="call-outline" label="Mobile" value={shopData.Mobile.toString()} />
-        {shopData.website && (
+        <DetailRow icon="call-outline" label="Mobile" value={shopData?.Mobile?.toString() || 'Not set'} />
+        {shopData?.website && (
           <DetailRow icon="globe-outline" label="Website" value={shopData.website} />
         )}
         {/* Logout Button under Website */}
@@ -645,7 +715,7 @@ const ProfileScreen = () => {
 
         {/* Display Added Images */}
         <View style={styles.imagesContainer}>
-          {shopData.media && shopData.media.length > 0 ? (
+          {shopData?.media && shopData.media.length > 0 ? (
             shopData.media.map((image) => (
               <TouchableOpacity 
                 key={image._id} 
@@ -730,6 +800,77 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // --- No Shop Found Screen Styles ---
+  noShopContainer: {
+    flex: 1,
+    backgroundColor: SECONDARY_BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+  },
+  noShopContent: {
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+  },
+  noShopIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  noShopTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  noShopDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 30,
+    paddingHorizontal: 10,
+  },
+  addShopButton: {
+    flexDirection: 'row',
+    backgroundColor: PRIMARY_COLOR,
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 20,
+    shadowColor: PRIMARY_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  addShopButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  noShopHelpText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 10,
   },
   // --- Profile Image Styles ---
   profileImageContainer: {
@@ -1014,4 +1155,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ProfileScreen
+export default ProfileScreen;

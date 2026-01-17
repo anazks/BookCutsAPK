@@ -308,7 +308,7 @@ export default function BookNow() {
 
   try {
     const response = await fetchAllAvailableTimeSlots(shop_id, dateStr);
-    console.log("AVAILABLE SLOTS OF ANY BARBER:", response.availableSlots.schedule.freeSlots);
+    // console.log("AVAILABLE SLOTS OF ANY BARBER:", response.availableSlots.schedule.freeSlots);
     
     if (response?.success && response?.availableSlots?.success) {
       const freeSlots = response.availableSlots.schedule?.freeSlots || [];
@@ -398,7 +398,7 @@ export default function BookNow() {
               id: service._id,
               name: service.ServiceName,
               price: parseInt(service.Rate, 10) || 0,
-              duration: 30
+              duration: service.duration || 30
             }));
           } else servicesError = true;
         } catch (e) { servicesError = true; }

@@ -89,19 +89,20 @@ export default function ShopRegister() {
 
     try {
       // Convert to FormData
-      const data = new FormData();
-      data.append('firstName', formData.firstName);
-      data.append('lastName', formData.lastName);
-      data.append('mobileNo', formData.mobileNo);
-      data.append('city', formData.city);
-      data.append('password', formData.password);
-      data.append('email', formData.email);
-      data.append('role', formData.role);
+      const registrationData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      mobileNo: formData.mobileNo,
+      city: formData.city,
+      password: formData.password,
+      email: formData.email,
+      role: formData.role
+    };
 
-      const result = await RegisterShopUser(data);
+      const result = await RegisterShopUser(registrationData);
       console.log('Registration result:', result);
       
-      if (result && result.status === 200) {
+      if (result && result.success === true) {
         Alert.alert('Success', 'Shop registration successful!', [
           { text: 'OK', onPress: () => router.push('/Screens/Shop/Login') }
         ]);

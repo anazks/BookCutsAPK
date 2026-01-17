@@ -8,9 +8,6 @@ import {
   Image,
   Linking,
   Modal,
-  ScrollView,
-  Share,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -207,6 +204,76 @@ const BarberShopFeed = () => {
     </View>
   );
 
+  // Render header section
+  const renderHeader = () => (
+    <View style={styles.headerSection}>
+      <View style={styles.profileImageContainer}>
+        {shopData?.ProfileImage ? (
+          <Image
+            source={{ uri: shopData.ProfileImage }}
+            style={styles.profileImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.profileImagePlaceholder}>
+            <Text style={styles.placeholderText}>
+              {shopData?.ShopName?.charAt(0) || 'S'}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.shopDetails}>
+        <Text style={styles.shopName}>{shopData?.ShopName || 'Shop Name'}</Text>
+        <View style={styles.shopMetaRow}>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={14} color="#FFD700" />
+            <Text style={styles.ratingText}>4.5</Text>
+          </View>
+          <View style={styles.statusBadge}>
+            <View style={styles.openDot} />
+            <Text style={styles.openText}>Open</Text>
+          </View>
+        </View>
+        <View style={styles.shopDetailsRow}>
+          <Text style={styles.locationText} numberOfLines={1}>
+            <Ionicons name="location-outline" size={14} color="#888" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
+          </Text>
+          {shopData?.Timing && (
+            <Text style={styles.timingText}>
+              <Ionicons name="time-outline" size={14} color="#888" /> {shopData.Timing}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
+  // Render offers section
+  const renderOffers = () => (
+    <View style={styles.offersBannerContainer}>
+      <Text style={styles.offersBannerTitle}>Special Offers</Text>
+      <FlatList
+        ref={offerScrollRef}
+        data={offers}
+        renderItem={renderOfferCard}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.offersContainer}
+        snapToInterval={screenWidth * 0.8 + 12}
+        decelerationRate="fast"
+      />
+    </View>
+  );
+
+  // Render empty feed state
+  const renderEmptyFeed = () => (
+    <View style={styles.emptyFeedContainer}>
+      <Ionicons name="image-outline" size={48} color="#CCC" />
+      <Text style={styles.emptyFeedText}>No media available yet</Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -236,90 +303,36 @@ const BarberShopFeed = () => {
     );
   }
 
+  // Main list data
+  const listData = [
+    { type: 'header', id: 'header' },
+    { type: 'offers', id: 'offers' },
+    ...((shopData.media || []).map(item => ({ ...item, type: 'media' })))
+  ];
+
+  const renderItem = ({ item }) => {
+    switch (item.type) {
+      case 'header':
+        return renderHeader();
+      case 'offers':
+        return renderOffers();
+      case 'media':
+        return renderFeedItem(item);
+      default:
+        return null;
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
-      <ScrollView
-        style={styles.scrollContainer}
+      <FlatList
+        data={listData}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => item._id || item.id || index.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile and Header Section with Background */}
-        <View style={styles.headerSection}>
-          <View style={styles.profileImageContainer}>
-            {shopData.ProfileImage ? (
-              <Image
-                source={{ uri: shopData.ProfileImage }}
-                style={styles.profileImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Text style={styles.placeholderText}>
-                  {shopData.ShopName?.charAt(0) || 'S'}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.shopDetails}>
-            <Text style={styles.shopName}>{shopData.ShopName || 'Shop Name'}</Text>
-            <View style={styles.shopMetaRow}>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={14} color="#FFD700" />
-                <Text style={styles.ratingText}>4.5</Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <View style={styles.openDot} />
-                <Text style={styles.openText}>Open</Text>
-              </View>
-            </View>
-            <View style={styles.shopDetailsRow}>
-              <Text style={styles.locationText} numberOfLines={1}>
-                <Ionicons name="location-outline" size={14} color="#888" /> {shopData.ExactLocation}, {shopData.City || 'Unknown City'}
-              </Text>
-              {shopData.Timing && (
-                <Text style={styles.timingText}>
-                  <Ionicons name="time-outline" size={14} color="#888" /> {shopData.Timing}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Special Offers like Zomato */}
-        <View style={styles.offersBannerContainer}>
-          <Text style={styles.offersBannerTitle}>Special Offers</Text>
-          <FlatList
-            ref={offerScrollRef}
-            data={offers}
-            renderItem={renderOfferCard}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.offersContainer}
-            snapToInterval={screenWidth * 0.8 + 12}
-            decelerationRate="fast"
-          />
-        </View>
-
-        {/* Media Feed */}
-        <View style={styles.feedListContainer}>
-          {(shopData.media || []).length > 0 ? (
-            <FlatList
-              data={shopData.media}
-              renderItem={({ item }) => renderFeedItem(item)}
-              keyExtractor={(item, index) => item._id || index.toString()}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <View style={styles.emptyFeedContainer}>
-              <Ionicons name="image-outline" size={48} color="#CCC" />
-              <Text style={styles.emptyFeedText}>No media available yet</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+        ListEmptyComponent={renderEmptyFeed}
+      />
 
       {/* Floating Book Now Button */}
       <TouchableOpacity
@@ -610,9 +623,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   // Scroll Container Styles
-  scrollContainer: {
-    flex: 1,
-  },
   scrollContent: {
     paddingBottom: 100,
   },
@@ -792,10 +802,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
-  // Spacing
-  bottomSpacing: {
-    height: 20,
-  },
 });
 
-export default BarberShopFeed;
+export default BarberShopFeed; 

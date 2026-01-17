@@ -69,7 +69,7 @@ export const LoginShopUser = async (data: any) => {
   try {
     console.log("Data being sent to LoginShopUser:", data);
     const response = await Axios.post('/auth/shop/login', data);
-    console.log("Response from LoginShopUser:", response);
+    // console.log("Response from LoginShopUser:", response);
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Login failed" };

@@ -47,11 +47,11 @@ export default function Login() {
 
       if (response.success && response.result.token) {
         await AsyncStorage.setItem('accessToken', response.result.token);
-        const shop = await viewMyShop();
-        console.log("shop data:", shop);
-        const shopId = shop.data._id;
-        console.log("shopId:", shopId);
-        await AsyncStorage.setItem('shopId', shopId);
+        // const shop = await viewMyShop();
+        // console.log("shop data:", shop);
+        // const shopId = shop.data._id;
+        // console.log("shopId:", shopId);
+        // await AsyncStorage.setItem('shopId', shopId);
         Alert.alert('Success', 'Login successful!', [
           { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') }
         ]);
@@ -108,11 +108,11 @@ export default function Login() {
 
       if (verifyResponse.success && verifyResponse.token) {
         await AsyncStorage.setItem('accessToken', verifyResponse.token);
-        const shop = await viewMyShop();
-        console.log("shop data:", shop);
-        const shopId = shop.data._id;
-        console.log("shopId:", shopId);
-        await AsyncStorage.setItem('shopId', shopId);
+        // const shop = await viewMyShop();
+        // console.log("shop data:", shop);
+        // const shopId = shop.data._id;
+        // console.log("shopId:", shopId);
+        // await AsyncStorage.setItem('shopId', shopId);
         Alert.alert('Success', 'Login successful!', [
           { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
         ]);
