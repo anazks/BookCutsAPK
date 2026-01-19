@@ -1,7 +1,6 @@
 import { getDashBoardIncome } from '@/app/api/Service/ShoperOwner'
 import React, { useEffect, useState } from 'react'
 import { Alert, Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-   
 
 const { width } = Dimensions.get('window')
 
@@ -27,24 +26,27 @@ export default function Dashboard() {
     customerSatisfaction: 4.8,
   })
 
-  // Fetch income from API
+  // Fetch income from API - UPDATED MAPPING
   const fetchDashboardIncome = async () => {
     try {
-      const income = await getDashBoardIncome()
-      console.log("Dashboard income", income.dashboardIncome)
+      const response = await getDashBoardIncome()
+      console.log("Dashboard income", response)
 
-      if (income.success && income.dashboardIncome) {
-        const { today, lastWeek, monthlyAmount, todayExpectedAmount } = income.dashboardIncome
+      if (response?.success && response?.dashboardIncome) {
+        const income = response.dashboardIncome
+
         setMetrics(prev => ({
           ...prev,
-          dailyIncome: today ?? 0,
-          weeklyIncome: lastWeek ?? 0,
-          monthlyIncome: monthlyAmount ?? 0,
-          expectedIncome: todayExpectedAmount ?? 0
+          dailyIncome: Number(income.todayReceived) || 0,
+          weeklyIncome: Number(income.last7Days) || 0,
+          monthlyIncome: Number(income.thisMonthReceived) || 0,
+          expectedIncome: Number(income.todayTotalPotential) || 0,
+          // Alternative: use remaining expected amount
+          // expectedIncome: Number(income.todayExpectedRemaining) || 0,
         }))
       }
     } catch (error) {
-      console.log(error)
+      console.error("Error fetching dashboard income:", error)
     }
   }
 
@@ -300,7 +302,7 @@ export default function Dashboard() {
   )
 }
 
-// Updated styles for better, simple design
+// Styles remain exactly the same
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 

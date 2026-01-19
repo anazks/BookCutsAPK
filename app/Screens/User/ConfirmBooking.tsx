@@ -6,18 +6,28 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
 } from 'react-native';
 
 export default function ConfirmBooking() {
   const params = useLocalSearchParams();
   const { bookingId, paymentId, paymentType, amount, verified } = params;
 
-  const [seconds, setSeconds] = useState(3);
+  const [seconds, setSeconds] = useState(10); // Change this number to set countdown duration
+  const [scaleAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     if (seconds <= 0) {
       router.replace('/(tabs)/Home');
-
       return;
     }
 
@@ -49,221 +59,331 @@ export default function ConfirmBooking() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Success Message */}
-      <View style={styles.successContainer}>
-        <View style={styles.checkMark}>
-          <Text style={styles.checkText}>✓</Text>
+    <View style={styles.container}>
+      {/* Corner Countdown */}
+      <View style={styles.countdownCorner}>
+        <View style={styles.countdownBadge}>
+          <Text style={styles.countdownNumber}>{seconds}s</Text>
         </View>
-        <Text style={styles.successTitle}>Booking Confirmed!</Text>
-        <Text style={styles.successSubtitle}>
-          Your payment has been processed successfully
-        </Text>
       </View>
 
-      {/* Countdown */}
-      <View style={styles.countdownContainer}>
-        <Text style={styles.countdownText}>Redirecting to Home in</Text>
-        <Text style={styles.countdownNumber}>{seconds}</Text>
-        <Text style={styles.countdownText}>seconds</Text>
-      </View>
-
-      {/* Main Card */}
-      <View style={styles.card}>
-        {/* Status Banner */}
-        <View style={styles.statusBanner}>
-          <Text style={styles.statusText}>PAYMENT VERIFIED</Text>
-        </View>
-
-        {/* Payment Details */}
-        <View style={styles.detailsContainer}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment ID</Text>
-            <Text style={styles.detailValue}>{paymentId || 'N/A'}</Text>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Success Section */}
+        <Animated.View 
+          style={[
+            styles.successSection,
+            { transform: [{ scale: scaleAnim }] }
+          ]}
+        >
+          <View style={styles.successIconWrapper}>
+            <View style={styles.successIconOuter}>
+              <View style={styles.successIconInner}>
+                <Text style={styles.checkMark}>✓</Text>
+              </View>
+            </View>
           </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Type</Text>
-            <Text style={styles.detailValue}>
-              {formatPaymentType(paymentType)}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Amount Paid</Text>
-            <Text style={styles.amountValue}>{formatAmount(amount)}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Status</Text>
-            <Text style={styles.successValue}>Completed</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date</Text>
-            <Text style={styles.detailValue}>
-              {new Date().toLocaleDateString('en-IN')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Booking ID */}
-        <View style={styles.bookingIdContainer}>
-          <Text style={styles.bookingIdLabel}>Booking ID</Text>
-          <Text style={styles.bookingIdValue}>
-            {bookingId || 'BK-2024-XXXX'}
+          
+          <Text style={styles.successTitle}>Payment Successful!</Text>
+          <Text style={styles.successSubtitle}>
+            Your booking has been confirmed successfully
           </Text>
+        </Animated.View>
+
+        {/* Amount Card */}
+        <View style={styles.amountCard}>
+          <View style={styles.amountHeader}>
+            <Text style={styles.amountLabel}>Total Amount Paid</Text>
+            <View style={styles.verifiedBadge}>
+              <View style={styles.verifiedDot} />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
+          </View>
+          <Text style={styles.amountValue}>{formatAmount(amount)}</Text>
+        </View>
+
+        {/* Details Card */}
+        <View style={styles.detailsCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Payment Details</Text>
+          </View>
+
+          <View style={styles.detailsList}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Booking ID</Text>
+              <Text style={styles.detailValue}>
+                {bookingId || 'BK-2024-XXXX'}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment ID</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {paymentId?.toString().slice(0, 20) || 'N/A'}...
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Type</Text>
+              <Text style={styles.detailValueBold}>
+                {formatPaymentType(paymentType)}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Transaction Date</Text>
+              <Text style={styles.detailValue}>
+                {new Date().toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Transaction Time</Text>
+              <Text style={styles.detailValue}>
+                {new Date().toLocaleTimeString('en-IN', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Text>
+            </View>
+
+            <View style={[styles.detailRow, styles.detailRowLast]}>
+              <Text style={styles.detailLabel}>Status</Text>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>Completed</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Payment Type Info */}
         {paymentType?.toString() === 'advance' && (
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoTitle}>Advance Payment</Text>
-            <Text style={styles.infoText}>
-              Remaining balance will be collected at the time of service.
-            </Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoIconWrapper}>
+              <Text style={styles.infoIcon}>ℹ</Text>
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoTitle}>Advance Payment Made</Text>
+              <Text style={styles.infoText}>
+                The remaining balance will be collected at the time of service delivery.
+              </Text>
+            </View>
           </View>
         )}
 
         {paymentType?.toString() === 'full' && (
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoTitle}>Full Payment Completed</Text>
-            <Text style={styles.infoText}>
-              Your booking is fully paid. No additional charges.
-            </Text>
+          <View style={[styles.infoCard, styles.infoCardSuccess]}>
+            <View style={[styles.infoIconWrapper, styles.infoIconSuccess]}>
+              <Text style={styles.infoIcon}>✓</Text>
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoTitle}>Full Payment Completed</Text>
+              <Text style={styles.infoText}>
+                Your booking is fully paid. No additional charges will be applied.
+              </Text>
+            </View>
           </View>
         )}
 
-        {/* Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleExploreMore}>
-            <Text style={styles.primaryButtonText}>Check Your Bookings</Text>
+        {/* Action Buttons */}
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={handleExploreMore}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>View All Bookings</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.linkButton} onPress={handleViewDetails}>
-            <Text style={styles.linkButtonText}>View Booking Details</Text>
+          <TouchableOpacity 
+            style={styles.secondaryButton} 
+            onPress={handleViewDetails}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.secondaryButtonText}>View Booking Details</Text>
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Thank you for choosing us!</Text>
-          <Text style={styles.footerSubtext}>
-            Confirmation email sent to your inbox
+          <Text style={styles.footerText}>
+            A confirmation email has been sent to your registered email address
           </Text>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
+    backgroundColor: '#f5f8fc',
   },
-  scrollContent: {
-    paddingTop: 50,
-    paddingHorizontal: 24,
-    paddingBottom: 60,
-    alignItems: 'center',
+  
+  // Corner Countdown
+  countdownCorner: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    zIndex: 10,
+  },
+  countdownBadge: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#3b82f6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  countdownNumber: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3b82f6',
   },
 
-  successContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 70,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+
+  // Success Section
+  successSection: {
     alignItems: 'center',
     marginBottom: 28,
   },
-  checkMark: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#34c759',
+  successIconWrapper: {
+    marginBottom: 20,
+  },
+  successIconOuter: {
+    width: 90,
+    height: 90,
+    borderRadius: 8,
+    backgroundColor: '#e0f2fe',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#34c759',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    padding: 4,
   },
-  checkText: {
-    color: 'white',
+  successIconInner: {
+    width: 82,
+    height: 82,
+    borderRadius: 6,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkMark: {
     fontSize: 42,
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   successTitle: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#1e293b',
     marginBottom: 8,
   },
   successSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 15,
+    color: '#64748b',
     textAlign: 'center',
+    maxWidth: '80%',
   },
 
-  // ── Countdown ──
-  countdownContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  countdownText: {
-    fontSize: 15,
-    color: '#4b5563',
-    marginBottom: 4,
-  },
-  countdownNumber: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#3b82f6',
-    lineHeight: 48,
-  },
-
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
+  // Amount Card
+  amountCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
     padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-
-  statusBanner: {
-    backgroundColor: '#34c759',
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  statusText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 15,
-    letterSpacing: 0.5,
-  },
-
-  detailsContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: '#111827',
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  amountHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  verifiedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16a34a',
+    marginRight: 6,
+  },
+  verifiedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  amountValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+
+  // Details Card
+  detailsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  detailsList: {
+    gap: 2,
   },
   detailRow: {
     flexDirection: 'row',
@@ -271,108 +391,131 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#f8fafc',
+  },
+  detailRowLast: {
+    borderBottomWidth: 0,
   },
   detailLabel: {
-    fontSize: 15,
-    color: '#6b7280',
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
   },
   detailValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  amountValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3b82f6',
-  },
-  successValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#34c759',
-  },
-
-  bookingIdContainer: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  bookingIdLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 6,
+    fontWeight: '600',
+    color: '#334155',
+    maxWidth: '55%',
+    textAlign: 'right',
   },
-  bookingIdValue: {
-    fontSize: 20,
+  detailValueBold: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
-    letterSpacing: 0.5,
+    color: '#1e293b',
+  },
+  statusBadge: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#16a34a',
   },
 
-  infoContainer: {
+  // Info Card
+  infoCard: {
     backgroundColor: '#eff6ff',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 16,
-    marginBottom: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
+    marginBottom: 20,
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  infoCardSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#dcfce7',
+  },
+  infoIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 7,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  infoIconSuccess: {
+    backgroundColor: '#16a34a',
+  },
+  infoIcon: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  infoContent: {
+    flex: 1,
+    paddingTop: 2,
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#1e40af',
-    marginBottom: 6,
+    color: '#1e293b',
+    marginBottom: 4,
   },
   infoText: {
-    fontSize: 14,
-    color: '#1e40af',
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 18,
   },
 
-  buttonContainer: {
-    marginBottom: 24,
+  // Buttons
+  buttonGroup: {
     gap: 12,
+    marginBottom: 28,
   },
   primaryButton: {
     backgroundColor: '#3b82f6',
-    borderRadius: 12,
     paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '700',
+    color: '#ffffff',
   },
-  linkButton: {
+  secondaryButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#3b82f6',
   },
-  linkButtonText: {
-    color: '#3b82f6',
+  secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    textDecorationLine: 'underline',
+    color: '#3b82f6',
   },
 
+  // Footer
   footer: {
     alignItems: 'center',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    paddingVertical: 16,
   },
   footerText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  footerSubtext: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
     textAlign: 'center',
+    lineHeight: 19,
   },
 });
