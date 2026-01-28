@@ -293,3 +293,21 @@ export const filterShopsByService = async ({ shopIds, serviceName }) => {
     throw error;
   }
 };
+
+export const createBankDetails = async (data) => {
+  try {
+    const response = await Axios.post('/shop/saveBankDetails',data)
+    return response.data
+  } catch (error) {
+    console.log("error in createBankDetails api:",error)
+  }
+}
+
+export const viewBankDetails = async () => {
+  try {
+    const response = await Axios.get(`/shop/viewBankDetails`)
+    return response.data
+  } catch (error) {
+    console.log("error in viewBankDetails",error)
+  }
+}

@@ -46,7 +46,7 @@ export default function Dashboard() {
         }))
       }
     } catch (error) {
-      console.error("Error fetching dashboard income:", error)
+      console.log("Error fetching dashboard income:", error)
     }
   }
 
@@ -282,21 +282,7 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* Recent Activity */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.activityCard}>
-            <ActivityItem title="Payment received from Sarah Johnson" time="2 hours ago" amount="+₹500" status="success" />
-            <ActivityItem title="Service appointment completed" time="Today, 11:30 AM" status="success" />
-            <ActivityItem title="New customer registration" time="Yesterday, 4:15 PM" status="pending" />
-            <ActivityItem title="Monthly supplies purchase" time="2 days ago" amount="-₹1,200" status="expense" />
-          </View>
-        </View>
+     
       </ScrollView>
     </SafeAreaView>
   )

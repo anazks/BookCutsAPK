@@ -1,341 +1,377 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useNavigation } from '@react-navigation/native'
-import React, { useEffect, useState } from 'react'
-import { 
-  Alert, 
-  FlatList, 
-  Modal, 
-  SafeAreaView, 
-  ScrollView, 
-  StatusBar, 
-  StyleSheet, 
-  Text, 
-  TextInput,  // Added TextInput
-  TouchableOpacity, 
-  View 
-} from 'react-native'
-import { 
-  AddBarber, 
-  AddService, 
-  deleteBarberAPI, 
-  deleteServiceAPI, 
-  modifyBarber, 
-  modifyService, 
-  viewMyBarbers, 
-  viewMyService, 
-  viewMyShop 
-} from '../api/Service/Shop'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-export default function Settings() {
-  const [barbers, setBarbers] = useState([])
-  const [services, setServices] = useState([])
-  const [shopData, setShopData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const navigation = useNavigation()
+import {
+  AddBarber,
+  AddService,
+  deleteBarberAPI,
+  deleteServiceAPI,
+  modifyBarber,
+  modifyService,
+  viewMyBarbers,
+  viewMyService,
+  viewMyShop,
+} from '../api/Service/Shop';
 
-  // Edit Service states
-  const [showEditServiceModal, setShowEditServiceModal] = useState(false)
-  const [editingService, setEditingService] = useState(null)
-  const [editServiceName, setEditServiceName] = useState('')
-  const [editServicePrice, setEditServicePrice] = useState('')
-  const [editServiceDuration, setEditServiceDuration] = useState('')
+// ────────────────────────────────────────────────
+// Logout helper function - FIXED
+// ────────────────────────────────────────────────
+const performLogout = async (navigation: any) => {
+  try {
+    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'refreshToken']);
+    // You can add more keys if you store others (userId, etc.)
 
-  // Modal states
-  const [showBarberModal, setShowBarberModal] = useState(false)
-  const [showServiceModal, setShowServiceModal] = useState(false)
-  const [showEditBarberModal, setShowEditBarberModal] = useState(false)
-  
-  // Form states
-  const [barberName, setBarberName] = useState('')
-  const [from, setFrom] = useState('')
-  const [serviceName, setServiceName] = useState('')
-  const [servicePrice, setServicePrice] = useState('')
-  const [serviceDuration, setServiceDuration] = useState('')
-
-  // Edit barber states
-  const [editingBarber, setEditingBarber] = useState(null)
-  const [editBarberName, setEditBarberName] = useState('')
-  const [editFrom, setEditFrom] = useState('')
-
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      
-      // Fetch shop data first
-      const shopResponse = await viewMyShop()
-      
-      if (shopResponse && shopResponse.data) {
-        setShopData(shopResponse.data)
-        // Store shop ID globally in AsyncStorage
-        await AsyncStorage.setItem('shopId', shopResponse.data._id)
-      }
-      
-      // Fetch other data
-      const barbersData = await viewMyBarbers()
-      const servicesData = await viewMyService()
-      
-      setBarbers(barbersData?.data || [])
-      setServices(servicesData?.data || [])
-      
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch data: ' + error.message)
-      console.error('Fetch data error:', error)
-    } finally {
-      setLoading(false)
-    }
+    // FIX: Use navigation.replace() instead of reset()
+    // This will clear the navigation stack and redirect to Home
+    navigation.replace('Home');
+  } catch (error) {
+    console.error('Logout failed:', error);
+    Alert.alert('Error', 'Failed to logout. Please try again.');
   }
+};
 
+// ────────────────────────────────────────────────
+// No Shop Screen Component
+// ────────────────────────────────────────────────
+const NoShopScreen = ({ navigation }: { navigation: any }) => (
+  <SafeAreaView style={styles.container}>
+    <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+
+    <View style={styles.noShopContainer}>
+      <View style={styles.noShopCard}>
+        <MaterialIcons name="storefront" size={80} color="#CBD5E1" />
+        <Text style={styles.noShopTitle}>Setup Your Salon</Text>
+        <Text style={styles.noShopSubtitle}>
+          Create your shop profile to start managing barbers and services
+        </Text>
+
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Components/Shop/AddShop')}
+        >
+          <MaterialIcons name="add-business" size={24} color="white" />
+          <Text style={styles.buttonText}>Create Shop</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => performLogout(navigation)}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </SafeAreaView>
+);
+
+// ────────────────────────────────────────────────
+// Main Settings Component
+// ────────────────────────────────────────────────
+export default function Settings() {
+  const navigation = useNavigation<any>();
+
+  const [hasShop, setHasShop] = useState<boolean | null>(null); // null = still checking
+  const [shopData, setShopData] = useState<any>(null);
+
+  // ────────────────────────────────────────────────
+  // Barber & Service states
+  // ────────────────────────────────────────────────
+  const [barbers, setBarbers] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Add Barber modal
+  const [showBarberModal, setShowBarberModal] = useState(false);
+  const [barberName, setBarberName] = useState('');
+  const [from, setFrom] = useState('');
+
+  // Edit Barber modal
+  const [showEditBarberModal, setShowEditBarberModal] = useState(false);
+  const [editingBarber, setEditingBarber] = useState<any>(null);
+  const [editBarberName, setEditBarberName] = useState('');
+  const [editFrom, setEditFrom] = useState('');
+
+  // Add Service modal
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [serviceName, setServiceName] = useState('');
+  const [servicePrice, setServicePrice] = useState('');
+  const [serviceDuration, setServiceDuration] = useState('');
+
+  // Edit Service modal
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [editServiceName, setEditServiceName] = useState('');
+  const [editServicePrice, setEditServicePrice] = useState('');
+  const [editServiceDuration, setEditServiceDuration] = useState('');
+
+  // ────────────────────────────────────────────────
+  // Check shop existence on mount
+  // ────────────────────────────────────────────────
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        const shopId = await AsyncStorage.getItem('shopId');
+
+        if (!shopId) {
+          setHasShop(false);
+          return;
+        }
+
+        // Try to fetch shop data
+        const shopResponse = await viewMyShop();
+
+        if (shopResponse?.data?._id) {
+          setShopData(shopResponse.data);
+          setHasShop(true);
+        } else {
+          // Token exists but no valid shop → clear shopId
+          await AsyncStorage.removeItem('shopId');
+          setHasShop(false);
+        }
+      } catch (err) {
+        console.error('Shop check failed:', err);
+        setHasShop(false);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  // Load barbers + services only when shop exists
+  useEffect(() => {
+    if (hasShop === true) {
+      fetchShopData();
+    }
+  }, [hasShop]);
+
+  const fetchShopData = async () => {
+    try {
+      setLoading(true);
+
+      const [barbersRes, servicesRes] = await Promise.all([
+        viewMyBarbers(),
+        viewMyService(),
+      ]);
+
+      setBarbers(barbersRes?.data || []);
+      setServices(servicesRes?.data || []);
+    } catch (error) {
+      console.log('Failed to load shop data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ────────────────────────────────────────────────
+  // Add Barber
+  // ────────────────────────────────────────────────
   const addBarber = async () => {
     if (!barberName.trim() || !from.trim()) {
-      Alert.alert('Error', 'Please fill all fields')
-      return
+      Alert.alert('Error', 'Please fill all fields');
+      return;
     }
 
     try {
-      const shopId = await AsyncStorage.getItem('shopId')
-      
-      const newBarber = {
+      const shopId = await AsyncStorage.getItem('shopId');
+      const payload = {
         BarberName: barberName.trim(),
         From: from.trim(),
-        shopId: shopId
-      }
+        shopId,
+      };
 
-      const response = await AddBarber(newBarber)
-      // Use response.data if it exists, otherwise use the whole response
-      const addedBarber = response.data || response
-      
-      // Update state locally first for immediate feedback
-      setBarbers(prev => [...prev, addedBarber])
-      
-      // Reset form and close modal
-      setBarberName('')
-      setFrom('')
-      setShowBarberModal(false)
-      
-      Alert.alert('Success', 'Barber added successfully')
-      
-      // Optional: Fetch fresh data in background but don't wait for it
-      setTimeout(() => {
-        fetchData().catch(console.error)
-      }, 100)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add barber')
-      console.error(error)
+      const res = await AddBarber(payload);
+      const newBarber = res.data || res;
+
+      setBarbers((prev) => [...prev, newBarber]);
+
+      setBarberName('');
+      setFrom('');
+      setShowBarberModal(false);
+
+      Alert.alert('Success', 'Barber added');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to add barber');
+      console.error(err);
     }
-  }
+  };
 
-  const addService = async () => {
-    if (!serviceName.trim() || !servicePrice || !serviceDuration.trim()) {
-      Alert.alert('Error', 'Please fill all fields')
-      return
+  // ────────────────────────────────────────────────
+  // Update Barber
+  // ────────────────────────────────────────────────
+  const updateBarber = async () => {
+    if (!editBarberName.trim() || !editFrom.trim()) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
     }
 
     try {
-      const shopId = await AsyncStorage.getItem('shopId')
-      
-      const newService = {
+      const shopId = await AsyncStorage.getItem('shopId');
+      const payload = {
+        BarberName: editBarberName.trim(),
+        From: editFrom.trim(),
+        shopId,
+      };
+
+      await modifyBarber(editingBarber._id, payload);
+
+      setBarbers((prev) =>
+        prev.map((b) =>
+          b._id === editingBarber._id ? { ...b, ...payload } : b
+        )
+      );
+
+      setEditingBarber(null);
+      setEditBarberName('');
+      setEditFrom('');
+      setShowEditBarberModal(false);
+
+      Alert.alert('Success', 'Barber updated');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update barber');
+      console.error(err);
+    }
+  };
+
+  // ────────────────────────────────────────────────
+  // Delete Barber
+  // ────────────────────────────────────────────────
+  const deleteBarber = async (id: string) => {
+    Alert.alert('Delete Barber', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteBarberAPI(id);
+            setBarbers((prev) => prev.filter((b) => b._id !== id));
+            Alert.alert('Success', 'Barber deleted');
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete barber');
+            console.error(err);
+          }
+        },
+      },
+    ]);
+  };
+
+  // ────────────────────────────────────────────────
+  // Add Service
+  // ────────────────────────────────────────────────
+  const addService = async () => {
+    if (!serviceName.trim() || !servicePrice || !serviceDuration.trim()) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+
+    try {
+      const shopId = await AsyncStorage.getItem('shopId');
+      const payload = {
         ServiceName: serviceName.trim(),
         Rate: servicePrice,
         Duration: serviceDuration.trim(),
-        shopId: shopId
-      }
+        shopId,
+      };
 
-      const response = await AddService(newService)
-      const addedService = response.data || response
-      
-      // Update state locally first for immediate feedback
-      setServices(prev => [...prev, addedService])
-      
-      // Reset form and close modal
-      setServiceName('')
-      setServicePrice('')
-      setServiceDuration('')
-      setShowServiceModal(false)
-      
-      Alert.alert('Success', 'Service added successfully')
-      
-      // Optional: Fetch fresh data in background
-      setTimeout(() => {
-        fetchData().catch(console.error)
-      }, 100)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add service')
-      console.error(error)
+      const res = await AddService(payload);
+      const newService = res.data || res;
+
+      setServices((prev) => [...prev, newService]);
+
+      setServiceName('');
+      setServicePrice('');
+      setServiceDuration('');
+      setShowServiceModal(false);
+
+      Alert.alert('Success', 'Service added');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to add service');
+      console.error(err);
     }
-  }
+  };
 
-  const editBarber = (barber) => {
-    setEditingBarber(barber)
-    setEditBarberName(barber.BarberName)
-    setEditFrom(barber.From)
-    setShowEditBarberModal(true)
-  }
-
-  const updateBarber = async () => {
-    if (!editBarberName.trim() || !editFrom.trim()) {
-      Alert.alert('Error', 'Please fill all fields')
-      return
-    }
-
-    try {
-      const shopId = await AsyncStorage.getItem('shopId')
-      
-      const updatedBarber = {
-        BarberName: editBarberName.trim(),
-        From: editFrom.trim(),
-        shopId: shopId
-      }
-
-      await modifyBarber(editingBarber._id, updatedBarber)
-      
-      // Update state locally
-      setBarbers(prev => prev.map(barber => 
-        barber._id === editingBarber._id 
-          ? { ...barber, ...updatedBarber }
-          : barber
-      ))
-      
-      // Reset and close
-      setEditBarberName('')
-      setEditFrom('')
-      setEditingBarber(null)
-      setShowEditBarberModal(false)
-      
-      Alert.alert('Success', 'Barber updated successfully')
-      
-      // Optional: Fetch fresh data in background
-      setTimeout(() => {
-        fetchData().catch(console.error)
-      }, 100)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update barber')
-      console.error(error)
-    }
-  }
-
-  const deleteBarber = async (id) => {
-    Alert.alert(
-      "Delete Barber",
-      "Are you sure you want to delete this barber?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteBarberAPI(id)
-
-              // Update state locally
-              setBarbers(prev => prev.filter(barber => barber._id !== id))
-
-              Alert.alert("Success", "Barber deleted successfully!")
-              
-              // Optional: Fetch fresh data in background
-              setTimeout(() => {
-                fetchData().catch(console.error)
-              }, 100)
-            } catch (error) {
-              console.error("Failed to delete barber:", error)
-              Alert.alert("Error", "Failed to delete barber")
-            }
-          },
-        },
-      ]
-    )
-  }
-
-  const deleteService = async (id) => {
-    Alert.alert(
-      "Delete Service",
-      "Are you sure you want to delete this service?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteServiceAPI(id)
-
-              // Update state locally
-              setServices(prev => prev.filter(service => service._id !== id))
-
-              Alert.alert("Success", "Service deleted successfully!")
-              
-              // Optional: Fetch fresh data in background
-              setTimeout(() => {
-                fetchData().catch(console.error)
-              }, 100)
-            } catch (error) {
-              console.error("Failed to delete service:", error)
-              Alert.alert("Error", "Failed to delete service")
-            }
-          },
-        },
-      ]
-    )
-  }
-
-  const editService = (service) => {
-    setEditingService(service)
-    setEditServiceName(service.ServiceName)
-    setEditServicePrice(service.Rate.toString())
-    setEditServiceDuration(service.Duration)
-    setShowEditServiceModal(true)
-  }
-
+  // ────────────────────────────────────────────────
+  // Update Service
+  // ────────────────────────────────────────────────
   const updateService = async () => {
     if (!editServiceName.trim() || !editServicePrice || !editServiceDuration.trim()) {
-      Alert.alert('Error', 'Please fill all fields')
-      return
+      Alert.alert('Error', 'Please fill all fields');
+      return;
     }
 
     try {
-      const shopId = await AsyncStorage.getItem('shopId')
-
-      const updatedService = {
+      const shopId = await AsyncStorage.getItem('shopId');
+      const payload = {
         ServiceName: editServiceName.trim(),
         Rate: editServicePrice,
         Duration: editServiceDuration.trim(),
-        shopId: shopId
-      }
+        shopId,
+      };
 
-      await modifyService(editingService._id, updatedService)
+      await modifyService(editingService._id, payload);
 
-      // Update state locally
-      setServices(prev => prev.map(service => 
-        service._id === editingService._id
-          ? { ...service, ...updatedService }
-          : service
-      ))
+      setServices((prev) =>
+        prev.map((s) =>
+          s._id === editingService._id ? { ...s, ...payload } : s
+        )
+      );
 
-      // Reset and close
-      setEditServiceName('')
-      setEditServicePrice('')
-      setEditServiceDuration('')
-      setEditingService(null)
-      setShowEditServiceModal(false)
-      
-      Alert.alert('Success', 'Service updated successfully')
-      
-      // Optional: Fetch fresh data in background
-      setTimeout(() => {
-        fetchData().catch(console.error)
-      }, 100)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update service')
-      console.error(error)
+      setEditingService(null);
+      setEditServiceName('');
+      setEditServicePrice('');
+      setEditServiceDuration('');
+      setShowEditServiceModal(false);
+
+      Alert.alert('Success', 'Service updated');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update service');
+      console.error(err);
     }
-  }
+  };
 
-  const renderBarberItem = ({ item, index }) => (
+  // ────────────────────────────────────────────────
+  // Delete Service
+  // ────────────────────────────────────────────────
+  const deleteService = async (id: string) => {
+    Alert.alert('Delete Service', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteServiceAPI(id);
+            setServices((prev) => prev.filter((s) => s._id !== id));
+            Alert.alert('Success', 'Service deleted');
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete service');
+            console.error(err);
+          }
+        },
+      },
+    ]);
+  };
+
+  // ────────────────────────────────────────────────
+  // Render helpers
+  // ────────────────────────────────────────────────
+  const renderBarber = ({ item, index }: { item: any; index: number }) => (
     <View style={[styles.listItem, index === barbers.length - 1 && styles.lastItem]}>
       <View style={styles.itemLeft}>
         <View style={styles.itemIcon}>
@@ -347,23 +383,22 @@ export default function Settings() {
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.editButton]}
-          onPress={() => editBarber(item)}
-        >
+        <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => {
+          setEditingBarber(item);
+          setEditBarberName(item.BarberName);
+          setEditFrom(item.From);
+          setShowEditBarberModal(true);
+        }}>
           <Ionicons name="create-outline" size={18} color="#10B981" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteBarber(item._id)}
-        >
+        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteBarber(item._id)}>
           <Ionicons name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>
-  )
+  );
 
-  const renderServiceItem = ({ item, index }) => (
+  const renderService = ({ item, index }: { item: any; index: number }) => (
     <View style={[styles.listItem, index === services.length - 1 && styles.lastItem]}>
       <View style={styles.itemLeft}>
         <View style={styles.itemIcon}>
@@ -375,156 +410,142 @@ export default function Settings() {
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.editButton]}
-          onPress={() => editService(item)}
-        >
+        <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => {
+          setEditingService(item);
+          setEditServiceName(item.ServiceName);
+          setEditServicePrice(item.Rate.toString());
+          setEditServiceDuration(item.Duration);
+          setShowEditServiceModal(true);
+        }}>
           <Ionicons name="create-outline" size={18} color="#10B981" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteService(item._id)}
-        >
+        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteService(item._id)}>
           <Ionicons name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>
-  )
+  );
 
-  const handleCloseBarberModal = () => {
-    setBarberName('')
-    setFrom('')
-    setShowBarberModal(false)
+  // ────────────────────────────────────────────────
+  // Loading / No shop / Normal states
+  // ────────────────────────────────────────────────
+  if (hasShop === null) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <MaterialIcons name="hourglass-empty" size={40} color="#4F46E5" />
+          <Text style={styles.loadingText}>Checking account...</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
-  const handleCloseEditBarberModal = () => {
-    setEditBarberName('')
-    setEditFrom('')
-    setEditingBarber(null)
-    setShowEditBarberModal(false)
-  }
-
-  const handleCloseServiceModal = () => {
-    setServiceName('')
-    setServicePrice('')
-    setServiceDuration('')
-    setShowServiceModal(false)
-  }
-
-  const handleCloseEditServiceModal = () => {
-    setEditServiceName('')
-    setEditServicePrice('')
-    setEditServiceDuration('')
-    setEditingService(null)
-    setShowEditServiceModal(false)
+  if (hasShop === false) {
+    return <NoShopScreen navigation={navigation} />;
   }
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingCard}>
-            <MaterialIcons name="hourglass-empty" size={32} color="#4F46E5" />
-            <Text style={styles.loadingText}>Loading your data...</Text>
-          </View>
+        <View style={styles.centered}>
+          <MaterialIcons name="hourglass-empty" size={36} color="#4F46E5" />
+          <Text style={styles.loadingText}>Loading your salon...</Text>
         </View>
       </SafeAreaView>
-    )
+    );
   }
 
+  // ────────────────────────────────────────────────
+  // Main screen (has shop)
+  // ────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
-      
-      <ScrollView 
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Shop Info Section */}
+        {/* Shop Info */}
         {shopData && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionIcon}>
                   <MaterialIcons name="store" size={20} color="#4F46E5" />
                 </View>
                 <Text style={styles.sectionTitle}>Shop Information</Text>
               </View>
             </View>
-            
-            <View style={styles.shopInfoGrid}>
-              <View style={styles.shopInfoRow}>
-                <View style={styles.shopInfoItem}>
-                  <Text style={styles.shopInfoLabel}>Shop Name</Text>
-                  <Text style={styles.shopInfoValue}>{shopData.ShopName}</Text>
+
+            <View style={styles.shopInfoContainer}>
+              <View style={styles.shopRow}>
+                <View style={styles.shopItem}>
+                  <Text style={styles.label}>Shop Name</Text>
+                  <Text style={styles.value}>{shopData.ShopName}</Text>
                 </View>
-                
-                <View style={styles.shopInfoItem}>
-                  <Text style={styles.shopInfoLabel}>City</Text>
-                  <Text style={styles.shopInfoValue}>{shopData.City}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.shopInfoRow}>
-                <View style={styles.shopInfoItem}>
-                  <Text style={styles.shopInfoLabel}>Mobile</Text>
-                  <Text style={styles.shopInfoValue}>{shopData.Mobile}</Text>
-                </View>
-                
-                <View style={styles.shopInfoItem}>
-                  <Text style={styles.shopInfoLabel}>Timing</Text>
-                  <Text style={styles.shopInfoValue}>{shopData.Timing}</Text>
+                <View style={styles.shopItem}>
+                  <Text style={styles.label}>City</Text>
+                  <Text style={styles.value}>{shopData.City}</Text>
                 </View>
               </View>
-              
+
+              <View style={styles.shopRow}>
+                <View style={styles.shopItem}>
+                  <Text style={styles.label}>Mobile</Text>
+                  <Text style={styles.value}>{shopData.Mobile}</Text>
+                </View>
+                <View style={styles.shopItem}>
+                  <Text style={styles.label}>Timing</Text>
+                  <Text style={styles.value}>{shopData.Timing}</Text>
+                </View>
+              </View>
+
               {shopData.website && (
-                <View style={styles.shopInfoRow}>
-                  <View style={[styles.shopInfoItem, { flex: 1 }]}>
-                    <Text style={styles.shopInfoLabel}>Website</Text>
-                    <Text style={styles.shopInfoValue}>{shopData.website}</Text>
+                <View style={styles.shopRow}>
+                  <View style={styles.shopItemFull}>
+                    <Text style={styles.label}>Website</Text>
+                    <Text style={styles.value}>{shopData.website}</Text>
                   </View>
                 </View>
               )}
             </View>
           </View>
         )}
-        
+
         {/* Barbers Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionTitleRow}>
               <View style={styles.sectionIcon}>
                 <MaterialIcons name="people" size={20} color="#4F46E5" />
               </View>
               <Text style={styles.sectionTitle}>Team Members</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{barbers.length}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{barbers.length}</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.addButton} 
-              onPress={() => setShowBarberModal(true)}
-            >
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowBarberModal(true)}>
               <MaterialIcons name="person-add" size={16} color="white" />
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.listContainer}>
-            {barbers.length > 0 ? (
+
+          <View style={styles.listWrapper}>
+            {barbers.length === 0 ? (
+              <View style={styles.empty}>
+                <MaterialIcons name="person-add" size={48} color="#CBD5E1" />
+                <Text style={styles.emptyTitle}>No barbers yet</Text>
+                <Text style={styles.emptyText}>Add your first team member</Text>
+              </View>
+            ) : (
               <FlatList
                 data={barbers}
-                renderItem={renderBarberItem}
-                keyExtractor={item => item._id}
+                renderItem={renderBarber}
+                keyExtractor={(item) => item._id}
                 scrollEnabled={false}
               />
-            ) : (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="person-add" size={48} color="#CBD5E1" />
-                <Text style={styles.emptyTitle}>No team members yet</Text>
-                <Text style={styles.emptySubtitle}>Add your first barber to get started</Text>
-              </View>
             )}
           </View>
         </View>
@@ -532,438 +553,446 @@ export default function Settings() {
         {/* Services Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionTitleRow}>
               <View style={styles.sectionIcon}>
                 <MaterialIcons name="content-cut" size={20} color="#4F46E5" />
               </View>
               <Text style={styles.sectionTitle}>Services & Pricing</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{services.length}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{services.length}</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.addButton} 
-              onPress={() => setShowServiceModal(true)}
-            >
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowServiceModal(true)}>
               <MaterialIcons name="add-circle-outline" size={16} color="white" />
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.listContainer}>
-            {services.length > 0 ? (
+
+          <View style={styles.listWrapper}>
+            {services.length === 0 ? (
+              <View style={styles.empty}>
+                <MaterialIcons name="content-cut" size={48} color="#CBD5E1" />
+                <Text style={styles.emptyTitle}>No services yet</Text>
+                <Text style={styles.emptyText}>Add your services & prices</Text>
+              </View>
+            ) : (
               <FlatList
                 data={services}
-                renderItem={renderServiceItem}
-                keyExtractor={item => item._id}
+                renderItem={renderService}
+                keyExtractor={(item) => item._id}
                 scrollEnabled={false}
               />
-            ) : (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="content-cut" size={48} color="#CBD5E1" />
-                <Text style={styles.emptyTitle}>No services added</Text>
-                <Text style={styles.emptySubtitle}>Add your services and pricing</Text>
-              </View>
             )}
           </View>
         </View>
 
-        {/* Add Shop Working Hours Button */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+        {/* Working Hours Button */}
+        <View style={styles.bottomAction}>
           <TouchableOpacity
-            style={styles.workingHoursButton}
+            style={styles.workingHoursBtn}
             onPress={() => navigation.navigate('Screens/Shop/WorkingHoursScreen')}
           >
             <MaterialIcons name="access-time" size={24} color="#4F46E5" />
-            <Text style={styles.workingHoursButtonText}>Add Shop Working Hours</Text>
+            <Text style={styles.workingHoursText}>Manage Working Hours</Text>
             <Ionicons name="chevron-forward" size={20} color="#64748B" />
           </TouchableOpacity>
         </View>
 
+        {/* Logout when shop exists */}
+        <TouchableOpacity
+          style={styles.logoutFull}
+          onPress={() => performLogout(navigation)}
+        >
+          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+          <Text style={styles.logoutFullText}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
 
+      {/* ──────────────────────────────────────────────── */}
+      {/*           MODALS - Add / Edit Barber & Service       */}
+      {/* ──────────────────────────────────────────────── */}
+
       {/* Add Barber Modal */}
-      <Modal 
-        visible={showBarberModal} 
-        animationType="slide" 
-        transparent={true}
-        onRequestClose={handleCloseBarberModal}
-      >
+      <Modal visible={showBarberModal} animationType="slide" transparent onRequestClose={() => setShowBarberModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add New Barber</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={handleCloseBarberModal}
-                >
-                  <Ionicons name="close" size={24} color="#64748B" />
-                </TouchableOpacity>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Barber</Text>
+              <TouchableOpacity onPress={() => {
+                setBarberName('');
+                setFrom('');
+                setShowBarberModal(false);
+              }}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Barber Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={barberName}
+                  onChangeText={setBarberName}
+                  placeholder="Enter name"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.inputContainer}>
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Barber Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter barber name"
-                      value={barberName}
-                      onChangeText={setBarberName}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>From (City/Region)</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Where is the barber from?"
-                      value={from}
-                      onChangeText={setFrom}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>From (City / Region)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={from}
+                  onChangeText={setFrom}
+                  placeholder="e.g. Kochi, Thrissur"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={handleCloseBarberModal}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={addBarber}
-                >
-                  <Text style={styles.confirmButtonText}>Add Barber</Text>
-                </TouchableOpacity>
-              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setBarberName('');
+                  setFrom('');
+                  setShowBarberModal(false);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={addBarber}>
+                <Text style={styles.confirmText}>Add</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
       {/* Edit Barber Modal */}
-      <Modal 
-        visible={showEditBarberModal} 
-        animationType="slide" 
-        transparent={true}
-        onRequestClose={handleCloseEditBarberModal}
-      >
+      <Modal visible={showEditBarberModal} animationType="slide" transparent onRequestClose={() => setShowEditBarberModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Barber</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={handleCloseEditBarberModal}
-                >
-                  <Ionicons name="close" size={24} color="#64748B" />
-                </TouchableOpacity>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Barber</Text>
+              <TouchableOpacity onPress={() => {
+                setEditBarberName('');
+                setEditFrom('');
+                setEditingBarber(null);
+                setShowEditBarberModal(false);
+              }}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Barber Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editBarberName}
+                  onChangeText={setEditBarberName}
+                  placeholder="Enter name"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.inputContainer}>
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Barber Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter barber name"
-                      value={editBarberName}
-                      onChangeText={setEditBarberName}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>From (City/Region)</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Where is the barber from?"
-                      value={editFrom}
-                      onChangeText={setEditFrom}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>From (City / Region)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editFrom}
+                  onChangeText={setEditFrom}
+                  placeholder="e.g. Kochi, Thrissur"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={handleCloseEditBarberModal}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={updateBarber}
-                >
-                  <Text style={styles.confirmButtonText}>Update Barber</Text>
-                </TouchableOpacity>
-              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setEditBarberName('');
+                  setEditFrom('');
+                  setEditingBarber(null);
+                  setShowEditBarberModal(false);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={updateBarber}>
+                <Text style={styles.confirmText}>Update</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
       {/* Add Service Modal */}
-      <Modal 
-        visible={showServiceModal} 
-        animationType="slide" 
-        transparent={true}
-        onRequestClose={handleCloseServiceModal}
-      >
+      <Modal visible={showServiceModal} animationType="slide" transparent onRequestClose={() => setShowServiceModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add New Service</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={handleCloseServiceModal}
-                >
-                  <Ionicons name="close" size={24} color="#64748B" />
-                </TouchableOpacity>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Service</Text>
+              <TouchableOpacity onPress={() => {
+                setServiceName('');
+                setServicePrice('');
+                setServiceDuration('');
+                setShowServiceModal(false);
+              }}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Service Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={serviceName}
+                  onChangeText={setServiceName}
+                  placeholder="e.g. Haircut, Shaving"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.inputContainer}>
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Service Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter service name"
-                      value={serviceName}
-                      onChangeText={setServiceName}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Price (₹)</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter price"
-                      value={servicePrice}
-                      onChangeText={setServicePrice}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Duration</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g., 30 mins, 1 hour"
-                      value={serviceDuration}
-                      onChangeText={setServiceDuration}
-                    />
-                  </View>
-                </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Price (₹)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={servicePrice}
+                  onChangeText={setServicePrice}
+                  keyboardType="numeric"
+                  placeholder="Enter amount"
+                />
               </View>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={handleCloseServiceModal}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={addService}
-                >
-                  <Text style={styles.confirmButtonText}>Add Service</Text>
-                </TouchableOpacity>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Duration</Text>
+                <TextInput
+                  style={styles.input}
+                  value={serviceDuration}
+                  onChangeText={setServiceDuration}
+                  placeholder="e.g. 30 mins, 1 hour"
+                />
               </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setServiceName('');
+                  setServicePrice('');
+                  setServiceDuration('');
+                  setShowServiceModal(false);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={addService}>
+                <Text style={styles.confirmText}>Add</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
       {/* Edit Service Modal */}
-      <Modal 
-        visible={showEditServiceModal} 
-        animationType="slide" 
-        transparent={true}
-        onRequestClose={handleCloseEditServiceModal}
-      >
+      <Modal visible={showEditServiceModal} animationType="slide" transparent onRequestClose={() => setShowEditServiceModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Service</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={handleCloseEditServiceModal}
-                >
-                  <Ionicons name="close" size={24} color="#64748B" />
-                </TouchableOpacity>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Service</Text>
+              <TouchableOpacity onPress={() => {
+                setEditServiceName('');
+                setEditServicePrice('');
+                setEditServiceDuration('');
+                setEditingService(null);
+                setShowEditServiceModal(false);
+              }}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Service Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editServiceName}
+                  onChangeText={setEditServiceName}
+                  placeholder="e.g. Haircut, Shaving"
+                  autoCapitalize="words"
+                />
               </View>
-              
-              <View style={styles.inputContainer}>
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Service Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter service name"
-                      value={editServiceName}
-                      onChangeText={setEditServiceName}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Price (₹)</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter price"
-                      value={editServicePrice}
-                      onChangeText={setEditServicePrice}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.inputRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Duration</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g., 30 mins, 1 hour"
-                      value={editServiceDuration}
-                      onChangeText={setEditServiceDuration}
-                    />
-                  </View>
-                </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Price (₹)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editServicePrice}
+                  onChangeText={setEditServicePrice}
+                  keyboardType="numeric"
+                  placeholder="Enter amount"
+                />
               </View>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={handleCloseEditServiceModal}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={updateService}
-                >
-                  <Text style={styles.confirmButtonText}>Update Service</Text>
-                </TouchableOpacity>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Duration</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editServiceDuration}
+                  onChangeText={setEditServiceDuration}
+                  placeholder="e.g. 30 mins, 1 hour"
+                />
               </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => {
+                  setEditServiceName('');
+                  setEditServicePrice('');
+                  setEditServiceDuration('');
+                  setEditingService(null);
+                  setShowEditServiceModal(false);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={updateService}>
+                <Text style={styles.confirmText}>Update</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
-  )
+  );
 }
 
-// Your existing styles remain exactly the same...
+// ────────────────────────────────────────────────
+// Styles
+// ────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  workingHoursButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  workingHoursButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#0F172A',
-    flex: 1,
-    marginLeft: 16,
-  },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    paddingTop: 35,
+    backgroundColor: '#f8fafc',
   },
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  loadingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
+    gap: 16,
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: '#64748b',
     marginTop: 12,
-    fontWeight: '500',
   },
-  scrollContainer: {
+
+  // No shop screen
+  noShopContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  noShopCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 380,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  noShopTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  noShopSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4f46e5',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '100%',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  logoutText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 32,
-    paddingTop: 10,
+    paddingBottom: 80,
   },
+
   section: {
-    marginBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'white',
     borderRadius: 16,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
   },
-  sectionTitleContainer: {
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
   sectionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -971,79 +1000,78 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#0F172A',
-    letterSpacing: -0.3,
+    color: '#0f172a',
   },
-  countBadge: {
-    backgroundColor: '#4F46E5',
+  badge: {
+    backgroundColor: '#4f46e5',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
-    paddingHorizontal: 6,
+    marginLeft: 10,
+    paddingHorizontal: 8,
   },
-  countBadgeText: {
-    color: '#FFFFFF',
+  badgeText: {
+    color: 'white',
     fontSize: 12,
     fontWeight: '600',
   },
-  addButton: {
+  addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#4f46e5',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: 14,
+    borderRadius: 10,
   },
-  addButtonText: {
-    color: '#FFFFFF',
-    marginLeft: 6,
+  addBtnText: {
+    color: 'white',
     fontWeight: '600',
+    marginLeft: 6,
     fontSize: 14,
   },
-  shopInfoGrid: {
+
+  shopInfoContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  shopInfoRow: {
+  shopRow: {
     flexDirection: 'row',
     marginBottom: 16,
   },
-  shopInfoItem: {
+  shopItem: {
     flex: 1,
     marginRight: 16,
   },
-  shopInfoLabel: {
+  shopItemFull: {
+    flex: 1,
+  },
+  label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    color: '#64748b',
     marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  shopInfoValue: {
+  value: {
     fontSize: 16,
-    color: '#0F172A',
+    color: '#0f172a',
     fontWeight: '500',
   },
-  listContainer: {
+
+  listWrapper: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#f1f5f9',
   },
   lastItem: {
     borderBottomWidth: 0,
@@ -1054,10 +1082,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 10,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#eef2ff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1068,13 +1096,12 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0F172A',
-    marginBottom: 4,
+    color: '#0f172a',
+    marginBottom: 3,
   },
   itemDetail: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '400',
+    color: '#64748b',
   },
   itemActions: {
     flexDirection: 'row',
@@ -1082,47 +1109,90 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   editButton: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#ecfdf5',
   },
   deleteButton: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#fef2f2',
   },
-  emptyState: {
+
+  empty: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 40,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#64748b',
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  emptySubtitle: {
+  emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#94a3b8',
     textAlign: 'center',
   },
+
+  bottomAction: {
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  workingHoursBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  workingHoursText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginLeft: 14,
+  },
+
+  logoutFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+  },
+  logoutFullText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
+  modalCard: {
+    backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
-  },
-  modalContent: {
     padding: 24,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1131,78 +1201,54 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#f1f5f9',
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.5,
+    color: '#0f172a',
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputContainer: {
+  form: {
     marginBottom: 20,
   },
-  inputRow: {
-    flexDirection: 'row',
+  field: {
     marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
   },
   input: {
     height: 52,
-    borderColor: '#E2E8F0',
-    borderWidth: 2,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#0F172A',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#ffffff',
   },
-  modalButtons: {
+  modalActions: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 12,
   },
-  modalButton: {
+  modalBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#F1F5F9',
+  cancelBtn: {
+    backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#e2e8f0',
   },
-  confirmButton: {
-    backgroundColor: '#4F46E5',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+  confirmBtn: {
+    backgroundColor: '#4f46e5',
   },
-  cancelButtonText: {
-    color: '#64748B',
+  cancelText: {
+    color: '#64748b',
     fontWeight: '600',
     fontSize: 16,
   },
-  confirmButtonText: {
-    color: '#FFFFFF',
+  confirmText: {
+    color: 'white',
     fontWeight: '600',
     fontSize: 16,
   },
-})
+});

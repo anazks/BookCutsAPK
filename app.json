@@ -4,7 +4,7 @@
     "slug": "bookmycuts",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/scissors.png",
+    "icon": "./assets/images/scissors_icon.png",
     "scheme": "bookmycuts",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

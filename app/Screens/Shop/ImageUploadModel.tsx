@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Image, ScrollView, SafeAreaView, Alert } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Image,
+  ScrollView,
+  SafeAreaView,
+  Alert,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,10 +21,16 @@ const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#FF6B6B';
 const BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 
-const ImageUploadModal = ({ visible, onClose, onSave }) => {
-  const [description, setDescription] = useState(''); 
+interface ImageUploadModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave?: () => void;
+}
+
+const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onClose, onSave }) => {
+  const [description, setDescription] = useState('');
   const [title, setTitle] = useState('');
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const handleClose = () => {
@@ -26,7 +44,7 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
 
   const handleSave = async () => {
     if (!image || !title.trim()) {
-      Alert.alert('Missing Information', 'Please add an image and title');
+      Alert.alert('Missing Information', 'Please add an image and a title');
       return;
     }
 
@@ -34,7 +52,7 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
 
     try {
       const shopId = await AsyncStorage.getItem('shopId');
-      
+
       if (!shopId) {
         Alert.alert('Error', 'Shop ID not found. Please login again.');
         setUploading(false);
@@ -42,85 +60,49 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
       }
 
       const formData = new FormData();
-      
-      // Extract filename safely
+
+      // Extract filename from URI
       const uriParts = image.split('/');
       const filename = uriParts[uriParts.length - 1] || `photo_${Date.now()}.jpg`;
-      
-      // Detect MIME type from extension
-      let mimeType = 'image/jpeg'; // default
-      const lowerFilename = filename.toLowerCase();
-      if (lowerFilename.endsWith('.png')) {
-        mimeType = 'image/png';
-      } else if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) {
-        mimeType = 'image/jpeg';
-      } else if (lowerFilename.endsWith('.gif')) {
-        mimeType = 'image/gif';
-      } else if (lowerFilename.endsWith('.webp')) {
-        mimeType = 'image/webp';
-      } else if (lowerFilename.endsWith('.heic') || lowerFilename.endsWith('.heif')) {
-        mimeType = 'image/heic';
-      }
 
-      // Append text fields first
-      formData.append("title", title.trim());
-      
-      // Only append description if not empty
+      // Determine MIME type based on file extension
+      let mimeType = 'image/jpeg';
+      const lowerFilename = filename.toLowerCase();
+      if (lowerFilename.endsWith('.png')) mimeType = 'image/png';
+      else if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) mimeType = 'image/jpeg';
+      else if (lowerFilename.endsWith('.gif')) mimeType = 'image/gif';
+      else if (lowerFilename.endsWith('.webp')) mimeType = 'image/webp';
+
+      // Append fields
+      formData.append('title', title.trim());
       if (description.trim()) {
-        formData.append("description", description.trim());
+        formData.append('description', description.trim());
       }
-      
-      // Append file last - field name MUST be "file" to match upload.single('file')
-      formData.append("file", {
+      formData.append('file', {
         uri: image,
         name: filename,
         type: mimeType,
       } as any);
 
-      console.log('📤 Uploading with data:', {
-        shopId,
-        title: title.trim(),
-        description: description.trim() || '(empty)',
-        filename,
-        mimeType,
+      console.log('Uploading image:', { shopId, title: title.trim(), filename, mimeType });
+
+      const response = await axios.post(`${BASE_URL}/shop/uploadMedia/${shopId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      // Direct axios call to the API endpoint
-      const response = await axios.post(
-        `${BASE_URL}/shop/uploadMedia/${shopId}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-
       if (response.status === 200) {
-        console.log("✅ Upload success:", response.data);
         Alert.alert('Success', 'Image uploaded successfully!');
-        
-        if (onSave) {
-          onSave();
-        }
-        
+        onSave?.();
         handleClose();
       } else {
-        throw new Error('Unexpected response status');
+        throw new Error(`Unexpected response status: ${response.status}`);
       }
     } catch (err: any) {
-      console.error("❌ Upload error:", err);
-      
-      let errorMessage = 'Upload failed. Please try again.';
-      
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      } else if (typeof err === 'string') {
-        errorMessage = err;
-      }
-      
+      console.error('Upload error:', err);
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Upload failed. Please try again.';
       Alert.alert('Upload Failed', errorMessage);
     } finally {
       setUploading(false);
@@ -129,28 +111,25 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
 
   const pickImage = async () => {
     try {
-      // Request permissions
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Please allow access to your photo library');
+        Alert.alert('Permission Required', 'Please allow access to your photo library.');
         return;
       }
 
-      // Launch image picker with updated API
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8, // Slightly compressed for faster upload
+        allowsEditing: false, // Changed to false → allows original image without forced crop
+        quality: 0.9, // Slightly better quality than 0.8, still reasonable for upload
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setImage(result.assets[0].uri);
-        console.log('✅ Image selected:', result.assets[0].uri);
+        console.log('Image selected:', result.assets[0].uri);
       }
     } catch (error) {
-      console.error('❌ Error picking image:', error);
+      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
@@ -166,8 +145,8 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              onPress={handleClose} 
+            <TouchableOpacity
+              onPress={handleClose}
               style={styles.closeButton}
               disabled={uploading}
             >
@@ -177,9 +156,9 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
             <View style={styles.placeholder} />
           </View>
 
-          {/* Image Upload/Preview Area */}
-          <TouchableOpacity 
-            style={styles.imageContainer} 
+          {/* Image Upload / Preview */}
+          <TouchableOpacity
+            style={styles.imageContainer}
             onPress={pickImage}
             disabled={uploading}
           >
@@ -194,7 +173,10 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
             ) : (
               <View style={styles.uploadArea}>
                 <MaterialIcons name="add-a-photo" size={48} color={PRIMARY_COLOR} />
-                <Text style={styles.uploadText}>Tap to Select or Upload Image</Text>
+                <Text style={styles.uploadText}>Tap to Select Image</Text>
+                <Text style={styles.uploadSubText}>
+                  Original size will be used (no forced cropping)
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -225,7 +207,7 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
           </View>
         </ScrollView>
 
-        {/* Bottom Buttons */}
+        {/* Bottom Action Buttons */}
         <View style={styles.bottomContainer}>
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -235,19 +217,22 @@ const ImageUploadModal = ({ visible, onClose, onSave }) => {
             >
               <Text style={styles.textStyle}>Cancel</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
-                styles.button, 
-                styles.buttonSave, 
-                (!image || !title.trim() || uploading) && styles.buttonDisabled
+                styles.button,
+                styles.buttonSave,
+                (!image || !title.trim() || uploading) && styles.buttonDisabled,
               ]}
               onPress={handleSave}
               disabled={!image || !title.trim() || uploading}
             >
-              <Text style={[
-                styles.textStyle, 
-                (!image || !title.trim() || uploading) && styles.disabledText
-              ]}>
+              <Text
+                style={[
+                  styles.textStyle,
+                  (!image || !title.trim() || uploading) && styles.disabledText,
+                ]}
+              >
                 {uploading ? 'Uploading...' : 'Save Image'}
               </Text>
             </TouchableOpacity>
@@ -265,7 +250,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 120, // Extra padding for bottom buttons
   },
   header: {
     flexDirection: 'row',
@@ -284,7 +269,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#333',
-    textAlign: 'center',
   },
   placeholder: {
     width: 38,
@@ -310,6 +294,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  uploadSubText: {
+    marginTop: 8,
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   imagePreview: {
     position: 'relative',
     width: '100%',
@@ -327,7 +317,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',

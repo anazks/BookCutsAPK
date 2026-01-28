@@ -106,13 +106,13 @@ export default function ShopOwnerHome() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
+      {/* <TouchableOpacity 
         style={styles.fab}
         onPress={() => router.push('/Components/Shop/AddShop')}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={24} color="#FFF" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Add Shop Modal */}
       <Modal

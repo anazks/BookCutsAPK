@@ -34,37 +34,55 @@ export default function Login() {
 
   // ---------------- Normal login functions ----------------
   const handleLogin = async () => {
-    setLoading(true);
-    try {
-      if (!email || !password) {
-        Alert.alert('Error', 'Please enter both email and password');
-        setLoading(false);
-        return;
-      }
+  setLoading(true);
 
-      const loginData = { email, password };
-      const response = await LoginShopUser(loginData);
-
-      if (response.success && response.result.token) {
-        await AsyncStorage.setItem('accessToken', response.result.token);
-        // const shop = await viewMyShop();
-        // console.log("shop data:", shop);
-        // const shopId = shop.data._id;
-        // console.log("shopId:", shopId);
-        // await AsyncStorage.setItem('shopId', shopId);
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') }
-        ]);
-      } else {
-        Alert.alert('Login Error', response.message || 'Login failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+  try {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
     }
-  };
+
+    const loginData = { email, password };
+
+    // ✅ response is already response.data
+    const response = await LoginShopUser(loginData);
+
+    console.log('LOGIN RESPONSE 👉', response);
+
+    if (response.success && response.token) {
+
+      await AsyncStorage.setItem('accessToken', response.token);
+
+      if (response.user?.shopId) {
+        await AsyncStorage.setItem('shopId', response.user.shopId);
+      }
+
+      Alert.alert('Success', 'Login successful!', [
+        { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') }
+      ]);
+
+    } else {
+      Alert.alert(
+        'Login Error',
+        response.message || 'Login failed. Please try again.'
+      );
+    }
+
+  } catch (error) {
+    console.log('❌ LOGIN ERROR FULL 👉', error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'An unexpected error occurred. Please try again.';
+
+    Alert.alert('Error', message);
+
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ---------------- OTP login functions ----------------
   const handleSendOtp = async () => {
@@ -108,11 +126,8 @@ export default function Login() {
 
       if (verifyResponse.success && verifyResponse.token) {
         await AsyncStorage.setItem('accessToken', verifyResponse.token);
-        // const shop = await viewMyShop();
-        // console.log("shop data:", shop);
-        // const shopId = shop.data._id;
-        // console.log("shopId:", shopId);
-        // await AsyncStorage.setItem('shopId', shopId);
+       
+        await AsyncStorage.setItem('shopId', verifyResponse.userDate.shopId);
         Alert.alert('Success', 'Login successful!', [
           { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
         ]);
@@ -234,7 +249,12 @@ export default function Login() {
                 <TouchableOpacity 
                   style={styles.forgotPassword} 
                   disabled={loading}
-                  onPress={() => Alert.alert('Forgot Password', 'Coming soon!')}
+                  onPress={() =>
+                                  router.push({
+                                    pathname: '/Screens/User/ForgotPassword',
+                                    params: { role: 'shopper' }
+                                  })
+                                }
                 >
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>

@@ -59,3 +59,29 @@ export const fetchPremiumShops = async () => {
     }
 }
 
+export const forgotPassword = async (data) => {
+    try {
+        const resposne = await Axios.post('/auth/forgot-password',data)
+        return resposne.data
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export const verifyForgotOtp = async (data) => {
+    try {
+        const response = await Axios.post('auth/verify-forgot-otp',data)
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export const resetPassword = async (data) => {
+    try {
+        const response = await Axios.post('auth/reset-password',data)
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}
