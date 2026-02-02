@@ -76,7 +76,7 @@ export default function Login() {
       error?.message ||
       'An unexpected error occurred. Please try again.';
 
-    Alert.alert('Error', message);
+    Alert.alert(message);
 
   } finally {
     setLoading(false);

@@ -51,21 +51,16 @@ export default function Login() {
       const response = await userLogin({ email, password });
       console.log('Login response:', response);
 
-      if (
-        response.success === true &&
-        response.result &&
-        response.result.token &&
-        !response.result.message
-      ) {
+      if (response.success === true && response.token && response.user) {
+  await AsyncStorage.setItem('userId', response.user.id);
+  await AsyncStorage.setItem('accessToken', response.token);
+  router.replace('/(tabs)/Home');
+} else {
+  const errorMessage =
+    response.message || 'Invalid login details.';
+  Alert.alert('Login Failed', errorMessage, [{ text: 'OK' }]);
+}
 
-        await AsyncStorage.setItem('userId',response.result.userData.id)
-        await AsyncStorage.setItem('accessToken', response.result.token);
-        router.replace('/(tabs)/Home');
-      } else {
-        const errorMessage =
-          response.result?.message || response.message || 'Invalid login details.';
-        Alert.alert('Login Failed', errorMessage, [{ text: 'OK' }]);
-      }
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert(

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -10,11 +10,12 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { myBookings } from '../../api/Service/Booking';
 
-// Enable smooth animations on Android
+// Enable smooth layout animations on Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -23,43 +24,106 @@ if (Platform.OS === 'android') {
 
 export default function Bookings() {
   const router = useRouter();
-  const [bookings, setBookings] = useState([]);
+
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
+  const LIMIT = 10;
+  const isMounted = useRef(true);
+  const hasFetchedInitial = useRef(false);
 
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await myBookings();
+  const fetchBookings = useCallback(
+    async (isRefresh: boolean = false) => {
+      if (!isMounted.current) return;
 
-      if (response.success && Array.isArray(response.bookings)) {
-        const sortedBookings = [...response.bookings].sort(
-          (a, b) => new Date(b.bookingTimestamp) - new Date(a.bookingTimestamp)
-        );
-        setBookings(sortedBookings);
+      // Prevent overlapping calls
+      if (!isRefresh && loadingMore) return;
+
+      if (isRefresh) {
+        setRefreshing(true);
+        setBookings([]);
+        setNextCursor(null);
+        setHasMore(true);
+        setError(null);
       } else {
-        setError('No bookings available');
+        setLoadingMore(true);
       }
-    } catch (err) {
-      setError('Failed to load bookings. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const toggleExpand = (id) => {
+      try {
+        const params: { limit: number; lastDate?: string } = { limit: LIMIT };
+        if (!isRefresh && nextCursor) {
+          params.lastDate = nextCursor;
+        }
+
+        const response = await myBookings(params);
+
+        if (!isMounted.current) return;
+
+        if (response?.success && Array.isArray(response.bookings)) {
+          const newBookings = response.bookings;
+
+          setBookings((prev) => (isRefresh ? newBookings : [...prev, ...newBookings]));
+
+          const receivedCursor = response.nextCursor;
+          setNextCursor(receivedCursor || null);
+
+          // No more pages if we got fewer items than requested or no cursor
+          if (newBookings.length < LIMIT || !receivedCursor) {
+            setHasMore(false);
+          }
+        } else {
+          setError('No bookings available at this time.');
+        }
+      } catch (err: any) {
+        console.error('Bookings fetch error:', err);
+        if (isMounted.current) {
+          setError('Failed to load bookings. Please check your connection.');
+        }
+      } finally {
+        if (isMounted.current) {
+          setLoading(false);
+          setLoadingMore(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [nextCursor, loadingMore] // reduced dependencies → more stable
+  );
+
+  // Initial load – only once
+  useEffect(() => {
+    if (hasFetchedInitial.current) return;
+    hasFetchedInitial.current = true;
+
+    fetchBookings(true);
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []); // ← empty array = mount only
+
+  const onRefresh = useCallback(() => {
+    fetchBookings(true);
+  }, [fetchBookings]);
+
+  const loadMore = useCallback(() => {
+    // Extra safety: don't trigger if already doing something
+    if (loading || loadingMore || refreshing || !hasMore) return;
+    fetchBookings(false);
+  }, [loading, loadingMore, refreshing, hasMore, fetchBookings]);
+
+  const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(expandedId === id ? null : id);
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return 'Invalid Date';
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -68,7 +132,7 @@ export default function Bookings() {
     });
   };
 
-  const formatTime = (isoString) => {
+  const formatTime = (isoString?: string) => {
     if (!isoString) return 'N/A';
     return new Date(isoString).toLocaleTimeString('en-IN', {
       hour: '2-digit',
@@ -77,35 +141,26 @@ export default function Bookings() {
     });
   };
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status?: string) => {
     switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return { bg: '#EEF2FF', text: '#4F46E5', border: '#4F46E5' };
-      case 'completed':
-        return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
-      case 'pending':
-        return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
-      case 'cancelled':
-        return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
-      default:
-        return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
+      case 'confirmed': return { bg: '#EEF2FF', text: '#4F46E5', border: '#4F46E5' };
+      case 'completed': return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
+      case 'pending':   return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
+      case 'cancelled': return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
+      default:          return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
     }
   };
 
-  const getPaymentStyle = (status) => {
+  const getPaymentStyle = (status?: string) => {
     switch (status?.toLowerCase()) {
-      case 'paid':
-        return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
-      case 'partial':
-        return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
-      case 'pending':
-        return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
-      default:
-        return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
+      case 'paid':    return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
+      case 'partial': return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
+      case 'pending': return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
+      default:        return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
     }
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -122,17 +177,19 @@ export default function Bookings() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={{
-            width: 64,
-            height: 64,
-            borderRadius: 8,
-            backgroundColor: '#F9FAFB',
-            borderWidth: 1,
-            borderColor: '#E5E7EB',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 20
-          }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 8,
+              backgroundColor: '#F9FAFB',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 20,
+            }}
+          >
             <Text style={{ fontSize: 32 }}>⚠️</Text>
           </View>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
@@ -142,7 +199,7 @@ export default function Bookings() {
             {error}
           </Text>
           <TouchableOpacity
-            onPress={fetchBookings}
+            onPress={() => fetchBookings(true)}
             style={{
               backgroundColor: '#4F46E5',
               paddingHorizontal: 32,
@@ -161,7 +218,6 @@ export default function Bookings() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Professional Header */}
       <View
         style={{
           backgroundColor: '#FFFFFF',
@@ -175,7 +231,6 @@ export default function Bookings() {
           alignItems: 'center',
         }}
       >
-        {/* Back Button */}
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/Home')}
           style={{
@@ -185,34 +240,44 @@ export default function Bookings() {
             borderRadius: 6,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
-            ← Home
-          </Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>← Home</Text>
         </TouchableOpacity>
-        
+
         <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>
           {bookings.length} {bookings.length === 1 ? 'appointment' : 'appointments'}
         </Text>
       </View>
 
-      {/* Bookings List */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 20, flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#4F46E5']}
+            tintColor="#4F46E5"
+          />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4} // trigger earlier
+        scrollEventThrottle={400}
       >
         {bookings.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 80 }}>
-            <View style={{
-              width: 100,
-              height: 100,
-              borderRadius: 8,
-              backgroundColor: '#F9FAFB',
-              borderWidth: 1,
-              borderColor: '#E5E7EB',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 24
-            }}>
+            <View
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: 8,
+                backgroundColor: '#F9FAFB',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}
+            >
               <Text style={{ fontSize: 48 }}>📅</Text>
             </View>
             <Text style={{ fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
@@ -249,13 +314,15 @@ export default function Bookings() {
                 }}
               >
                 {/* Card Header */}
-                <View style={{
-                  backgroundColor: isExpanded ? '#F9FAFB' : '#FFFFFF',
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#E5E7EB',
-                }}>
+                <View
+                  style={{
+                    backgroundColor: isExpanded ? '#F9FAFB' : '#FFFFFF',
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E7EB',
+                  }}
+                >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1, marginRight: 12 }}>
                       <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 6 }}>
@@ -266,7 +333,6 @@ export default function Bookings() {
                       </Text>
                     </View>
 
-                    {/* Status Badge */}
                     <View
                       style={{
                         paddingHorizontal: 10,
@@ -277,25 +343,41 @@ export default function Bookings() {
                         borderColor: statusStyle.border,
                       }}
                     >
-                      <Text style={{ color: statusStyle.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.3 }}>
+                      <Text
+                        style={{
+                          color: statusStyle.text,
+                          fontSize: 11,
+                          fontWeight: '700',
+                          letterSpacing: 0.3,
+                        }}
+                      >
                         {booking.bookingStatus?.toUpperCase() || 'UNKNOWN'}
                       </Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Main Card Content */}
+                {/* Main Content */}
                 <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-                  {/* Time & Price Row */}
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    marginBottom: 16,
-                  }}>
-                    {/* Time */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      marginBottom: 16,
+                    }}
+                  >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: '#9CA3AF',
+                          fontWeight: '600',
+                          letterSpacing: 0.5,
+                          marginBottom: 6,
+                          textTransform: 'uppercase',
+                        }}
+                      >
                         Time Slot
                       </Text>
                       <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>
@@ -306,53 +388,73 @@ export default function Bookings() {
                       </Text>
                     </View>
 
-                    {/* Price */}
-                    <View style={{
-                      backgroundColor: '#EEF2FF',
-                      borderRadius: 6,
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderWidth: 1,
-                      borderColor: '#4F46E5',
-                      alignItems: 'flex-end',
-                    }}>
-                      <Text style={{ fontSize: 11, color: '#4F46E5', fontWeight: '600', letterSpacing: 0.3, marginBottom: 4, textTransform: 'uppercase' }}>
+                    <View
+                      style={{
+                        backgroundColor: '#EEF2FF',
+                        borderRadius: 6,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderWidth: 1,
+                        borderColor: '#4F46E5',
+                        alignItems: 'flex-end',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: '#4F46E5',
+                          fontWeight: '600',
+                          letterSpacing: 0.3,
+                          marginBottom: 4,
+                          textTransform: 'uppercase',
+                        }}
+                      >
                         Total
                       </Text>
-                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#4F46E5', letterSpacing: -0.5 }}>
+                      <Text
+                        style={{
+                          fontSize: 20,
+                          fontWeight: '700',
+                          color: '#4F46E5',
+                          letterSpacing: -0.5,
+                        }}
+                      >
                         ₹{booking.totalPrice || 0}
                       </Text>
                     </View>
                   </View>
 
-                    {/* Expand/Collapse Indicator */}
-                    <View style={{
+                  <View
+                    style={{
                       flexDirection: 'row',
                       justifyContent: 'center',
                       alignItems: 'center',
                       paddingTop: 12,
                       borderTopWidth: 1,
                       borderTopColor: '#E5E7EB',
-                    }}>
-                      <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500', marginRight: 8 }}>
-                        {isExpanded ? 'Show Less' : 'Show More'}
-                      </Text>
-                      <View style={{
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500', marginRight: 8 }}>
+                      {isExpanded ? 'Show Less' : 'Show More'}
+                    </Text>
+                    <View
+                      style={{
                         width: 18,
                         height: 18,
                         borderRadius: 3,
                         backgroundColor: '#4F46E5',
                         justifyContent: 'center',
                         alignItems: 'center',
-                      }}>
-                        <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '600' }}>
-                          {isExpanded ? '−' : '+'}
-                        </Text>
-                      </View>
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '600' }}>
+                        {isExpanded ? '−' : '+'}
+                      </Text>
                     </View>
+                  </View>
                 </View>
 
-                {/* Expanded Details */}
+                {/* Expanded Section */}
                 {isExpanded && (
                   <View
                     style={{
@@ -363,23 +465,25 @@ export default function Bookings() {
                       borderTopColor: '#E5E7EB',
                     }}
                   >
-                    {/* Services Section */}
-                    <View style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 6,
-                      padding: 16,
-                      marginBottom: 12,
-                      borderWidth: 1,
-                      borderColor: '#E5E7EB',
-                    }}>
+                    {/* Services */}
+                    <View
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 6,
+                        padding: 16,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                      }}
+                    >
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
                         Services Booked
                       </Text>
 
                       {(booking.services || []).length > 0 ? (
-                        booking.services.map((service, index) => (
+                        booking.services.map((service: any, index: number) => (
                           <View
-                            key={service.id || service._id || index}
+                            key={service._id || service.id || index}
                             style={{
                               flexDirection: 'row',
                               justifyContent: 'space-between',
@@ -393,7 +497,7 @@ export default function Bookings() {
                               <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 4 }}>
                                 {service.name}
                               </Text>
-                              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '400' }}>
+                              <Text style={{ fontSize: 13, color: '#6B7280' }}>
                                 {service.duration} minutes
                               </Text>
                             </View>
@@ -409,94 +513,71 @@ export default function Bookings() {
                       )}
                     </View>
 
-                    {/* Booking Details Section */}
-                    <View style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 6,
-                      padding: 16,
-                      marginBottom: 12,
-                      borderWidth: 1,
-                      borderColor: '#E5E7EB',
-                    }}>
+                    {/* Booking Details */}
+                    <View
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 6,
+                        padding: 16,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                      }}
+                    >
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
                         Booking Details
                       </Text>
 
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Barber</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                          {booking.barberId?.BarberName || 'N/A'}
-                        </Text>
-                      </View>
-
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Time Slot</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                          {startTime} – {endTime}
-                        </Text>
-                      </View>
-
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Total Duration</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                          {booking.totalDuration || 0} min
-                        </Text>
-                      </View>
-
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Booked On</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                          {booking.bookingTimestamp
-                            ? new Date(booking.bookingTimestamp).toLocaleDateString('en-IN', {
+                      <DetailRow label="Barber" value={booking.barberId?.BarberName || 'N/A'} />
+                      <DetailRow label="Time Slot" value={`${startTime} – ${endTime}`} />
+                      <DetailRow label="Total Duration" value={`${booking.totalDuration || 0} min`} />
+                      <DetailRow
+                        label="Booked On"
+                        value={
+                          booking.bookingTimestamp
+                            ? new Date(booking.bookingTimestamp).toLocaleString('en-IN', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })
-                            : 'N/A'}
-                        </Text>
-                      </View>
+                            : 'N/A'
+                        }
+                      />
                     </View>
 
-                    {/* Payment Details Section */}
-                    <View style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 6,
-                      padding: 16,
-                      borderWidth: 1,
-                      borderColor: '#E5E7EB',
-                    }}>
+                    {/* Payment Summary */}
+                    <View
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 6,
+                        padding: 16,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                      }}
+                    >
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
                         Payment Summary
                       </Text>
 
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Amount Paid</Text>
-                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#059669' }}>
-                          ₹{booking.amountPaid || 0}
-                        </Text>
-                      </View>
-
+                      <DetailRow label="Amount Paid" value={`₹${booking.amountPaid || 0}`} isBold color="#059669" />
                       {booking.remainingAmount > 0 && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                          <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Remaining</Text>
-                          <Text style={{ fontSize: 15, fontWeight: '700', color: '#DC2626' }}>
-                            ₹{booking.remainingAmount}
-                          </Text>
-                        </View>
+                        <DetailRow label="Remaining" value={`₹${booking.remainingAmount}`} isBold color="#DC2626" />
                       )}
 
-                      <View style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginTop: 12,
-                        paddingTop: 12,
-                        borderTopWidth: 1,
-                        borderTopColor: '#F3F4F6',
-                      }}>
-                        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Payment Status</Text>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginTop: 12,
+                          paddingTop: 12,
+                          borderTopWidth: 1,
+                          borderTopColor: '#F3F4F6',
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, color: '#6B7280' }}>Payment Status</Text>
                         <View
                           style={{
                             paddingHorizontal: 10,
@@ -507,26 +588,23 @@ export default function Bookings() {
                             borderColor: getPaymentStyle(booking.paymentStatus).border,
                           }}
                         >
-                          <Text style={{
-                            color: getPaymentStyle(booking.paymentStatus).text,
-                            fontSize: 11,
-                            fontWeight: '700',
-                            letterSpacing: 0.3
-                          }}>
+                          <Text
+                            style={{
+                              color: getPaymentStyle(booking.paymentStatus).text,
+                              fontSize: 11,
+                              fontWeight: '700',
+                              letterSpacing: 0.3,
+                            }}
+                          >
                             {booking.paymentStatus?.toUpperCase() || 'UNKNOWN'}
                           </Text>
                         </View>
                       </View>
                     </View>
 
-                    {/* Booking ID Footer */}
-                    <View style={{
-                      marginTop: 12,
-                      paddingVertical: 10,
-                      alignItems: 'center',
-                    }}>
+                    <View style={{ marginTop: 12, paddingVertical: 10, alignItems: 'center' }}>
                       <Text style={{ fontSize: 12, color: '#9CA3AF', fontWeight: '500' }}>
-                        Booking ID: {booking._id.slice(-12).toUpperCase()}
+                        Booking ID: {booking._id?.slice(-12).toUpperCase()}
                       </Text>
                     </View>
                   </View>
@@ -535,7 +613,49 @@ export default function Bookings() {
             );
           })
         )}
+
+        {loadingMore && (
+          <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#4F46E5" />
+            <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>
+              Loading more bookings...
+            </Text>
+          </View>
+        )}
+
+        {!hasMore && bookings.length > 0 && !loadingMore && (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <Text style={{ color: '#9CA3AF', fontSize: 14 }}>• End of bookings •</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  isBold = false,
+  color,
+}: {
+  label: string;
+  value: string;
+  isBold?: boolean;
+  color?: string;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+      <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>{label}</Text>
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: isBold ? '700' : '600',
+          color: color || '#111827',
+        }}
+      >
+        {value}
+      </Text>
+    </View>
   );
 }

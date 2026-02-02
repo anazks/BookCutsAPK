@@ -163,11 +163,8 @@ const BarberShopFeed = () => {
           <View style={styles.feedAvatar} />
           <View style={styles.feedUserInfo}>
             <Text style={styles.feedShopName}>{shopData.ShopName || 'Barber Shop'}</Text>
-            <Text style={styles.feedTimestamp}>2 hours ago</Text>
+            {/* <Text style={styles.feedTimestamp}>2 hours ago</Text> */}
           </View>
-          <TouchableOpacity style={styles.feedMoreButton}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-          </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={styles.feedMedia}
@@ -182,7 +179,7 @@ const BarberShopFeed = () => {
         </TouchableOpacity>
         <View style={styles.feedFooter}>
           <Text style={styles.feedCaption} numberOfLines={2}>{caption}</Text>
-          <Text style={styles.feedTimestampFooter}>2 HOURS AGO</Text>
+          {/* <Text style={styles.feedTimestampFooter}>2 HOURS AGO</Text> */}
         </View>
       </View>
     );
@@ -391,10 +388,10 @@ const BarberShopFeed = () => {
               )}
             </View>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalActionButton} onPress={handleShareMedia}>
+              {/* <TouchableOpacity style={styles.modalActionButton} onPress={handleShareMedia}>
                 <Ionicons name="share-social-outline" size={20} color="#FF6B6B" />
                 <Text style={styles.modalActionText}>Share</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
         </View>

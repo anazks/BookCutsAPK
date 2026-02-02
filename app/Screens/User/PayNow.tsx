@@ -5,6 +5,8 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { createOrder, verifyPayment } from '../../api/Service/Booking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+ import * as Notifications from 'expo-notifications';
+
 
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
@@ -53,6 +55,9 @@ export default function PayNow() {
     customerEmail = 'customer@example.com',
     customerPhone = '9999999999'
   } = params;
+ 
+  const triggerDate = new Date(Date.now() + 5 * 60 * 1000);
+
 
   useEffect(() => {
     const loadBookingData = async () => {
@@ -83,82 +88,109 @@ export default function PayNow() {
     return null;
   };
 
-  const handlePaymentSuccess = useCallback(async (paymentResponse) => {
-    try {
-      setIsProcessing(true);
-      
-      const {
-        razorpay_payment_id,
-        razorpay_order_id,
-        razorpay_signature
-      } = paymentResponse;
 
-      console.log('Payment successful, verifying with backend...', {
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
-        signature: razorpay_signature
+const handlePaymentSuccess = useCallback(async (paymentResponse) => {
+  try {
+    setIsProcessing(true);
+
+    const {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature
+    } = paymentResponse;
+
+    console.log('Payment successful, verifying with backend...', {
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      signature: razorpay_signature
+    });
+
+    const finalBookingId = getBookingId();
+    if (!finalBookingId) {
+      throw new Error('Booking ID not found for verification');
+    }
+
+    const email = await AsyncStorage.getItem('email');
+
+    const verificationData = {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      bookingId: finalBookingId,
+      paymentType,
+      amount: paymentType === 'advance' ? advanceAmount : totalPrice,
+      currency: 'INR',
+      email
+    };
+
+    console.log('Sending verification data:', verificationData);
+
+    const verificationResponse = await verifyPayment(verificationData);
+
+    if (verificationResponse.success) {
+
+      /* =====================================
+         🔔 1. PAYMENT SUCCESS NOTIFICATION
+      ======================================*/
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Payment Successful 🎉",
+          body: `₹${verificationData.amount} paid successfully.`,
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null, // immediate
       });
 
-      // Get the booking ID to use for verification
-      const finalBookingId = getBookingId();
-      if (!finalBookingId) {
-        throw new Error('Booking ID not found for verification');
-      }
+      /* =====================================
+         ⏰ 2. HAIRCUT REMINDER (TEST: 5 MIN)
+      ======================================*/
+      await Notifications.scheduleNotificationAsync({
+  content: {
+    title: "✂️ Haircut Reminder",
+    body: "Your hair has grown. It's been 2 months since your last haircut.",
+    sound: 'default',
+  },
+  trigger: triggerDate,
+});
 
-      // Prepare verification data with booking ID
-      const email = await AsyncStorage.getItem('email')
-      console.log("SHOPPER EMAIL:",email)
-      const verificationData = {
-        razorpay_payment_id,
-        razorpay_order_id,
-        razorpay_signature,
-        bookingId: finalBookingId,
-        paymentType,
-        amount: paymentType === 'advance' ? advanceAmount : totalPrice,
-        currency: 'INR',
-        email
-      };
+      /* =====================================
+         🚀 NAVIGATION (UNCHANGED)
+      ======================================*/
+      router.push({
+        pathname: '/Screens/User/ConfirmBooking',
+        params: {
+          bookingId: finalBookingId,
+          paymentId: razorpay_payment_id,
+          paymentType,
+          amount: paymentType === 'advance' ? advanceAmount : totalPrice,
+          verified: 'true',
+          barberName,
+          bookingDate,
+          timeSlot
+        }
+      });
 
-      console.log('Sending verification data:', verificationData);
-
-      const verificationResponse = await verifyPayment(verificationData);
-      
-      if (verificationResponse.success) {
-        // console.log('Payment verified successfully:', verificationResponse);
-        console.warn('Sending verification data:', verificationData);
-
-        router.push({
-          pathname: '/Screens/User/ConfirmBooking',
-          params: {
-            bookingId: finalBookingId,
-            paymentId: razorpay_payment_id,
-            paymentType,
-            amount: paymentType === 'advance' ? advanceAmount : totalPrice,
-            verified: 'true',
-            barberName,
-            bookingDate,
-            timeSlot
-          }
-        });
-      } else {
-        throw new Error(verificationResponse.message || 'Payment verification failed');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      Alert.alert(
-        'Payment Failed', 
-        error.message || 'Your payment was processed but verification failed. Please contact support.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ]
-      );
-    } finally {
-      setIsProcessing(false);
+    } else {
+      throw new Error(verificationResponse.message || 'Payment verification failed');
     }
-  }, [bookingData, paymentType, advanceAmount, totalPrice, router]);
+  } catch (error: any) {
+    console.error('Payment verification error:', error);
+    Alert.alert(
+      'Payment Failed',
+      error.message || 'Your payment was processed but verification failed. Please contact support.',
+      [
+        {
+          text: 'OK',
+          onPress: () => router.back()
+        }
+      ]
+    );
+  } finally {
+    setIsProcessing(false);
+  }
+}, [bookingData, paymentType, advanceAmount, totalPrice, router]);
+
 
   const handlePayment = async () => {
     if (isProcessing) return;

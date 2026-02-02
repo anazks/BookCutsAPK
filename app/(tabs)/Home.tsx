@@ -296,8 +296,7 @@ const Home = () => {
       return {
         id: shop._id,
         name: shopName,
-        services: 'Haircut, Beard, Styling',
-        price: '$25-45',
+        location:shop.ExactLocation,
         distance: `${(shop.distance / 1000).toFixed(1)} km`,
         city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am - 8pm',
@@ -466,56 +465,301 @@ const Home = () => {
               <>
                 {/* Top Rated */}
                 {activeShops.length > 0 && (
-                  <View style={{ marginVertical: 16 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                      <Text style={{ fontSize: 18, fontWeight: '700' }}>Top Rated This Week</Text>
-                    </View>
-                    <FlatList
-                      horizontal
-                      data={getPopularShops()}
-                      keyExtractor={item => item.id}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}
-                          onPress={() => handleShopPress(item)}
-                        >
-                          <Image source={{ uri: item.image }} style={{ width: '100%', height: 100 }} />
-                          <View style={{ padding: 8 }}>
-                            <Text style={{ fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
-                            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>{item.services}</Text>
-                            <Text style={{ color: '#10B981', fontWeight: '600' }}>{item.price}</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                    />
-                  </View>
+                  <View style={{ marginVertical: 20 }}>
+  <View style={{ 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    paddingHorizontal: 16, 
+    marginBottom: 12 
+  }}>
+    <Text style={{ 
+      fontSize: 18, 
+      fontWeight: '800', 
+      color: '#111827',
+      letterSpacing: -0.5
+    }}>
+      Top Rated This Week
+    </Text>
+    <TouchableOpacity 
+  style={{ flexDirection: 'row', alignItems: 'center' }}
+  onPress={() => router.push('/(tabs)/BookNow')}
+>
+  <Text style={{ 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#10B981',
+    marginRight: 4
+  }}>
+    View All
+  </Text>
+  <Ionicons name="arrow-forward" size={16} color="#10B981" />
+</TouchableOpacity>
+  </View>
+  
+  <FlatList
+    horizontal
+    data={getPopularShops()}
+    keyExtractor={item => item.id}
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={{ paddingHorizontal: 16 }}
+    renderItem={({ item }) => (
+      <TouchableOpacity
+        style={{
+          width: 160,
+          marginRight: 16,
+          backgroundColor: 'white',
+          borderRadius: 16,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: '#F3F4F6',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
+        onPress={() => handleShopPress(item)}
+        activeOpacity={0.9}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image 
+            source={{ uri: item.image }} 
+            style={{ 
+              width: '100%', 
+              height: 100 
+            }}
+            resizeMode="cover"
+          />
+          <View style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 20,
+          }}>
+            <Ionicons name="star" size={10} color="#F59E0B" />
+            <Text style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: '#111827',
+              marginLeft: 2
+            }}>
+              4.5
+            </Text>
+          </View>
+        </View>
+        
+        <View style={{ padding: 12 }}>
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{
+              fontSize: 15,
+              fontWeight: '700',
+              color: '#111827',
+              marginBottom: 4,
+            }} numberOfLines={1}>
+              {item.name}
+            </Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="location-outline" size={12} color="#6B7280" />
+              <Text style={{
+                fontSize: 12,
+                color: '#6B7280',
+                marginLeft: 4,
+              }} numberOfLines={1}>
+                {item.location}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            borderTopWidth: 1,
+            borderTopColor: '#F3F4F6',
+            paddingTop: 8
+          }}>
+            {/* <View>
+              <Text style={{
+                fontSize: 12,
+                color: '#6B7280',
+                marginBottom: 2
+              }}>
+                From
+              </Text>
+              <Text style={{
+                fontSize: 15,
+                fontWeight: '800',
+                color: '#10B981',
+              }}>
+                {item.city}
+              </Text>
+            </View> */}
+            
+            <TouchableOpacity style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: '#ECFDF5',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Ionicons name="chevron-forward" size={16} color="#10B981" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    )}
+  />
+</View>
                 )}
 
                 {/* All Shops */}
                 {activeShops.length > 0 && (
-                  <View style={{ marginVertical: 16 }}>
-                    <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12 }}>
-                      All Available Shops ({activeShops.length})
-                    </Text>
-                    <FlatList
-                      horizontal
-                      data={getAllTransformedShops()}
-                      keyExtractor={item => item.id}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}
-                          onPress={() => handleShopPress(item)}
-                        >
-                          <Image source={{ uri: item.image }} style={{ width: '100%', height: 100 }} />
-                          <View style={{ padding: 8 }}>
-                            <Text style={{ fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
-                            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>{item.services}</Text>
-                            <Text style={{ color: '#10B981', fontWeight: '600' }}>{item.price}</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                    />
-                  </View>
+                  <View style={{ marginVertical: 20 }}>
+  <View style={{ 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    paddingHorizontal: 16, 
+    marginBottom: 12 
+  }}>
+    <Text style={{ 
+      fontSize: 18, 
+      fontWeight: '800', 
+      color: '#111827',
+      letterSpacing: -0.5
+    }}>
+      Top Rated This Week
+    </Text>
+    <TouchableOpacity 
+  style={{ flexDirection: 'row', alignItems: 'center' }}
+  onPress={() => router.push('/(tabs)/BookNow')}
+>
+  <Text style={{ 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#10B981',
+    marginRight: 4
+  }}>
+    View All
+  </Text>
+  <Ionicons name="arrow-forward" size={16} color="#10B981" />
+</TouchableOpacity>
+  </View>
+  
+  <FlatList
+    horizontal
+    data={getPopularShops()}
+    keyExtractor={item => item.id}
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={{ paddingHorizontal: 16 }}
+    renderItem={({ item }) => (
+      <TouchableOpacity
+        style={{
+          width: 160,
+          marginRight: 16,
+          backgroundColor: 'white',
+          borderRadius: 16,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: '#F3F4F6',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
+        onPress={() => handleShopPress(item)}
+        activeOpacity={0.9}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image 
+            source={{ uri: item.image }} 
+            style={{ 
+              width: '100%', 
+              height: 100 
+            }}
+            resizeMode="cover"
+          />
+          <View style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 20,
+          }}>
+            <Ionicons name="star" size={10} color="#F59E0B" />
+            <Text style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: '#111827',
+              marginLeft: 2
+            }}>
+              4.5
+            </Text>
+          </View>
+        </View>
+        
+        <View style={{ padding: 12 }}>
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{
+              fontSize: 15,
+              fontWeight: '700',
+              color: '#111827',
+              marginBottom: 4,
+            }} numberOfLines={1}>
+              {item.name}
+            </Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="location-outline" size={12} color="#6B7280" />
+              <Text style={{
+                fontSize: 12,
+                color: '#6B7280',
+                marginLeft: 4,
+              }} numberOfLines={1}>
+                {item.location}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            borderTopWidth: 1,
+            borderTopColor: '#F3F4F6',
+            paddingTop: 8
+          }}>
+          
+            
+            <TouchableOpacity style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: '#ECFDF5',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Ionicons name="chevron-forward" size={16} color="#10B981" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    )}
+  />
+</View>
                 )}
 
                 <PaisAdd />

@@ -102,7 +102,7 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
               </View>
             )}
             
-            <View style={styles.statusBadgeContainer}>
+            {/* <View style={styles.statusBadgeContainer}>
               {item.isOpen ? (
                 <View style={styles.openBadge}>
                   <View style={styles.openDot} />
@@ -114,7 +114,7 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
                   <Text style={styles.closedText}>CLOSED</Text>
                 </View>
               )}
-            </View>
+            </View> */}
           </View>
 
           <View style={styles.shopInfo}>
@@ -213,7 +213,7 @@ const BookNow = ({ navigation }) => {
         coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
         image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
         isOpen: Math.random() > 0.3,
-        discount: Math.random() > 0.6 ? `${Math.floor(Math.random() * 20) + 10}% OFF` : null,
+        // discount: Math.random() > 0.6 ? `${Math.floor(Math.random() * 20) + 10}% OFF` : null,
         serviceType: 'Barber Shop',
       };
     });
@@ -510,7 +510,7 @@ const BookNow = ({ navigation }) => {
           <View style={styles.loadingSpinnerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-          <Text style={styles.loadingText}>Finding the best barbers...</Text>
+          <Text style={styles.loadingText}> </Text>
           <Text style={styles.loadingSubtext}>This won't take long</Text>
         </View>
       </View>

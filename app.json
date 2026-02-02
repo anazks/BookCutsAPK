@@ -14,8 +14,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/scissors_icon.png",
+        "backgroundColor": "#E10600"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anazk.bookmycuts",

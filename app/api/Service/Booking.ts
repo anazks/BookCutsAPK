@@ -10,15 +10,39 @@ export const SlotBooking = async (data: any) => {
     }
 }
 
-export const myBookings = async ()=>{
-   try {
-        const response = await Axios.post('/booking/myBookings');
-        console.log("Response from myBookings:", response);
-        return response.data;   
-   } catch (error) {
-      console.log(error)
-   }
+
+interface BookingParams {
+  limit?: number;
+  lastDate?: string;     // ISO string from previous nextCursor
 }
+
+export const myBookings = async (params: BookingParams = {}): Promise<{
+  success: boolean;
+  bookings: any[];
+  nextCursor: string | null;
+  // ... other fields your backend returns
+}> => {
+  try {
+    const response = await Axios.post('/booking/myBookings', {
+      params,                    // → automatically becomes ?limit=10&lastDate=...
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('myBookings error:', error?.response?.data || error.message);
+
+    // Let the component handle the error (throw so use catch in component works naturally)
+    throw error;
+
+    // Alternative: return fallback shape if your UI prefers it
+    // return {
+    //   success: false,
+    //   bookings: [],
+    //   nextCursor: null,
+    //   message: error?.response?.data?.message || 'Failed to fetch bookings',
+    // };
+  }
+};
 
 export const createOrder = async (data:any)=>{
     try {
