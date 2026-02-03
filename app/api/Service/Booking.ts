@@ -16,31 +16,47 @@ interface BookingParams {
   lastDate?: string;     // ISO string from previous nextCursor
 }
 
-export const myBookings = async (params: BookingParams = {}): Promise<{
+export const myBookings = async (
+  params: BookingParams = {}
+): Promise<{
   success: boolean;
   bookings: any[];
   nextCursor: string | null;
-  // ... other fields your backend returns
 }> => {
   try {
-    const response = await Axios.post('/booking/myBookings', {
-      params,                    // → automatically becomes ?limit=10&lastDate=...
-    });
+    // POST + send params directly as JSON body
+    const response = await Axios.post('/booking/myBookings', params);
+
+    // Optional: basic response validation
+    if (!response.data || typeof response.data !== 'object') {
+      throw new Error('Invalid response format from server');
+    }
 
     return response.data;
   } catch (error: any) {
-    console.error('myBookings error:', error?.response?.data || error.message);
+    // Improved error logging – helps debugging
+    console.error('myBookings failed:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config ? {
+        url: error.config.url,
+        method: error.config.method,
+        data: error.config.data,
+      } : undefined,
+    });
 
-    // Let the component handle the error (throw so use catch in component works naturally)
+    // Re-throw so the component can catch & show UI error
     throw error;
 
-    // Alternative: return fallback shape if your UI prefers it
-    // return {
-    //   success: false,
-    //   bookings: [],
-    //   nextCursor: null,
-    //   message: error?.response?.data?.message || 'Failed to fetch bookings',
-    // };
+    // Alternative (if you prefer not throwing):
+    /*
+    return {
+      success: false,
+      bookings: [],
+      nextCursor: null,
+    };
+    */
   }
 };
 
