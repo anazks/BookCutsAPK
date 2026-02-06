@@ -60,7 +60,6 @@ export default function Login() {
 
         await AsyncStorage.setItem('userId',response.result.userData.id)
         await AsyncStorage.setItem('accessToken', response.result.token);
-        await AsyncStorage.setItem('email',email)
         router.replace('/(tabs)/Home');
       } else {
         const errorMessage =
@@ -81,7 +80,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -93,34 +92,25 @@ export default function Login() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Section */}
+          {/* Welcome Header */}
           <View style={styles.headerSection}>
-            <View style={styles.logoContainer}>
-              <View style={styles.logoCircle}>
-                <MaterialIcons name="content-cut" size={40} color="#FF6B6B" />
-              </View>
-            </View>
-            
-            <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Welcome Back</Text>
-              <Text style={styles.subtitleText}>Sign in to your account</Text>
-            </View>
+            <Text style={styles.welcomeText}>Welcome Back!</Text>
+            <Text style={styles.subtitleText}>Sign in to continue your journey</Text>
           </View>
 
           {/* Login Form */}
           <View style={styles.formContainer}>
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <View style={[
-                styles.inputWrapper,
-                email.length > 0 && styles.inputWrapperFocused
-              ]}>
-                <MaterialIcons name="email" size={20} color="#94A3B8" style={styles.inputIcon} />
+              <View style={styles.inputLabelContainer}>
+                <MaterialIcons name="email" size={20} color="#FFFFFF" />
+                <Text style={styles.inputLabel}>Email Address</Text>
+              </View>
+              <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
-                  placeholder="you@example.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="Enter your email"
+                  placeholderTextColor="rgba(255, 255, 255, 0.7)"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -129,20 +119,20 @@ export default function Login() {
                   editable={!isLoading}
                 />
               </View>
+              <View style={styles.underline} />
             </View>
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={[
-                styles.inputWrapper,
-                password.length > 0 && styles.inputWrapperFocused
-              ]}>
-                <MaterialIcons name="lock" size={20} color="#94A3B8" style={styles.inputIcon} />
+              <View style={styles.inputLabelContainer}>
+                <MaterialIcons name="lock" size={20} color="#FFFFFF" />
+                <Text style={styles.inputLabel}>Password</Text>
+              </View>
+              <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="rgba(255, 255, 255, 0.7)"
                   secureTextEntry={!isPasswordVisible}
                   value={password}
                   onChangeText={setPassword}
@@ -155,13 +145,15 @@ export default function Login() {
                 >
                   <Ionicons 
                     name={isPasswordVisible ? 'eye-off' : 'eye'} 
-                    size={20} 
-                    color="#64748B" 
+                    size={22} 
+                    color="rgba(255, 255, 255, 0.7)" 
                   />
                 </TouchableOpacity>
               </View>
+              <View style={styles.underline} />
             </View>
 
+            {/* Forgot Password */}
             <TouchableOpacity 
               style={styles.forgotPassword} 
               disabled={isLoading}
@@ -178,19 +170,21 @@ export default function Login() {
               ]}
               onPress={handleLogin}
               disabled={isLoading}
-              activeOpacity={0.9}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color="#FF6B6B" size="small" />
               ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
+                <View style={styles.loginButtonContent}>
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <MaterialIcons name="arrow-forward" size={22} color="#FF6B6B" />
+                </View>
               )}
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or</Text>
+              <Text style={styles.dividerText}>or continue with</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -202,10 +196,11 @@ export default function Login() {
               ]}
               onPress={() => router.push('/Screens/User/LoginOtp')}
               disabled={isLoading}
-              activeOpacity={0.8}
             >
-              <MaterialIcons name="sms" size={20} color="#FF6B6B" style={styles.otpIcon} />
-              <Text style={styles.otpLoginButtonText}>Login with OTP</Text>
+              <View style={styles.otpButtonContent}>
+                <MaterialIcons name="sms" size={22} color="#FFFFFF" />
+                <Text style={styles.otpLoginButtonText}>Login with OTP</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -240,7 +235,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FF6B6B',
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -250,173 +245,158 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingVertical: 40,
+    justifyContent: 'center',
+    paddingBottom: 40,
   },
   headerSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 40,
     alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoContainer: {
-    marginBottom: 32,
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFF5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFE5E5',
-  },
-  welcomeContainer: {
-    alignItems: 'center',
+    marginBottom: 50,
+    marginTop: 60,
   },
   welcomeText: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
+    color: '#FFFFFF',
     letterSpacing: -0.5,
+    marginBottom: 10,
   },
   subtitleText: {
     fontSize: 16,
-    color: '#64748B',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '400',
+    textAlign: 'center',
   },
   formContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 32,
+    paddingHorizontal: 40,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 30,
+  },
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
-    marginLeft: 4,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginLeft: 10,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    height: 56,
-    paddingHorizontal: 16,
-  },
-  inputWrapperFocused: {
-    borderColor: '#FF6B6B',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#0F172A',
-    fontWeight: '400',
+    fontSize: 17,
+    color: '#FFFFFF',
+    paddingVertical: 12,
+    fontWeight: '500',
+  },
+  underline: {
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
   },
   visibilityToggle: {
-    padding: 8,
-    marginLeft: 8,
+    padding: 10,
+    marginLeft: 10,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 32,
+    marginBottom: 35,
+    marginTop: -10,
   },
   forgotPasswordText: {
-    color: '#FF6B6B',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
+    textDecorationLine: 'underline',
+    opacity: 0.9,
   },
   loginButton: {
-    backgroundColor: '#FF6B6B',
-    height: 56,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    height: 58,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
   },
   loginButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FF6B6B',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 10,
     letterSpacing: 0.5,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 25,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   dividerText: {
     paddingHorizontal: 16,
-    color: '#94A3B8',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 14,
     fontWeight: '500',
   },
   otpLoginButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  otpIcon: {
-    marginRight: 8,
+  otpButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   otpLoginButtonText: {
-    color: '#64748B',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 10,
   },
   footer: {
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 40,
+    marginTop: 40,
     gap: 16,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    marginHorizontal: 24,
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   footerText: {
-    color: '#64748B',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 15,
     fontWeight: '400',
   },
   linkText: {
-    color: '#FF6B6B',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });
