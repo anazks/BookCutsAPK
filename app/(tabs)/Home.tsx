@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from "expo-location";
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { useFocusEffect } from 'expo-router'
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  BackHandler
+  BackHandler,
 } from 'react-native';
 
 import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
@@ -26,58 +26,49 @@ import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
+import ShopCarousel from '../Screens/User/ShopCarousel'; // ← new import
 
 const Home = () => {
-  const [shops, setShops] = useState([]);                    // All nearby shops (original list)
-  const [filteredShops, setFilteredShops] = useState([]);    // Shops after service filter
+  const [shops, setShops] = useState<any[]>([]);
+  const [filteredShops, setFilteredShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Location & City states
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [selectedCity, setSelectedCity] = useState('India');
-  const [location, setLocation] = useState(null);
-  const [address, setAddress] = useState(null);
+  const [location, setLocation] = useState<any>(null);
+  const [address, setAddress] = useState<any>(null);
   const [coordinates, setCoordinates] = useState({ latitude: 0, longitude: 0 });
-  const [cities, setCities] = useState([]);
+  const [cities, setCities] = useState<any[]>([]);
 
-  // Search states
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchData, setSearchData] = useState([]);
+  const [searchData, setSearchData] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Service filter state
-  const [selectedService, setSelectedService] = useState(null); // null = All
+  const [selectedService, setSelectedService] = useState<string | null>(null);
 
-   useFocusEffect(
-      React.useCallback(() => {
-        const onBackPress = () => {
-          Alert.alert("Exit App", "Are you sure you want to exit?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "OK", onPress: () => BackHandler.exitApp() }
-          ]);
-          return true;
-        };
-  
-        // 1. Capture the subscription in a variable
-        const subscription = BackHandler.addEventListener(
-          'hardwareBackPress',
-          onBackPress
-        );
-  
-        // 2. Use .remove() in the cleanup function
-        return () => subscription.remove(); 
-        
-      }, [])
-    );
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert('Exit App', 'Are you sure you want to exit?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'OK', onPress: () => BackHandler.exitApp() },
+        ]);
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
 
   const getLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission Denied", "Allow location access in settings.");
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Allow location access in settings.');
         setLoading(false);
         return;
       }
@@ -99,16 +90,16 @@ const Home = () => {
 
       setCoordinates({
         latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude
+        longitude: loc.coords.longitude,
       });
     } catch (error) {
-      console.error("Error getting location:", error);
-      setError("Failed to get your location. Please check your settings.");
+      console.error('Error getting location:', error);
+      setError('Failed to get your location. Please check your settings.');
       setLoading(false);
     }
   };
 
-  const getNearByCities = async ({ latitude, longitude }) => {
+  const getNearByCities = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
     try {
       const lat = Number(latitude.toFixed(4));
       const lon = Number(longitude.toFixed(4));
@@ -117,31 +108,34 @@ const Home = () => {
       const res = await fetch(url);
       const text = await res.text();
 
-      if (!text || text.trim() === "[[%s]]") return [];
+      if (!text || text.trim() === '[[%s]]') return [];
 
       const data = JSON.parse(text);
-      const citiesList = data.map(item => ({
+      const citiesList = data.map((item: any) => ({
         name: item[1],
         lat: Number(item[8]),
-        lon: Number(item[10])
+        lon: Number(item[10]),
       }));
 
-      // Simple sort by distance
-      const toRad = deg => (deg * Math.PI) / 180;
-      const distanceKm = (lat1, lon1, lat2, lon2) => {
+      const toRad = (deg: number) => (deg * Math.PI) / 180;
+      const distanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
         const R = 6371;
         const dLat = toRad(lat2 - lat1);
         const dLon = toRad(lon2 - lon1);
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       };
 
-      const sorted = citiesList.sort((a, b) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon));
+      const sorted = citiesList.sort(
+        (a: any, b: any) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon)
+      );
 
       setCities(sorted);
       return sorted;
     } catch (err) {
-      console.error("Failed to fetch nearby cities:", err);
+      console.error('Failed to fetch nearby cities:', err);
       return [];
     }
   };
@@ -156,11 +150,11 @@ const Home = () => {
         setShops(result.shops || []);
         setError(null);
       } else {
-        setError("Failed to fetch nearby shops.");
+        setError('Failed to fetch nearby shops.');
       }
     } catch (error) {
-      console.error("Error fetching shops:", error);
-      setError("Failed to load shops. Check your connection.");
+      console.error('Error fetching shops:', error);
+      setError('Failed to load shops. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -174,40 +168,36 @@ const Home = () => {
         setUserProfile(response.user);
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error('Error fetching profile:', error);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await AsyncStorage.multiRemove(['accessToken', 'shopId']);
-              router.replace('/Screens/User/Login');
-            } catch (error) {
-              console.error("Logout Error:", error);
-            }
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+            router.replace('/Screens/User/Login');
+          } catch (error) {
+            console.error('Logout Error:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
-  const handleCitySelect = (city) => {
+  const handleCitySelect = (city: any) => {
     if (!city) return;
     setSelectedCity(city.name);
     setCoordinates({ latitude: Number(city.lat), longitude: Number(city.lon) });
     setShowCityDropdown(false);
   };
 
-  const handleServiceChange = async (serviceName) => {
+  const handleServiceChange = async (serviceName: string | null) => {
     setSelectedService(serviceName);
 
     if (serviceName === 'All' || !serviceName) {
@@ -222,29 +212,27 @@ const Home = () => {
 
     try {
       setFilterLoading(true);
-
-      const shopIds = shops.map(shop => shop._id).filter(Boolean);
+      const shopIds = shops.map((shop) => shop._id).filter(Boolean);
 
       const response = await filterShopsByService({
         shopIds,
-        serviceName
+        serviceName,
       });
 
       if (response?.success && response.shops) {
         setFilteredShops(response.shops);
       } else {
         setFilteredShops([]);
-        Alert.alert("No Results", `No shops found offering "${serviceName}"`);
+        Alert.alert('No Results', `No shops found offering "${serviceName}"`);
       }
     } catch (error) {
-      console.error("Service filter error:", error);
+      console.error('Service filter error:', error);
       setFilteredShops([]);
     } finally {
       setFilterLoading(false);
     }
   };
 
-  // ── Effects ────────────────────────────────────────────────
   useEffect(() => {
     getLocation();
   }, []);
@@ -268,22 +256,21 @@ const Home = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const performSearch = async (query) => {
+  const performSearch = async (query: string) => {
     setIsSearching(true);
     try {
       const response = await search(query.trim());
       setSearchData(response?.shops || []);
     } catch (error) {
-      console.error("Search error:", error);
+      console.error('Search error:', error);
       setSearchData([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // ── Data transformation helpers ────────────────────────────
-  const transformShopData = (apiShops) => {
-    return apiShops.map(shop => {
+  const transformShopData = (apiShops: any[]) => {
+    return apiShops.map((shop) => {
       let shopName = 'Unknown Shop';
       if (shop.ShopName?.trim()) shopName = shop.ShopName.trim();
 
@@ -296,21 +283,18 @@ const Home = () => {
       return {
         id: shop._id,
         name: shopName,
-        location:shop.ExactLocation,
+        location: shop.ExactLocation,
         distance: `${(shop.distance / 1000).toFixed(1)} km`,
         city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am - 8pm',
         mobile: shop.Mobile || '',
         website: shop.website || '',
-        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop'
+        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop',
       };
     });
   };
 
-  const activeShops = selectedService && selectedService !== 'All'
-    ? filteredShops
-    : shops;
-
+  const activeShops = selectedService && selectedService !== 'All' ? filteredShops : shops;
   const transformedActiveShops = transformShopData(activeShops);
 
   const getPopularShops = () => {
@@ -318,22 +302,26 @@ const Home = () => {
     return transformShopData(sorted).slice(0, 8);
   };
 
-  const getAllTransformedShops = () => {
-    return transformShopData(activeShops);
-  };
-
   const trendingDesigns = [
-    { id: '1', name: 'Fade Cut', popularity: '92%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
-    { id: '2', name: 'Pompadour', popularity: '87%', image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500' },
-    { id: '3', name: 'Undercut', popularity: '89%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
+    {
+      id: '1',
+      name: 'Fade Cut',
+      popularity: '92%',
+      image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500',
+    },
+    {
+      id: '2',
+      name: 'Pompadour',
+      popularity: '87%',
+      image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500',
+    },
+    {
+      id: '3',
+      name: 'Undercut',
+      popularity: '89%',
+      image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500',
+    },
   ];
-
-  const handleShopPress = (shop) => {
-    router.push({
-      pathname: '/Screens/User/BarberShopFeed',
-      params: { shop_id: shop.id }
-    });
-  };
 
   if (loading) {
     return (
@@ -352,7 +340,16 @@ const Home = () => {
       <View style={{ backgroundColor: '#FFF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#E5E7EB' }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFF',
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+            }}
             onPress={() => setShowCityDropdown(true)}
           >
             <Ionicons name="location-sharp" size={16} color="#EF4444" />
@@ -407,7 +404,7 @@ const Home = () => {
                   style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
                   onPress={() => handleCitySelect(city)}
                 >
-                  <Ionicons name="location-outline" size={20} color={selectedCity === city.name ? "#EF4444" : "#9CA3AF"} />
+                  <Ionicons name="location-outline" size={20} color={selectedCity === city.name ? '#EF4444' : '#9CA3AF'} />
                   <Text style={{ flex: 1, marginLeft: 12 }}>{city.name}</Text>
                   {selectedCity === city.name && <Ionicons name="checkmark-circle" size={20} color="#EF4444" />}
                 </TouchableOpacity>
@@ -428,8 +425,8 @@ const Home = () => {
             ) : (
               <FlatList
                 data={searchData}
-                keyExtractor={item => item._id}
-                renderItem={({ item }) => <ShopCard shop={item} onPress={() => handleShopPress({ id: item._id })} />}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => <ShopCard shop={item} onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })} />}
                 ListEmptyComponent={() => (
                   <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
                     <Ionicons name="search-outline" size={64} color="#D1D5DB" />
@@ -450,7 +447,6 @@ const Home = () => {
               </View>
             )}
 
-            {/* Services Filter */}
             <View style={{ marginVertical: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12 }}>Services</Text>
               <ServiceFilter onServiceChange={handleServiceChange} />
@@ -463,303 +459,13 @@ const Home = () => {
               </View>
             ) : (
               <>
-                {/* Top Rated */}
+                {/* Only one carousel — remove duplication unless intentional */}
                 {activeShops.length > 0 && (
-                  <View style={{ marginVertical: 20 }}>
-  <View style={{ 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    paddingHorizontal: 16, 
-    marginBottom: 12 
-  }}>
-    <Text style={{ 
-      fontSize: 18, 
-      fontWeight: '800', 
-      color: '#111827',
-      letterSpacing: -0.5
-    }}>
-      Top Rated This Week
-    </Text>
-    <TouchableOpacity 
-  style={{ flexDirection: 'row', alignItems: 'center' }}
-  onPress={() => router.push('/(tabs)/BookNow')}
->
-  <Text style={{ 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#10B981',
-    marginRight: 4
-  }}>
-    View All
-  </Text>
-  <Ionicons name="arrow-forward" size={16} color="#10B981" />
-</TouchableOpacity>
-  </View>
-  
-  <FlatList
-    horizontal
-    data={getPopularShops()}
-    keyExtractor={item => item.id}
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{ paddingHorizontal: 16 }}
-    renderItem={({ item }) => (
-      <TouchableOpacity
-        style={{
-          width: 160,
-          marginRight: 16,
-          backgroundColor: 'white',
-          borderRadius: 16,
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: '#F3F4F6',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-        onPress={() => handleShopPress(item)}
-        activeOpacity={0.9}
-      >
-        <View style={{ position: 'relative' }}>
-          <Image 
-            source={{ uri: item.image }} 
-            style={{ 
-              width: '100%', 
-              height: 100 
-            }}
-            resizeMode="cover"
-          />
-          <View style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 20,
-          }}>
-            <Ionicons name="star" size={10} color="#F59E0B" />
-            <Text style={{
-              fontSize: 10,
-              fontWeight: '700',
-              color: '#111827',
-              marginLeft: 2
-            }}>
-              4.5
-            </Text>
-          </View>
-        </View>
-        
-        <View style={{ padding: 12 }}>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{
-              fontSize: 15,
-              fontWeight: '700',
-              color: '#111827',
-              marginBottom: 4,
-            }} numberOfLines={1}>
-              {item.name}
-            </Text>
-            
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="location-outline" size={12} color="#6B7280" />
-              <Text style={{
-                fontSize: 12,
-                color: '#6B7280',
-                marginLeft: 4,
-              }} numberOfLines={1}>
-                {item.location}
-              </Text>
-            </View>
-          </View>
-          
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            borderTopWidth: 1,
-            borderTopColor: '#F3F4F6',
-            paddingTop: 8
-          }}>
-            {/* <View>
-              <Text style={{
-                fontSize: 12,
-                color: '#6B7280',
-                marginBottom: 2
-              }}>
-                From
-              </Text>
-              <Text style={{
-                fontSize: 15,
-                fontWeight: '800',
-                color: '#10B981',
-              }}>
-                {item.city}
-              </Text>
-            </View> */}
-            
-            <TouchableOpacity style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: '#ECFDF5',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              <Ionicons name="chevron-forward" size={16} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    )}
-  />
-</View>
-                )}
-
-                {/* All Shops */}
-                {activeShops.length > 0 && (
-                  <View style={{ marginVertical: 20 }}>
-  <View style={{ 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    paddingHorizontal: 16, 
-    marginBottom: 12 
-  }}>
-    <Text style={{ 
-      fontSize: 18, 
-      fontWeight: '800', 
-      color: '#111827',
-      letterSpacing: -0.5
-    }}>
-      Top Rated This Week
-    </Text>
-    <TouchableOpacity 
-  style={{ flexDirection: 'row', alignItems: 'center' }}
-  onPress={() => router.push('/(tabs)/BookNow')}
->
-  <Text style={{ 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#10B981',
-    marginRight: 4
-  }}>
-    View All
-  </Text>
-  <Ionicons name="arrow-forward" size={16} color="#10B981" />
-</TouchableOpacity>
-  </View>
-  
-  <FlatList
-    horizontal
-    data={getPopularShops()}
-    keyExtractor={item => item.id}
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{ paddingHorizontal: 16 }}
-    renderItem={({ item }) => (
-      <TouchableOpacity
-        style={{
-          width: 160,
-          marginRight: 16,
-          backgroundColor: 'white',
-          borderRadius: 16,
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: '#F3F4F6',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-        onPress={() => handleShopPress(item)}
-        activeOpacity={0.9}
-      >
-        <View style={{ position: 'relative' }}>
-          <Image 
-            source={{ uri: item.image }} 
-            style={{ 
-              width: '100%', 
-              height: 100 
-            }}
-            resizeMode="cover"
-          />
-          <View style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 20,
-          }}>
-            <Ionicons name="star" size={10} color="#F59E0B" />
-            <Text style={{
-              fontSize: 10,
-              fontWeight: '700',
-              color: '#111827',
-              marginLeft: 2
-            }}>
-              4.5
-            </Text>
-          </View>
-        </View>
-        
-        <View style={{ padding: 12 }}>
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{
-              fontSize: 15,
-              fontWeight: '700',
-              color: '#111827',
-              marginBottom: 4,
-            }} numberOfLines={1}>
-              {item.name}
-            </Text>
-            
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="location-outline" size={12} color="#6B7280" />
-              <Text style={{
-                fontSize: 12,
-                color: '#6B7280',
-                marginLeft: 4,
-              }} numberOfLines={1}>
-                {item.location}
-              </Text>
-            </View>
-          </View>
-          
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            borderTopWidth: 1,
-            borderTopColor: '#F3F4F6',
-            paddingTop: 8
-          }}>
-          
-            
-            <TouchableOpacity style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: '#ECFDF5',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              <Ionicons name="chevron-forward" size={16} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    )}
-  />
-</View>
+                  <ShopCarousel
+                    title="Top Rated This Week"
+                    shops={getPopularShops()}
+                    onViewAll={() => router.push('/(tabs)/BookNow')}
+                  />
                 )}
 
                 <PaisAdd />
@@ -767,7 +473,6 @@ const Home = () => {
               </>
             )}
 
-            {/* Trending Styles */}
             <View style={{ marginVertical: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700' }}>Trending Styles</Text>
@@ -775,7 +480,7 @@ const Home = () => {
               <FlatList
                 horizontal
                 data={trendingDesigns}
-                keyExtractor={item => item.id}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <View style={{ width: 140, marginRight: 12 }}>
                     <Image source={{ uri: item.image }} style={{ width: '100%', height: 140, borderRadius: 8 }} />

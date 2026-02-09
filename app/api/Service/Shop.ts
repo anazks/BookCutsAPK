@@ -1,4 +1,3 @@
-import axios from 'axios';
 import Axios from '../axios';
 
  
@@ -43,17 +42,31 @@ export const getShopServices = async (shopId: string) => {
   }
 }
 
-export const getShopBookings = async ()=>{
-  try {
-    let response = await Axios('/shop/viewMyBooking')
-    console.log(response)
-    console.log(response)
-    return response.data
-  } catch (error) {
-    console.log(error)
-    return null
-  }
+
+interface GetShopBookingsParams {
+  page?: number;
+  limit?: number;
 }
+
+export const getShopBookings = async (
+  params: GetShopBookingsParams = {}
+) => {
+  try {
+    const { page = 1, limit = 10 } = params;
+
+    const response = await Axios.get("/shop/viewMyBooking", {
+      params: {
+        page,
+        limit
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching shop bookings:", error);
+    return null;
+  }
+};
 // --------------------------------for Shop Side------------------------------------------------------------
 export const RegisterShopUser = async (data: any) => {
   try {
@@ -106,11 +119,20 @@ export const AddService = async (data: any) => {
   }
 }
 
-export const viewMyService = async (shopId: string) => {
+export const viewMyService = async () => {
   try {
     const response = await Axios.get(`/shop/viewMyService`);
     return response.data;
   } catch (error: any) {
+    // Handle 404 specially - return empty array instead of throwing
+    if (error.response?.status === 404) {
+      return {
+        success: true,
+        data: [],
+        message: "No services found"
+      };
+    }
+    // For other errors, still throw
     throw error?.response?.data || { message: "Failed to fetch services" };
   }
 }
@@ -155,10 +177,10 @@ export const modifyService = async (serviceId,data) => {
   }
 }
 
-export const deleteBarberAPI = async (barberId) => {
+export const deleteBarberAPI = async (barberId,shopId) => {
   try {
     console.log("barberId:", barberId);
-    const response = await Axios.delete(`/shop/deleteBarber/${barberId}`);
+    const response = await Axios.delete(`/shop/deleteBarber/${barberId}/${shopId}`);
     console.log('Delete barber response:', response);
     return response;
   } catch (error: any) {
@@ -309,5 +331,14 @@ export const viewBankDetails = async () => {
     return response.data
   } catch (error) {
     console.log("error in viewBankDetails",error)
+  }
+}
+
+export const ownerToBarber = async (shopId) => {
+  try {
+    const response = await Axios.post(`/shop//shop-owner/create-as-barber/${shopId}`)
+    return response.data
+  } catch (error) {
+    console.log("error in ownerToBarber",error)
   }
 }

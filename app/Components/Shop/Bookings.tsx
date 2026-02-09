@@ -44,7 +44,7 @@ export default function Bookings() {
         const formattedBookings = response.data.map(booking => {
           const userName = booking.userDetails 
             ? `${booking.userDetails.firstName || ''} ${booking.userDetails.lastName || ''}`.trim()
-            : booking.userId?.name || 'Customer';
+            : booking.userId?.firstName || 'Customer';
 
           return {
             id: booking._id,

@@ -12,6 +12,7 @@ import {
   Modal,
   TextInput,
   Platform,
+  Linking
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -578,6 +579,26 @@ const ProfileScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+  style={styles.detailRow}
+  onPress={() =>
+    Linking.openURL('https://www.bookmycuts.com/privacy ')
+  }
+>
+  <View style={styles.detailIconBox}>
+    <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary} />
+  </View>
+
+  <View style={{ flex: 1 }}>
+    <Text style={styles.detailLabel}>Privacy Policy</Text>
+    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+      View Policy
+    </Text>
+  </View>
+
+  <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
+</TouchableOpacity>
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <View style={styles.detailIconBox}>

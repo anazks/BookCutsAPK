@@ -31,10 +31,25 @@ export default function BookingReminder() {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const clockScaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // CORRECT: Parse UTC ISO string directly (like Bookings component)
+  // IST formatters
+  const dateFormatter = new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
   function getStartTimeDate(): Date | null {
     if (!bookingData?.timeSlot?.startingTime) return null;
-    return new Date(bookingData.timeSlot.startingTime); // Parses UTC correctly
+    return new Date(bookingData.timeSlot.startingTime);
   }
 
   function getEndTimeDate(): Date | null {
@@ -42,7 +57,6 @@ export default function BookingReminder() {
     return new Date(bookingData.timeSlot.endingTime);
   }
 
-  // Calculate time left until appointment STARTS (in user's local time - IST)
   function calculateTimeLeft() {
     const startTime = getStartTimeDate();
     if (!startTime || bookingData?.bookingStatus === 'cancelled') {
@@ -53,7 +67,7 @@ export default function BookingReminder() {
     const difference = startTime.getTime() - now.getTime();
 
     if (difference <= 0) {
-      return null; // Already started or passed
+      return null;
     }
 
     return {
@@ -97,25 +111,19 @@ export default function BookingReminder() {
     });
   };
 
-  // Format date & time exactly like Bookings component (IST, user-friendly)
   const formatDisplayDate = () => {
     const startTime = getStartTimeDate();
-    if (!startTime) return '';
-    return startTime.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    if (!startTime) return '—';
+    return dateFormatter.format(startTime);
   };
 
   const formatDisplayTime = () => {
     const startTime = getStartTimeDate();
     const endTime = getEndTimeDate();
-    if (!startTime || !endTime) return '';
+    if (!startTime || !endTime) return '—';
 
-    const start = startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const end = endTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const start = timeFormatter.format(startTime);
+    const end = timeFormatter.format(endTime);
 
     return `${start} – ${end}`;
   };
@@ -131,8 +139,19 @@ export default function BookingReminder() {
         }
 
         const response = await fetchUpcomingBooking(userId);
-        const booking = response?.booking || null;
-        setBookingData(booking);
+        console.log("API response ---", response);
+
+        // The new response has { success, message, booking, shopDetails }
+        if (response?.success && response?.booking) {
+          // Merge booking and shopDetails into one object for easier access
+          const enrichedBooking = {
+            ...response.booking,
+            shopDetails: response.shopDetails || null,
+          };
+          setBookingData(enrichedBooking);
+        } else {
+          setBookingData(null);
+        }
       } catch (error) {
         console.error('Error fetching upcoming booking:', error);
         setBookingData(null);
@@ -155,15 +174,13 @@ export default function BookingReminder() {
       setTimeLeft(newTimeLeft);
 
       const now = new Date();
-      const startTime = getStartTimeDate();
       const endTime = getEndTimeDate();
 
-      if (!startTime || !endTime) {
+      if (!endTime) {
         setWidgetVisible(false);
         return;
       }
 
-      // Show widget only if appointment hasn't ended yet
       const hasNotEnded = now < endTime;
       setWidgetVisible(hasNotEnded && newTimeLeft !== null);
     };
@@ -204,8 +221,6 @@ export default function BookingReminder() {
 
   if (!widgetVisible || !timeLeft) return null;
 
- 
-
   return (
     <>
       {/* Floating Widget */}
@@ -240,7 +255,9 @@ export default function BookingReminder() {
                     <Text style={styles.countdownLabel}>Min</Text>
                   </View>
                 </View>
-                <Text style={styles.shopName}>{bookingData?.shop?.ShopName || 'Salon'}</Text>
+                <Text style={styles.shopName}>
+                  {bookingData?.shopDetails?.ShopName || 'Salon'}
+                </Text>
               </View>
             </View>
 
@@ -257,7 +274,7 @@ export default function BookingReminder() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Modal - Updated with correct time display */}
+      {/* Modal */}
       <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
@@ -298,14 +315,62 @@ export default function BookingReminder() {
                     <Text style={styles.cardTitle}>Appointment Info</Text>
                   </View>
 
-                  <DetailRow icon={<FontAwesome5 name="store" size={16} color="#4F46E5" />} title="Salon" value={bookingData?.shop?.ShopName} />
-                  <DetailRow icon={<Ionicons name="location" size={16} color="#4F46E5" />} title="Address" value={bookingData?.shop?.address || 'N/A'} />
-                  <DetailRow icon={<FontAwesome5 name="cut" size={16} color="#4F46E5" />} title="Services" value={bookingData?.services?.map((s: any) => s.name).join(', ') || 'N/A'} />
-                  <DetailRow icon={<FontAwesome5 name="user" size={16} color="#4F46E5" />} title="Barber" value={bookingData?.barber?.name || 'Any Barber'} />
-                  <DetailRow icon={<Ionicons name="calendar" size={16} color="#4F46E5" />} title="Date & Time" value={formatDisplayDate()} subtitle={formatDisplayTime()} />
+                  <DetailRow
+                    icon={<FontAwesome5 name="store" size={16} color="#4F46E5" />}
+                    title="Salon"
+                    value={bookingData?.shopDetails?.ShopName || '—'}
+                  />
+                  <DetailRow
+                    icon={<Ionicons name="location" size={16} color="#4F46E5" />}
+                    title="City"
+                    value={bookingData?.shopDetails?.City || '—'}
+                  />
+                  <DetailRow
+                    icon={<Ionicons name="location-outline" size={16} color="#4F46E5" />}
+                    title="Location"
+                    value={bookingData?.shopDetails?.ExactLocation || '—'}
+                  />
+                  <DetailRow
+                    icon={<FontAwesome5 name="cut" size={16} color="#4F46E5" />}
+                    title="Services"
+                    value={
+                      bookingData?.services?.length > 0
+                        ? bookingData.services.map((s: any) => `${s.name} (₹${s.price || '?'})`).join(', ')
+                        : 'N/A'
+                    }
+                  />
+                  <DetailRow
+                    icon={<FontAwesome5 name="rupee-sign" size={16} color="#4F46E5" />}
+                    title="Total Amount"
+                    value={`₹${bookingData?.totalPrice || 0}`}
+                  />
+                  <DetailRow
+                    icon={<FontAwesome5 name="user" size={16} color="#4F46E5" />}
+                    title="Barber"
+                    value={bookingData?.barber?.name || 'Any Barber'}
+                  />
+                  <DetailRow
+                    icon={<Ionicons name="calendar" size={16} color="#4F46E5" />}
+                    title="Date"
+                    value={formatDisplayDate()}
+                  />
+                  <DetailRow
+                    icon={<Ionicons name="time" size={16} color="#4F46E5" />}
+                    title="Time (IST)"
+                    value={formatDisplayTime()}
+                  />
+                  <DetailRow
+                    icon={<MaterialIcons name="confirmation-number" size={16} color="#4F46E5" />}
+                    title="Booking ID"
+                    value={bookingData?._id?.slice(-8).toUpperCase() || '—'}
+                  />
+                  <DetailRow
+                    icon={<MaterialIcons name="info" size={16} color="#4F46E5" />}
+                    title="Status"
+                    value={bookingData?.bookingStatus?.toUpperCase() || 'UNKNOWN'}
+                  />
                 </View>
 
-                {/* Rest of modal unchanged */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity style={[styles.actionButton, styles.primaryBtn]}>
                     <Ionicons name="time" size={20} color="white" />
@@ -343,7 +408,10 @@ export default function BookingReminder() {
   );
 }
 
-// Reusable components remain the same
+// ────────────────────────────────────────────────
+// Reusable Components (unchanged)
+// ────────────────────────────────────────────────
+
 const TimeBlock = ({ value, label }: { value: number; label: string }) => (
   <View style={styles.timeBlock}>
     <View style={styles.timeValueContainer}>
@@ -353,7 +421,17 @@ const TimeBlock = ({ value, label }: { value: number; label: string }) => (
   </View>
 );
 
-const DetailRow = ({ icon, title, value, subtitle }: { icon: React.ReactNode; title: string; value?: string; subtitle?: string }) => (
+const DetailRow = ({
+  icon,
+  title,
+  value,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value?: string;
+  subtitle?: string;
+}) => (
   <View style={styles.detailRow}>
     <View style={styles.detailIcon}>{icon}</View>
     <View style={styles.detailContent}>
@@ -371,8 +449,7 @@ const ReminderItem = ({ text }: { text: string }) => (
   </View>
 );
 
-
-// Styles (unchanged from your original)
+// Styles (unchanged)
 const styles = StyleSheet.create({
   fixedBottomWidget: {
     position: 'absolute',
@@ -485,7 +562,7 @@ const styles = StyleSheet.create({
   detailSubtitle: { fontSize: 14, color: '#4B5563', fontWeight: '500', lineHeight: 20 },
   actionButtons: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 14, gap: 8 },
-  primaryBtn: { backgroundColor: '#4F46E5', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },        
+  primaryBtn: { backgroundColor: '#4F46E5', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: 'white', letterSpacing: 0.3 },
   secondaryBtn: { backgroundColor: 'white', borderWidth: 1, borderColor: '#E5E7EB' },
   secondaryBtnText: { fontSize: 15, fontWeight: '700', color: '#4F46E5', letterSpacing: 0.3 },

@@ -520,7 +520,9 @@
         const response = await SlotBooking(bookingData);
         
         if (response.success) {
+          console.log("RESPONSE ^^^^^^^^^^^^^^^^^^^^^^^^",response)
           const bookingId = response.BookingStatus?._id;
+          console.log("BOOKING ID \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",bookingId)
           const endTimeStr = addMinutesToTime(selectedStartTime!, totalDuration);
           Alert.alert(
             "🎉 Booking Confirmed!", 

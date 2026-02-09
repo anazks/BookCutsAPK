@@ -14,7 +14,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Linking
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
@@ -267,6 +268,26 @@ export default function OtpRegister() {
                     </View>
                   )}
                 </TouchableOpacity>
+
+                <View style={styles.policyContainer}>
+  <Text style={styles.policyText}>
+    By signing up, you agree to our{' '}
+    <Text
+      style={styles.link}
+      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+    >
+      Privacy Policy
+    </Text>{' '}
+    and{' '}
+    <Text
+      style={styles.link}
+      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+    >
+      Terms & Conditions
+    </Text>
+  </Text>
+</View>
+
 
                 {/* Info Text */}
                 <View style={styles.infoContainer}>
@@ -601,4 +622,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+    policyContainer: {
+    marginTop: 12,
+    marginBottom:10,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  policyText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  }
 });

@@ -85,3 +85,12 @@ export const resetPassword = async (data) => {
         console.log(error)
     }
 }
+
+export const userGoogleSignin = async (data) => {
+    try {
+        const response = await Axios.post('auth/user/google-sigin',data)
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}

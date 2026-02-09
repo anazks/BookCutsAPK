@@ -14,7 +14,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Linking
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LoginShopUser, viewMyShop } from '../../api/Service/Shop';
@@ -259,6 +260,8 @@ export default function Login() {
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
+               
+
                 {/* Login Button */}
                 <TouchableOpacity
                   style={[
@@ -368,6 +371,26 @@ export default function Login() {
               </TouchableOpacity>
             </View>
           </View>
+
+                            <View style={styles.policyContainer}>
+                  <Text style={styles.policyText}>
+                    By continuing  up, you agree to our{' '}
+                    <Text
+                      style={styles.link}
+                      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                    >
+                      Privacy Policy
+                    </Text>{' '}
+                    and{' '}
+                    <Text
+                      style={styles.link}
+                      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                    >
+                      Terms & Conditions
+                    </Text>
+                  </Text>
+                </View>
+                
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -548,4 +571,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+   policyContainer: {
+    marginTop: 20,
+    marginBottom:10,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  policyText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  }
 });

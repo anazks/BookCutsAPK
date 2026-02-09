@@ -26,6 +26,7 @@ import {
   viewMyBarbers,
   viewMyService,
   viewMyShop,
+  ownerToBarber
 } from '../api/Service/Shop';
 
 // ────────────────────────────────────────────────
@@ -95,6 +96,8 @@ export default function Settings() {
   const [barbers, setBarbers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shopId, setShopID] = useState(null);
+
 
   // Add Barber modal
   const [showBarberModal, setShowBarberModal] = useState(false);
@@ -127,7 +130,6 @@ export default function Settings() {
     const initialize = async () => {
       try {
         const shopId = await AsyncStorage.getItem('shopId');
-
         if (!shopId) {
           setHasShop(false);
           return;
@@ -160,24 +162,57 @@ export default function Settings() {
     }
   }, [hasShop]);
 
-  const fetchShopData = async () => {
+const fetchShopData = async () => {
+  try {
+    setLoading(true);
+
+    // Fetch barbers
     try {
-      setLoading(true);
-
-      const [barbersRes, servicesRes] = await Promise.all([
-        viewMyBarbers(),
-        viewMyService(),
-      ]);
-
-      setBarbers(barbersRes?.data || []);
-      setServices(servicesRes?.data || []);
-    } catch (error) {
-      console.log('Failed to load shop data:', error);
-    } finally {
-      setLoading(false);
+      const barbersRes = await viewMyBarbers();
+      console.log('Barbers Response:', barbersRes);
+      
+      if (barbersRes?.success && Array.isArray(barbersRes.data)) {
+        setBarbers(barbersRes.data);
+      } else {
+        setBarbers([]);
+      }
+    } catch (barberError) {
+      console.log('Barbers error:', barberError);
+      setBarbers([]);
     }
-  };
 
+    // Fetch services - SPECIAL HANDLING FOR 404
+    try {
+      const servicesRes = await viewMyService();
+      console.log('Services Response:', servicesRes);
+      
+      if (servicesRes?.success && Array.isArray(servicesRes.data)) {
+        setServices(servicesRes.data);
+      } else {
+        setServices([]);
+      }
+    } catch (serviceError: any) {
+      console.log('Services error caught:', serviceError);
+      
+      // Check if it's a 404 "No services found" error
+      if (serviceError?.message?.includes("No services found") || 
+          serviceError?.success === false) {
+        // This is expected - shop has no services yet
+        console.log('Shop has no services yet - this is normal');
+        setServices([]);
+      } else {
+        // Real error
+        console.log('Real services error:', serviceError);
+        setServices([]);
+      }
+    }
+
+  } catch (error) {
+    console.log('Unexpected error:', error);
+  } finally {
+    setLoading(false);
+  }
+};1
   // ────────────────────────────────────────────────
   // Add Barber
   // ────────────────────────────────────────────────
@@ -210,6 +245,45 @@ export default function Settings() {
       console.error(err);
     }
   };
+
+
+const becomeBarber = async () => {
+  try {
+    Alert.alert(
+      'Become a Barber',
+      'Are you sure you want to register yourself as a barber in your shop?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              const shopId = await AsyncStorage.getItem('shopId');
+              if (!shopId) {
+                Alert.alert('Error', 'Shop ID not found');
+                return;
+              }
+
+              await ownerToBarber(shopId); // just fire & forget
+
+              // Re-fetch the full updated list (most reliable)
+              const barbersRes = await viewMyBarbers();
+              setBarbers(barbersRes?.data || []);
+
+              Alert.alert('Success', 'You are now a barber in your shop!');
+            } catch (err) {
+              Alert.alert('Error', 'Failed to register as barber');
+              console.error(err);
+            }
+          },
+        },
+      ]
+    );
+  } catch (err) {
+    Alert.alert('Error', 'Something went wrong');
+    console.error(err);
+  }
+};
 
   // ────────────────────────────────────────────────
   // Update Barber
@@ -259,7 +333,8 @@ export default function Settings() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteBarberAPI(id);
+            const shopId = await AsyncStorage.getItem('shopId');
+            await deleteBarberAPI(id,shopId);
             setBarbers((prev) => prev.filter((b) => b._id !== id));
             Alert.alert('Success', 'Barber deleted');
           } catch (err) {
@@ -285,7 +360,7 @@ export default function Settings() {
       const payload = {
         ServiceName: serviceName.trim(),
         Rate: servicePrice,
-        Duration: serviceDuration.trim(),
+        duration: serviceDuration.trim(),
         shopId,
       };
 
@@ -406,7 +481,7 @@ export default function Settings() {
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item.ServiceName}</Text>
-          <Text style={styles.itemDetail}>₹{item.Rate} • {item.Duration}</Text>
+          <Text style={styles.itemDetail}>₹{item.Rate} • {item.duration}</Text>
         </View>
       </View>
       <View style={styles.itemActions}>
@@ -414,7 +489,7 @@ export default function Settings() {
           setEditingService(item);
           setEditServiceName(item.ServiceName);
           setEditServicePrice(item.Rate.toString());
-          setEditServiceDuration(item.Duration);
+          setEditServiceDuration(item.duration.toString());
           setShowEditServiceModal(true);
         }}>
           <Ionicons name="create-outline" size={18} color="#10B981" />
@@ -532,22 +607,37 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.listWrapper}>
-            {barbers.length === 0 ? (
-              <View style={styles.empty}>
-                <MaterialIcons name="person-add" size={48} color="#CBD5E1" />
-                <Text style={styles.emptyTitle}>No barbers yet</Text>
-                <Text style={styles.emptyText}>Add your first team member</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={barbers}
-                renderItem={renderBarber}
-                keyExtractor={(item) => item._id}
-                scrollEnabled={false}
-              />
-            )}
-          </View>
+       <View style={styles.listWrapper}>
+  {barbers.length === 0 ? (
+    <View style={styles.empty}>
+      <MaterialIcons name="person-add" size={48} color="#CBD5E1" />
+      <Text style={styles.emptyTitle}>No barbers yet</Text>
+      <Text style={styles.emptyText}>Add your first team member</Text>
+      
+      <View style={styles.activationNotice}>
+        <MaterialIcons name="info-outline" size={20} color="#F59E0B" />
+        <Text style={styles.activationText}>
+          Your shop is not activated. To activate, add at least one barber or you can be a barber in your shop.
+        </Text>
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.becomeBarberButton}
+        onPress={becomeBarber}
+      >
+        <MaterialIcons name="person" size={20} color="#FFFFFF" />
+        <Text style={styles.becomeBarberButtonText}>Become a Barber</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <FlatList
+      data={barbers}
+      renderItem={renderBarber}
+      keyExtractor={(item) => item._id}
+      scrollEnabled={false}
+    />
+  )}
+</View>
         </View>
 
         {/* Services Section */}
@@ -1251,4 +1341,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  activationNotice: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  backgroundColor: '#FEF3C7',
+  padding: 12,
+  borderRadius: 8,
+  marginTop: 16,
+  marginHorizontal: 16,
+  gap: 8,
+},
+activationText: {
+  flex: 1,
+  fontSize: 13,
+  color: '#92400E',
+  lineHeight: 18,
+},
+becomeBarberButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#3B82F6',
+  paddingVertical: 12,
+  paddingHorizontal: 24,
+  borderRadius: 8,
+  marginTop: 16,
+  marginHorizontal: 16,
+  gap: 8,
+},
+becomeBarberButtonText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: '600',
+},
 });

@@ -2,7 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import { getmyProfile } from '../api/Service/User';
 
 export default function Profile() {
@@ -214,15 +214,30 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#F3F4F6' }]}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#6B7280" />
-              </View>
-              <Text style={styles.menuText}>Privacy & Security</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
-          </TouchableOpacity>
+       <TouchableOpacity
+  style={styles.menuItem}
+  onPress={() =>
+    Linking.openURL('https://www.bookmycuts.com/privacy')
+  }
+>
+  <View style={styles.menuItemLeft}>
+    <View
+      style={[
+        styles.menuIconContainer,
+        { backgroundColor: '#F3F4F6' },
+      ]}
+    >
+      <Ionicons
+        name="shield-checkmark-outline"
+        size={18}
+        color="#6B7280"
+      />
+    </View>
+    <Text style={styles.menuText}>Privacy & Policy</Text>
+  </View>
+  <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+</TouchableOpacity>
+
 
           <TouchableOpacity 
             style={styles.menuItem}

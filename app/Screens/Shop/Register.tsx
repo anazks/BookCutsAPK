@@ -333,6 +333,25 @@ export default function ShopRegister() {
               </TouchableOpacity>
             </View>
           </View>
+                              <View style={styles.policyContainer}>
+                                <Text style={styles.policyText}>
+                                  By signing up, you agree to our{' '}
+                                  <Text
+                                    style={styles.link}
+                                    onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                                  >
+                                    Privacy Policy
+                                  </Text>{' '}
+                                  and{' '}
+                                  <Text
+                                    style={styles.link}
+                                    onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                                  >
+                                    Terms & Conditions
+                                  </Text>
+                                </Text>
+                              </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -487,4 +506,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  policyContainer: {
+    marginTop: 20,
+    marginBottom:10,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  policyText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  }  
 });
