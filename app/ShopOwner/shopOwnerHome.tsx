@@ -55,7 +55,7 @@ export default function ShopOwnerHome() {
           setProfileData(response.data);
         }
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.log("Error fetching profile:", error);
       } finally {
         setLoading(false);
       }

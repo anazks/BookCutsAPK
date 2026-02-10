@@ -15,7 +15,7 @@ export const getMyProfile = async (shopId: string) => {
         const response = await Axios.get(`/shop/getMyProfile`);
         console.log("Response from getMyProfile:", response);
         return response.data;
-    } catch (error: any) {
+    } catch (error: any) {  
         throw error?.response?.data || { message: "Failed to fetch profile" };
     }
 }

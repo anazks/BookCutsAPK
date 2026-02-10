@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,16 +15,22 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Linking
+  Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LoginShopUser, viewMyShop } from '../../api/Service/Shop';
-import { otpLogin, verifyOtp } from '../../api/Service/ShoperOwner';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+
+import { LoginShopUser,  otpLogin, verifyOtp } from '../../api/Service/Shop';
+import { userGoogleSignin} from '../../api/Service/User'
 
 const { width, height } = Dimensions.get('window');
 
 export default function Login() {
-  const [activeTab, setActiveTab] = useState('password'); // 'password' or 'otp'
+  const [activeTab, setActiveTab] = useState<'password' | 'otp' | 'google'>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otpMobile, setOtpMobile] = useState('');
@@ -32,58 +38,117 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // ---------------- Normal login functions ----------------
-  const handleLogin = async () => {
-  setLoading(true);
+  // Configure Google Sign-In
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
 
-  try {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
-    }
+  // ---------------- Google Sign-In ----------------
+  const handleGoogleSignin = async () => {
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
 
-    const loginData = { email, password };
+      const idToken = userInfo.data?.idToken;
 
-    // ✅ response is already response.data
-    const response = await LoginShopUser(loginData);
-
-    console.log('LOGIN RESPONSE 👉', response);
-
-    if (response.success && response.token) {
-
-      await AsyncStorage.setItem('accessToken', response.token);
-
-      if (response.user?.shopId) {
-        await AsyncStorage.setItem('shopId', response.user.shopId);
+      if (!idToken) {
+        Alert.alert('Error', 'No ID token received from Google');
+        return;
       }
 
-      Alert.alert('Success', 'Login successful!', [
-        { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') }
-      ]);
+      setLoading(true);
 
-    } else {
-      Alert.alert(
-        'Login Error',
-        response.message || 'Login failed. Please try again.'
-      );
+      const response = await userGoogleSignin({
+        idToken,
+        role: 'shopOwner',
+      });
+
+      console.log('GOOGLE LOGIN RESPONSE:', response);
+
+      if (response.success && response.token) {
+        await AsyncStorage.setItem('accessToken', response.token);
+
+        if (response.user?.shopId) {
+          await AsyncStorage.setItem('shopId', response.user.shopId);
+        }
+
+        Alert.alert('Success', 'Login successful!', [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/ShopOwner/shopOwnerHome'),
+          },
+        ]);
+      } else {
+        Alert.alert('Login Error', response.message || 'Google login failed');
+      }
+    } catch (error: any) {
+      console.error('Google Sign-In Error:', error);
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation in progress
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available');
+      } else {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'Google login failed. Please try again.';
+        Alert.alert('Error', message);
+      }
+    } finally {
+      setGoogleLoading(false);
+      setLoading(false);
     }
+  };
 
-  } catch (error) {
-    console.log('❌ LOGIN ERROR FULL 👉', error);
+  // ---------------- Normal login ----------------
+  const handleLogin = async () => {
+    setLoading(true);
 
-    const message =
-      error?.response?.data?.message ||
-      error?.message ||
-      'An unexpected error occurred. Please try again.';
+    try {
+      if (!email || !password) {
+        Alert.alert('Error', 'Please enter both email and password');
+        return;
+      }
 
-    Alert.alert(message);
+      const loginData = { email, password };
+      const response = await LoginShopUser(loginData);
 
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log('LOGIN RESPONSE 👉', response);
 
+      if (response.success && response.token) {
+        await AsyncStorage.setItem('accessToken', response.token);
+
+        if (response.user?.shopId) {
+          await AsyncStorage.setItem('shopId', response.user.shopId);
+        }
+
+        Alert.alert('Success', 'Login successful!', [
+          { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') },
+        ]);
+      } else {
+        Alert.alert('Login Error', response.message || 'Login failed. Please try again.');
+      }
+    } catch (error) {
+      console.log('❌ LOGIN ERROR FULL 👉', error);
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'An unexpected error occurred. Please try again.';
+      Alert.alert('Error', message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ---------------- OTP login functions ----------------
   const handleSendOtp = async () => {
@@ -91,22 +156,19 @@ export default function Login() {
       Alert.alert('Error', 'Please enter your mobile number');
       return;
     }
-    
+
     setLoading(true);
     try {
-      const payload = { mobileNo: otpMobile, role: "shopper" };
-      console.log("Sending to backend:", payload);
-
+      const payload = { mobileNo: otpMobile, role: 'shopper' };
       const otpResponse = await otpLogin(payload);
 
       if (otpResponse.success) {
         setOtpSent(true);
         Alert.alert('OTP Sent', 'OTP has been sent to your mobile number');
       } else {
-        Alert.alert('Error', otpResponse.message || 'Failed to send OTP. Please try again.');
+        Alert.alert('Error', otpResponse.message || 'Failed to send OTP.');
       }
     } catch (error) {
-      console.error('OTP error:', error);
       Alert.alert('Error', 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
@@ -121,23 +183,24 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const payload = { mobileNo: otpMobile, otp, role: "shopper" };
-      console.log("Sending to backend:", payload);    
+      const payload = { mobileNo: otpMobile, otp, role: 'shopper' };
       const verifyResponse = await verifyOtp(payload);
 
       if (verifyResponse.success && verifyResponse.token) {
         await AsyncStorage.setItem('accessToken', verifyResponse.token);
-       
-        await AsyncStorage.setItem('shopId', verifyResponse.userDate.shopId);
+
+        if (verifyResponse.userDate?.shopId) {
+          await AsyncStorage.setItem('shopId', verifyResponse.userDate.shopId);
+        }
+
         Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') }
+          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') },
         ]);
       } else {
-        Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP. Please try again.');
+        Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP.');
       }
     } catch (error) {
-      console.error('OTP verification error:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      Alert.alert('Error', 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
@@ -157,14 +220,13 @@ export default function Login() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Section */}
+          {/* Header */}
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
               <View style={styles.logoIcon}>
                 <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
               </View>
             </View>
-            
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeText}>Shop Owner Login</Text>
               <Text style={styles.subtitleText}>Manage your salon bookings</Text>
@@ -176,7 +238,7 @@ export default function Login() {
             <TouchableOpacity
               style={[styles.tab, activeTab === 'password' && styles.activeTab]}
               onPress={() => setActiveTab('password')}
-              disabled={loading}
+              disabled={loading || googleLoading}
             >
               <Text style={[styles.tabText, activeTab === 'password' && styles.activeTabText]}>
                 Email Login
@@ -185,7 +247,7 @@ export default function Login() {
             <TouchableOpacity
               style={[styles.tab, activeTab === 'otp' && styles.activeTab]}
               onPress={() => setActiveTab('otp')}
-              disabled={loading}
+              disabled={loading || googleLoading}
             >
               <Text style={[styles.tabText, activeTab === 'otp' && styles.activeTabText]}>
                 Mobile OTP
@@ -193,12 +255,10 @@ export default function Login() {
             </TouchableOpacity>
           </View>
 
-          {/* Form Container */}
+          {/* Form */}
           <View style={styles.formContainer}>
-            {/* Email Login */}
             {activeTab === 'password' && (
               <>
-                {/* Email Input */}
                 <View style={styles.inputContainer}>
                   <View style={styles.inputWrapper}>
                     <View style={styles.inputIconContainer}>
@@ -210,15 +270,13 @@ export default function Login() {
                       placeholderTextColor="#94A3B8"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      autoCorrect={false}
                       value={email}
                       onChangeText={setEmail}
-                      editable={!loading}
+                      editable={!loading && !googleLoading}
                     />
                   </View>
                 </View>
 
-                {/* Password Input */}
                 <View style={styles.inputContainer}>
                   <View style={styles.inputWrapper}>
                     <View style={styles.inputIconContainer}>
@@ -231,45 +289,39 @@ export default function Login() {
                       secureTextEntry={!showPassword}
                       value={password}
                       onChangeText={setPassword}
-                      editable={!loading}
+                      editable={!loading && !googleLoading}
                     />
                     <TouchableOpacity
                       style={styles.visibilityToggle}
                       onPress={() => setShowPassword(!showPassword)}
-                      disabled={loading}
+                      disabled={loading || googleLoading}
                     >
-                      <MaterialIcons 
-                        name={showPassword ? 'visibility-off' : 'visibility'} 
-                        size={22} 
-                        color="#64748B" 
+                      <MaterialIcons
+                        name={showPassword ? 'visibility-off' : 'visibility'}
+                        size={22}
+                        color="#64748B"
                       />
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                <TouchableOpacity 
-                  style={styles.forgotPassword} 
-                  disabled={loading}
+                <TouchableOpacity
+                  style={styles.forgotPassword}
+                  disabled={loading || googleLoading}
                   onPress={() =>
-                                  router.push({
-                                    pathname: '/Screens/User/ForgotPassword',
-                                    params: { role: 'shopper' }
-                                  })
-                                }
+                    router.push({
+                      pathname: '/Screens/User/ForgotPassword',
+                      params: { role: 'shopper' },
+                    })
+                  }
                 >
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
-               
-
-                {/* Login Button */}
                 <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    loading && styles.loginButtonDisabled
-                  ]}
+                  style={[styles.loginButton, (loading || googleLoading) && styles.loginButtonDisabled]}
                   onPress={handleLogin}
-                  disabled={loading || !email || !password}
+                  disabled={loading || googleLoading || !email || !password}
                 >
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
@@ -283,10 +335,8 @@ export default function Login() {
               </>
             )}
 
-            {/* OTP Login */}
             {activeTab === 'otp' && (
               <>
-                {/* Mobile Number Input */}
                 <View style={styles.inputContainer}>
                   <View style={styles.inputWrapper}>
                     <View style={styles.inputIconContainer}>
@@ -299,13 +349,12 @@ export default function Login() {
                       keyboardType="phone-pad"
                       value={otpMobile}
                       onChangeText={setOtpMobile}
-                      editable={!loading}
+                      editable={!loading && !googleLoading}
                     />
                   </View>
                 </View>
 
                 {otpSent && (
-                  /* OTP Input */
                   <View style={styles.inputContainer}>
                     <View style={styles.inputWrapper}>
                       <View style={styles.inputIconContainer}>
@@ -319,20 +368,16 @@ export default function Login() {
                         value={otp}
                         onChangeText={setOtp}
                         maxLength={6}
-                        editable={!loading}
+                        editable={!loading && !googleLoading}
                       />
                     </View>
                   </View>
                 )}
 
-                {/* OTP Button */}
                 <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    loading && styles.loginButtonDisabled
-                  ]}
+                  style={[styles.loginButton, (loading || googleLoading) && styles.loginButtonDisabled]}
                   onPress={otpSent ? handleVerifyOtp : handleSendOtp}
-                  disabled={loading || (otpSent ? !otp : !otpMobile)}
+                  disabled={loading || googleLoading || (otpSent ? !otp : !otpMobile)}
                 >
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
@@ -347,10 +392,10 @@ export default function Login() {
                 </TouchableOpacity>
 
                 {otpSent && (
-                  <TouchableOpacity 
-                    style={styles.resendOtp} 
-                    onPress={handleSendOtp} 
-                    disabled={loading}
+                  <TouchableOpacity
+                    style={styles.resendOtp}
+                    onPress={handleSendOtp}
+                    disabled={loading || googleLoading}
                   >
                     <Text style={styles.resendOtpText}>Resend OTP</Text>
                   </TouchableOpacity>
@@ -359,38 +404,51 @@ export default function Login() {
             )}
           </View>
 
-          {/* Footer Links */}
+          {/* Google Sign-In Button */}
+          <View style={{ alignItems: 'center', marginVertical: 24, paddingHorizontal: 40 }}>
+            {googleLoading ? (
+              <ActivityIndicator size="large" color="#FF6B6B" />
+            ) : (
+              <GoogleSigninButton
+                size={GoogleSigninButton.Size.Wide}
+                color={GoogleSigninButton.Color.Light}
+                onPress={handleGoogleSignin}
+                disabled={loading || googleLoading}
+              />
+            )}
+          </View>
+
+          {/* Footer */}
           <View style={styles.footer}>
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/Screens/Shop/Register')}
-                disabled={loading}
+                disabled={loading || googleLoading}
               >
                 <Text style={styles.linkText}>Register your salon</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-                            <View style={styles.policyContainer}>
-                  <Text style={styles.policyText}>
-                    By continuing  up, you agree to our{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                    >
-                      Privacy Policy
-                    </Text>{' '}
-                    and{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                    >
-                      Terms & Conditions
-                    </Text>
-                  </Text>
-                </View>
-                
+          <View style={styles.policyContainer}>
+            <Text style={styles.policyText}>
+              By continuing, you agree to our{' '}
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+              >
+                Privacy Policy
+              </Text>{' '}
+              and{' '}
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+              >
+                Terms & Conditions
+              </Text>
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
