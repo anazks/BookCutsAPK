@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
   BackHandler,
+  RefreshControl, // ← ADD THIS IMPORT
 } from 'react-native';
 
 import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
@@ -26,7 +27,7 @@ import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
-import ShopCarousel from '../Screens/User/ShopCarousel'; // ← new import
+import ShopCarousel from '../Screens/User/ShopCarousel';
 
 const Home = () => {
   const [shops, setShops] = useState<any[]>([]);
@@ -48,6 +49,13 @@ const Home = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreShops, setHasMoreShops] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalShops, setTotalShops] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -140,23 +148,69 @@ const Home = () => {
     }
   };
 
-  const findNearestShopApi = async () => {
+  const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
     if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
 
     try {
-      setLoading(true);
-      const result = await findNearestShops(coordinates);
+      if (isRefresh) {
+        setIsRefreshing(true);
+        setCurrentPage(1);
+      } else if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const result = await findNearestShops({ 
+        ...coordinates, 
+        page, 
+        limit: 10 
+      });
+      
+      console.log('API Response:', result);
+
       if (result?.success) {
-        setShops(result.shops || []);
+        if (isLoadMore) {
+          // Append new shops for infinite scroll
+          setShops(prev => [...prev, ...(result.shops || [])]);
+        } else {
+          // First load or refresh
+          setShops(result.shops || []);
+        }
+        
+        setTotalShops(result.total || result.shops?.length || 0);
+        setHasMoreShops((result.shops || []).length === 10); // 10 items per page
         setError(null);
       } else {
         setError('Failed to fetch nearby shops.');
       }
     } catch (error) {
       console.error('Error fetching shops:', error);
-      setError('Failed to load shops. Check your connection.');
+      if (!isLoadMore) {
+        setError('Failed to load shops. Check your connection.');
+      }
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else if (isLoadMore) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRefresh = () => {
+    if (!isRefreshing) {
+      findNearestShopApi(1, false, true);
+    }
+  };
+
+  const loadMoreShops = () => {
+    if (!loadingMore && hasMoreShops) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      findNearestShopApi(nextPage, true);
     }
   };
 
@@ -195,6 +249,10 @@ const Home = () => {
     setSelectedCity(city.name);
     setCoordinates({ latitude: Number(city.lat), longitude: Number(city.lon) });
     setShowCityDropdown(false);
+    // Reset shops when city changes
+    setShops([]);
+    setCurrentPage(1);
+    setHasMoreShops(true);
   };
 
   const handleServiceChange = async (serviceName: string | null) => {
@@ -239,7 +297,7 @@ const Home = () => {
 
   useEffect(() => {
     if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
-      findNearestShopApi();
+      findNearestShopApi(1, false);
       getProfile();
       getNearByCities(coordinates);
     }
@@ -290,6 +348,7 @@ const Home = () => {
         mobile: shop.Mobile || '',
         website: shop.website || '',
         image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop',
+        rating: shop.rating || 4.5,
       };
     });
   };
@@ -299,7 +358,7 @@ const Home = () => {
 
   const getPopularShops = () => {
     const sorted = [...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999));
-    return transformShopData(sorted).slice(0, 8);
+    return transformShopData(sorted);
   };
 
   const trendingDesigns = [
@@ -323,7 +382,7 @@ const Home = () => {
     },
   ];
 
-  if (loading) {
+  if (loading && shops.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#4F46E5" />
@@ -414,7 +473,19 @@ const Home = () => {
         </TouchableOpacity>
       </Modal>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#EF4444']}
+            tintColor="#EF4444"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         {searchQuery.length > 0 ? (
           <>
             {isSearching ? (
@@ -426,15 +497,24 @@ const Home = () => {
               <FlatList
                 data={searchData}
                 keyExtractor={(item) => item._id}
-                renderItem={({ item }) => <ShopCard shop={item} onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })} />}
+                renderItem={({ item }) => (
+                  <ShopCard 
+                    shop={item} 
+                    onPress={() => router.push({ 
+                      pathname: '/Screens/User/BarberShopFeed', 
+                      params: { shop_id: item._id } 
+                    })} 
+                  />
+                )}
                 ListEmptyComponent={() => (
                   <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
                     <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-                    <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center' }}>
+                    <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center', color: '#6B7280' }}>
                       No salons found for "{searchQuery}"
                     </Text>
                   </View>
                 )}
+                scrollEnabled={false}
               />
             )}
           </>
@@ -443,12 +523,12 @@ const Home = () => {
             {error && (
               <View style={{ flexDirection: 'row', backgroundColor: '#FEF2F2', margin: 16, padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
                 <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
-                <Text style={{ flex: 1, marginLeft: 8 }}>{error}</Text>
+                <Text style={{ flex: 1, marginLeft: 8, color: '#6B7280' }}>{error}</Text>
               </View>
             )}
 
             <View style={{ marginVertical: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12 }}>Services</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#111827' }}>Services</Text>
               <ServiceFilter onServiceChange={handleServiceChange} />
             </View>
 
@@ -459,12 +539,14 @@ const Home = () => {
               </View>
             ) : (
               <>
-                {/* Only one carousel — remove duplication unless intentional */}
                 {activeShops.length > 0 && (
                   <ShopCarousel
                     title="Top Rated This Week"
                     shops={getPopularShops()}
                     onViewAll={() => router.push('/(tabs)/BookNow')}
+                    onEndReached={loadMoreShops}
+                    isLoadingMore={loadingMore}
+                    hasMore={hasMoreShops}
                   />
                 )}
 
@@ -475,16 +557,27 @@ const Home = () => {
 
             <View style={{ marginVertical: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700' }}>Trending Styles</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>Trending Styles</Text>
               </View>
               <FlatList
                 horizontal
                 data={trendingDesigns}
                 keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
                 renderItem={({ item }) => (
-                  <View style={{ width: 140, marginRight: 12 }}>
-                    <Image source={{ uri: item.image }} style={{ width: '100%', height: 140, borderRadius: 8 }} />
-                    <Text style={{ marginTop: 6, textAlign: 'center', fontWeight: '500' }}>{item.name}</Text>
+                  <View style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 12, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}>
+                    <Image 
+                      source={{ uri: item.image }} 
+                      style={{ 
+                        width: '100%', 
+                        height: 140, 
+                        borderRadius: 8,
+                        marginBottom: 8 
+                      }} 
+                    />
+                    <Text style={{ marginTop: 4, textAlign: 'center', fontWeight: '600', color: '#111827' }}>{item.name}</Text>
+                    <Text style={{ marginTop: 2, textAlign: 'center', fontSize: 12, color: '#10B981' }}>{item.popularity} popular</Text>
                   </View>
                 )}
               />
@@ -496,4 +589,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Home; 

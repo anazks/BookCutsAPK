@@ -1,12 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { createOrder, verifyPayment } from '../../api/Service/Booking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
- import * as Notifications from 'expo-notifications';
-
+import * as Notifications from 'expo-notifications';
 
 const DetailRow = ({ label, value }) => (
   <View style={styles.detailRow}>
@@ -17,10 +24,7 @@ const DetailRow = ({ label, value }) => (
 
 const PaymentOption = ({ title, amount, isSelected, onPress, note }) => (
   <TouchableOpacity
-    style={[
-      styles.paymentOption,
-      isSelected && styles.selectedOption
-    ]}
+    style={[styles.paymentOption, isSelected && styles.selectedOption]}
     onPress={onPress}
     activeOpacity={0.7}
   >
@@ -36,16 +40,16 @@ const PaymentOption = ({ title, amount, isSelected, onPress, note }) => (
 export default function PayNow() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
   const [bookingData, setBookingData] = useState(null);
   const [paymentType, setPaymentType] = useState('full');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
 
-  // Extract all parameters including bookingId
-  const { 
+  const {
     bookingData: bookingDataString,
-    bookingId, // This is the booking ID passed from previous screen
+    bookingId,
     barberName,
     bookingDate,
     timeSlot,
@@ -53,19 +57,15 @@ export default function PayNow() {
     advanceAmount,
     customerName = 'Customer',
     customerEmail = 'customer@example.com',
-    customerPhone = '9999999999'
+    customerPhone = '9999999999',
   } = params;
- 
-  const triggerDate = new Date(Date.now() + 5 * 60 * 1000);
-
 
   useEffect(() => {
     const loadBookingData = async () => {
       try {
         if (bookingDataString) {
           const parsedData = JSON.parse(bookingDataString);
-          console.log("Parsed booking data:", parsedData);
-          console.log("................................",bookingId,"-------------------------------------------------------------------------")
+          console.log('Parsed booking data:', parsedData);
           setBookingData(parsedData);
         }
       } catch (error) {
@@ -78,134 +78,147 @@ export default function PayNow() {
     };
 
     loadBookingData();
-  }, [bookingDataString]);
+  }, [bookingDataString, router]);
 
-  // Get the final booking ID (either from params or parsed data)
   const getBookingId = () => {
-    console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>",bookingId,">>>>>>>>>>>>>>>>>>>>>>>>>>>>",bookingData._id,"---bookingDatabookingData;-------")
     if (bookingId) return bookingId;
     if (bookingData?._id) return bookingData._id;
     return null;
   };
 
+ const handlePaymentSuccess = useCallback(
+  async (paymentResponse) => {
+    try {
+      setIsProcessing(true);
 
-const handlePaymentSuccess = useCallback(async (paymentResponse) => {
-  try {
-    setIsProcessing(true);
+      const {
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature,
+      } = paymentResponse;
 
-    const {
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature
-    } = paymentResponse;
-
-    console.log('Payment successful, verifying with backend...', {
-      paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      signature: razorpay_signature
-    });
-
-    const finalBookingId = getBookingId();
-    if (!finalBookingId) {
-      throw new Error('Booking ID not found for verification');
-    }
-
-    const email = await AsyncStorage.getItem('email');
-
-    const verificationData = {
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature,
-      bookingId: finalBookingId,
-      paymentType,
-      amount: paymentType === 'advance' ? advanceAmount : totalPrice,
-      currency: 'INR',
-      email
-    };
-
-    console.log('Sending verification data:', verificationData);
-
-    const verificationResponse = await verifyPayment(verificationData);
-
-    if (verificationResponse.success) {
-
-      /* =====================================
-         🔔 1. PAYMENT SUCCESS NOTIFICATION
-      ======================================*/
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Payment Successful 🎉",
-          body: `₹${verificationData.amount} paid successfully.`,
-          sound: 'default',
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-        },
-        trigger: null, // immediate
+      console.log('Payment successful, verifying with backend...', {
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        signature: razorpay_signature,
       });
 
-      /* =====================================
-         ⏰ 2. HAIRCUT REMINDER (TEST: 5 MIN)
-      ======================================*/
-      await Notifications.scheduleNotificationAsync({
-  content: {
-    title: "✂️ Haircut Reminder",
-    body: "Your hair has grown. It's been 2 months since your last haircut.",
-    sound: 'default',
+      const finalBookingId = getBookingId();
+      if (!finalBookingId) {
+        throw new Error('Booking ID not found for verification');
+      }
+
+      const email = await AsyncStorage.getItem('email');
+
+      const verificationData = {
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature,
+        bookingId: finalBookingId,
+        paymentType,
+        amount: paymentType === 'advance' ? advanceAmount : totalPrice,
+        currency: 'INR',
+        email,
+      };
+
+      console.log('Sending verification data:', verificationData);
+
+      const verificationResponse = await verifyPayment(verificationData);
+
+      if (verificationResponse.success) {
+        // ================================================
+        // 1. IMMEDIATE PAYMENT SUCCESS NOTIFICATION
+        // ================================================
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Payment Successful 🎉',
+            body: `₹${verificationData.amount} paid successfully.`,
+            sound: 'default',
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            // Explicitly set vibration for Android
+            vibrationPattern: [0, 250, 250, 250],
+            data: {
+              type: 'payment_success',
+              bookingId: finalBookingId,
+            },
+          },
+          trigger: null, // immediate
+        });
+
+        // ================================================
+        // 2. DELAYED HAIRCUT REMINDER (5 MINUTES)
+        // ================================================
+        // Calculate future timestamp for 5 minutes from now
+        const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+        
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '✂️ Haircut Reminder',
+            body: `Don't forget your appointment with ${barberName} today at ${timeSlot}!`,
+            sound: 'default',
+            // Optional: Different vibration pattern for reminder
+            vibrationPattern: [0, 500, 500, 500],
+            data: {
+              type: 'haircut_reminder',
+              bookingId: finalBookingId,
+              barberName,
+              timeSlot,
+            },
+          },
+          trigger: {
+            date: fiveMinutesFromNow,
+            // OR use seconds (both should work, but date is more reliable)
+            // seconds: 5 * 60,
+          },
+        });
+
+        console.log(`Reminder scheduled for: ${fiveMinutesFromNow.toLocaleTimeString()}`);
+
+        // ================================================
+        // 3. Navigate to confirmation screen
+        // ================================================
+        router.push({
+          pathname: '/Screens/User/ConfirmBooking',
+          params: {
+            bookingId: finalBookingId,
+            paymentId: razorpay_payment_id,
+            paymentType,
+            amount: paymentType === 'advance' ? advanceAmount : totalPrice,
+            verified: 'true',
+            barberName,
+            bookingDate,
+            timeSlot,
+            reminderScheduled: 'true',
+          },
+        });
+      } else {
+        throw new Error(verificationResponse.message || 'Payment verification failed');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      Alert.alert(
+        'Payment Failed',
+        error.message || 'Your payment was processed but verification failed. Please contact support.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   },
-  trigger: triggerDate,
-});
-
-      /* =====================================
-         🚀 NAVIGATION (UNCHANGED)
-      ======================================*/
-      router.push({
-        pathname: '/Screens/User/ConfirmBooking',
-        params: {
-          bookingId: finalBookingId,
-          paymentId: razorpay_payment_id,
-          paymentType,
-          amount: paymentType === 'advance' ? advanceAmount : totalPrice,
-          verified: 'true',
-          barberName,
-          bookingDate,
-          timeSlot
-        }
-      });
-
-    } else {
-      throw new Error(verificationResponse.message || 'Payment verification failed');
-    }
-  } catch (error: any) {
-    console.error('Payment verification error:', error);
-    Alert.alert(
-      'Payment Failed',
-      error.message || 'Your payment was processed but verification failed. Please contact support.',
-      [
-        {
-          text: 'OK',
-          onPress: () => router.back()
-        }
-      ]
-    );
-  } finally {
-    setIsProcessing(false);
-  }
-}, [bookingData, paymentType, advanceAmount, totalPrice, router]);
-
-
+  [bookingData, paymentType, advanceAmount, totalPrice, router, barberName, timeSlot]
+);
   const handlePayment = async () => {
     if (isProcessing) return;
-    
+
     setIsProcessing(true);
     try {
-      const amount = paymentType === 'advance' 
-        ? parseFloat(advanceAmount) 
-        : parseFloat(totalPrice);
+      const amount =
+        paymentType === 'advance' ? parseFloat(advanceAmount) : parseFloat(totalPrice);
 
       if (isNaN(amount)) {
         throw new Error('Invalid payment amount');
       }
 
-      // Get the booking ID to use for order creation
       const finalBookingId = getBookingId();
       if (!finalBookingId) {
         throw new Error('Booking ID not found for order creation');
@@ -222,8 +235,8 @@ const handlePaymentSuccess = useCallback(async (paymentResponse) => {
         customerDetails: {
           name: customerName,
           email: customerEmail,
-          phone: customerPhone
-        }
+          phone: customerPhone,
+        },
       });
 
       if (!orderResponse?.id) {
@@ -236,30 +249,30 @@ const handlePaymentSuccess = useCallback(async (paymentResponse) => {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: 'rzp_test_fccR1aGiSJLS1e', // Replace with your actual Razorpay key
-        amount: Math.round(amount * 100), // Convert to paise
+        key: 'rzp_test_fccR1aGiSJLS1e', // Replace with production key later
+        amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: {
           name: customerName,
           email: customerEmail,
-          contact: customerPhone
+          contact: customerPhone,
         },
         theme: { color: '#4CAF50' },
         notes: {
           bookingId: finalBookingId,
           paymentType,
-          services: bookingData?.services.map(s => s.name).join(', ')
-        }
+          services: bookingData?.services.map((s) => s.name).join(', '),
+        },
       };
 
       console.log('Opening Razorpay checkout with options:', options);
-      
+
       RazorpayCheckout.open(options)
         .then(handlePaymentSuccess)
         .catch((error) => {
           console.error('Razorpay error:', error);
           setIsProcessing(false);
-          
+
           if (error.code === 0) {
             Alert.alert('Payment Status', 'Payment completed. Verifying...');
           } else if (error.code === 1) {
@@ -270,7 +283,6 @@ const handlePaymentSuccess = useCallback(async (paymentResponse) => {
             Alert.alert('Payment Error', error.description || 'An error occurred during payment');
           }
         });
-
     } catch (error) {
       console.error('Payment error:', error);
       Alert.alert('Error', error.message || 'Failed to process payment');
@@ -288,76 +300,73 @@ const handlePaymentSuccess = useCallback(async (paymentResponse) => {
   }
 
   const remainingAmount = (parseFloat(totalPrice) - parseFloat(advanceAmount)).toFixed(2);
-  const buttonText = paymentType === 'advance' 
-    ? `Pay ₹${advanceAmount} Now` 
-    : `Pay ₹${totalPrice} Now`;
+  const buttonText =
+    paymentType === 'advance' ? `Pay ₹${advanceAmount} Now` : `Pay ₹${totalPrice} Now`;
 
   return (
-    <SafeAreaView>
-       <ScrollView 
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-    >
-      
-      
-      <View style={styles.bookingSummary}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Booking Details</Text>
-        </View>
-        
-        <View style={styles.detailsContainer}>
-          <DetailRow label="Barber" value={barberName} />
-          <DetailRow label="Date" value={bookingDate} />
-          <DetailRow label="Time Slot" value={timeSlot} />
-          <DetailRow 
-            label="Services" 
-            value={bookingData.services.map(s => s.name).join(', ')} 
-          />
-          <DetailRow label="Duration" value={`${bookingData.totalDuration} minutes`} />
-          <View style={styles.totalAmountRow}>
-            <Text style={styles.totalAmountLabel}>Total Amount</Text>
-            <Text style={styles.totalAmountValue}>₹{totalPrice}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.paymentOptions}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Payment Options</Text>
-        </View>
-        
-        <PaymentOption 
-          title="Pay Full Amount"
-          amount={totalPrice}
-          isSelected={paymentType === 'full'}
-          onPress={() => setPaymentType('full')}
-        />
-        
-        <PaymentOption 
-          title="Pay Advance Booking Fee"
-          amount={advanceAmount}
-          isSelected={paymentType === 'advance'}
-          onPress={() => setPaymentType('advance')}
-          note={`Remaining ₹${remainingAmount} to be paid at salon`}
-        />
-      </View>
-
-      <TouchableOpacity 
-        style={[styles.payButton, isProcessing && styles.disabledButton]}
-        onPress={handlePayment}
-        disabled={isProcessing}
-        activeOpacity={0.8}
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
       >
-        {isProcessing ? (
-          <View style={styles.buttonLoadingContainer}>
-            <ActivityIndicator color="#fff" />
-            <Text style={styles.processingText}>Processing...</Text>
+        <View style={styles.bookingSummary}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Booking Details</Text>
           </View>
-        ) : (
-          <Text style={styles.payButtonText}>{buttonText}</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+
+          <View style={styles.detailsContainer}>
+            <DetailRow label="Barber" value={barberName} />
+            <DetailRow label="Date" value={bookingDate} />
+            <DetailRow label="Time Slot" value={timeSlot} />
+            <DetailRow
+              label="Services"
+              value={bookingData.services.map((s) => s.name).join(', ')}
+            />
+            <DetailRow label="Duration" value={`${bookingData.totalDuration} minutes`} />
+            <View style={styles.totalAmountRow}>
+              <Text style={styles.totalAmountLabel}>Total Amount</Text>
+              <Text style={styles.totalAmountValue}>₹{totalPrice}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.paymentOptions}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Payment Options</Text>
+          </View>
+
+          <PaymentOption
+            title="Pay Full Amount"
+            amount={totalPrice}
+            isSelected={paymentType === 'full'}
+            onPress={() => setPaymentType('full')}
+          />
+
+          <PaymentOption
+            title="Pay Advance Booking Fee"
+            amount={advanceAmount}
+            isSelected={paymentType === 'advance'}
+            onPress={() => setPaymentType('advance')}
+            note={`Remaining ₹${remainingAmount} to be paid at salon`}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.payButton, isProcessing && styles.disabledButton]}
+          onPress={handlePayment}
+          disabled={isProcessing}
+          activeOpacity={0.8}
+        >
+          {isProcessing ? (
+            <View style={styles.buttonLoadingContainer}>
+              <ActivityIndicator color="#fff" />
+              <Text style={styles.processingText}>Processing...</Text>
+            </View>
+          ) : (
+            <Text style={styles.payButtonText}>{buttonText}</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -378,15 +387,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
-  },
-  headerContainer: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  subHeader: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
   },
   bookingSummary: {
     backgroundColor: '#fff',

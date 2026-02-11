@@ -201,25 +201,22 @@ export const deleteServiceAPI  = async (serviceId) => {
   }
 }
 
-  export const findNearestShops = async (coordinates) => {
+export const findNearestShops = async ({ latitude, longitude, page = 1, limit = 10 }) => {
   try {
-    console.log(coordinates, "in shop.ts");
-    const { latitude, longitude } = coordinates; // fixed typo longitude
+    console.log({ latitude, longitude, page, limit }, "in shop.ts");
     const lat = latitude;
-    const lng = longitude; // API expects 'lng'  longitude
-    console.log("Type of lng:", typeof lng, "Value:", lng);
-
+    const lng = longitude;
+    
     const shops = await Axios.get('/shop/findNearByShops', {
-      params: { lat, lng }, // fixed 'lgn' -> 'lng'
+      params: { lat, lng, page, limit },
     });
 
-    return shops.data; // usually return .data instead of full response
+    return shops.data;
   } catch (error) {
     console.error("Error fetching nearest shops:", error);
     throw error;
   }
 };
-
 
 export const saveToCloud = async (shopId: string, data: FormData) => {
     try {

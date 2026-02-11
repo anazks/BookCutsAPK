@@ -29,24 +29,35 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      "expo-web-browser",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
-        }
-      ]
+  "expo-router",
+  [
+    "expo-splash-screen",
+    {
+      "image": "./assets/images/icon.png",
+      "imageWidth": 200,
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B6B"
+    }
+  ],
+  "expo-web-browser",
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "The app accesses your photos to let you share them with your friends."
+    }
+  ],
+  [
+  "expo-notifications",
+  {
+    "sounds": [
+      "./assets/notification/scissorscuts.wav"
     ],
+    "icon": "./assets/images/bookmycuts-new-wordmark.png",     
+    "color": "#00aaff",
+    "defaultChannel": "payment"                 
+  }
+]
+],
     "experiments": {
       "typedRoutes": true
     },
