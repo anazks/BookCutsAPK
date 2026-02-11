@@ -1,28 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  BackHandler,
-  RefreshControl, // ← ADD THIS IMPORT
 } from 'react-native';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
+import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
-import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
@@ -171,15 +170,13 @@ const Home = () => {
 
       if (result?.success) {
         if (isLoadMore) {
-          // Append new shops for infinite scroll
           setShops(prev => [...prev, ...(result.shops || [])]);
         } else {
-          // First load or refresh
           setShops(result.shops || []);
         }
         
         setTotalShops(result.total || result.shops?.length || 0);
-        setHasMoreShops((result.shops || []).length === 10); // 10 items per page
+        setHasMoreShops((result.shops || []).length === 10);
         setError(null);
       } else {
         setError('Failed to fetch nearby shops.');
@@ -251,7 +248,6 @@ const Home = () => {
     setSelectedCity(city.name);
     setCoordinates({ latitude: Number(city.lat), longitude: Number(city.lon) });
     setShowCityDropdown(false);
-    // Reset shops when city changes
     setShops([]);
     setCurrentPage(1);
     setHasMoreShops(true);
@@ -349,7 +345,7 @@ const Home = () => {
         timing: shop.Timing || '9am - 8pm',
         mobile: shop.Mobile || '',
         website: shop.website || '',
-        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop',
+        image: imageUrl || 'https://via.placeholder.com/300x200/1A1A1A/D4AF37?text=Shop',
         rating: shop.rating || 4.5,
       };
     });
@@ -386,75 +382,162 @@ const Home = () => {
 
   if (loading && shops.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#4F46E5" />
-        <Text style={{ marginTop: 16, color: '#64748B' }}>Loading shops...</Text>
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={{ marginTop: 16, color: '#D4AF37', fontSize: 14, letterSpacing: 1 }}>LOADING...</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
 
-      {/* Header */}
-      <View style={{ backgroundColor: '#FFF', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* Premium Header with Gradient */}
+      <LinearGradient
+        colors={['#1A1A1A', '#0A0A0A']}
+        style={{
+          paddingTop: 50,
+          paddingBottom: 30,
+          paddingHorizontal: 20,
+        }}
+      >
+        {/* Top Bar */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <TouchableOpacity
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#FFF',
+              backgroundColor: 'rgba(212, 175, 55, 0.1)',
               borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: 'rgba(212, 175, 55, 0.3)',
             }}
             onPress={() => setShowCityDropdown(true)}
           >
-            <Ionicons name="location-sharp" size={16} color="#EF4444" />
-            <Text style={{ marginLeft: 8, marginRight: 4, fontWeight: '600' }}>{selectedCity}</Text>
-            <Ionicons name="chevron-down" size={14} color="#4B5563" />
+            <Ionicons name="location-sharp" size={16} color="#D4AF37" />
+            <Text style={{ marginLeft: 8, marginRight: 4, fontWeight: '600', color: '#D4AF37', fontSize: 13 }}>
+              {selectedCity}
+            </Text>
+            <Ionicons name="chevron-down" size={14} color="#D4AF37" />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={22} color="#4B5563" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Search */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12 }}>
-          <Ionicons name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+        {/* Welcome Text */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ color: 'rgba(212, 175, 55, 0.8)', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>
+            DISCOVER • BOOK • EXPERIENCE
+          </Text>
+          <Text style={{ color: '#FFF', fontSize: 26, fontWeight: '800', marginTop: 4 }}>
+            Find Your Style
+          </Text>
+        </View>
+
+        {/* Premium Search Bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            borderWidth: 1,
+            borderColor: 'rgba(212, 175, 55, 0.2)',
+          }}
+        >
+          <Ionicons name="search" size={20} color="rgba(212, 175, 55, 0.6)" />
           <TextInput
-            style={{ flex: 1, fontSize: 14 }}
+            style={{ flex: 1, marginLeft: 12, fontSize: 14, color: '#FFF' }}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search for salons, services, or styles..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Search shops or services..."
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
-              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.4)" />
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
 
       <BookingReminder />
 
-      {/* City selection modal */}
-      <Modal visible={showCityDropdown} transparent animationType="fade" onRequestClose={() => setShowCityDropdown(false)}>
+      {/* Premium City Selection Modal */}
+      <Modal 
+        visible={showCityDropdown} 
+        transparent 
+        animationType="fade" 
+        onRequestClose={() => setShowCityDropdown(false)}
+      >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}
+          style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.85)', 
+            justifyContent: 'center', 
+            alignItems: 'center' 
+          }}
           activeOpacity={1}
           onPress={() => setShowCityDropdown(false)}
         >
-          <View style={{ backgroundColor: '#FFF', borderRadius: 12, width: '90%', maxHeight: '70%', shadowColor: '#000', shadowOpacity: 0.25, elevation: 5 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-              <Text style={{ fontSize: 16, fontWeight: '600' }}>Select Your Location</Text>
+          <View style={{ 
+            backgroundColor: '#1A1A1A', 
+            borderRadius: 16, 
+            width: '90%', 
+            maxHeight: '70%', 
+            borderWidth: 1,
+            borderColor: 'rgba(212, 175, 55, 0.3)',
+          }}>
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between', 
+              padding: 20, 
+              borderBottomWidth: 1, 
+              borderBottomColor: 'rgba(255, 255, 255, 0.1)' 
+            }}>
+              <View>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFF' }}>Select Location</Text>
+                <Text style={{ fontSize: 11, color: 'rgba(212, 175, 55, 0.8)', marginTop: 2, letterSpacing: 1 }}>
+                  NEARBY CITIES
+                </Text>
+              </View>
               <TouchableOpacity onPress={() => setShowCityDropdown(false)}>
-                <Ionicons name="close" size={24} color="#4B5563" />
+                <Ionicons name="close" size={24} color="#D4AF37" />
               </TouchableOpacity>
             </View>
 
@@ -462,12 +545,41 @@ const Home = () => {
               {cities.map((city, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                  style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    padding: 16, 
+                    borderBottomWidth: 1, 
+                    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: selectedCity === city.name ? 'rgba(212, 175, 55, 0.1)' : 'transparent'
+                  }}
                   onPress={() => handleCitySelect(city)}
                 >
-                  <Ionicons name="location-outline" size={20} color={selectedCity === city.name ? '#EF4444' : '#9CA3AF'} />
-                  <Text style={{ flex: 1, marginLeft: 12 }}>{city.name}</Text>
-                  {selectedCity === city.name && <Ionicons name="checkmark-circle" size={20} color="#EF4444" />}
+                  <View style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: selectedCity === city.name ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                    <Ionicons 
+                      name="location-outline" 
+                      size={18} 
+                      color={selectedCity === city.name ? '#D4AF37' : 'rgba(255, 255, 255, 0.4)'} 
+                    />
+                  </View>
+                  <Text style={{ 
+                    flex: 1, 
+                    marginLeft: 12, 
+                    color: selectedCity === city.name ? '#D4AF37' : '#FFF',
+                    fontWeight: selectedCity === city.name ? '600' : '400'
+                  }}>
+                    {city.name}
+                  </Text>
+                  {selectedCity === city.name && (
+                    <Ionicons name="checkmark-circle" size={20} color="#D4AF37" />
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -482,8 +594,8 @@ const Home = () => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={['#EF4444']}
-            tintColor="#EF4444"
+            tintColor="#D4AF37"
+            colors={['#D4AF37']}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -492,8 +604,10 @@ const Home = () => {
           <>
             {isSearching ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#EF4444" />
-                <Text style={{ marginTop: 16, color: '#6B7280' }}>Searching salons...</Text>
+                <ActivityIndicator size="large" color="#D4AF37" />
+                <Text style={{ marginTop: 16, color: 'rgba(212, 175, 55, 0.8)', fontSize: 13, letterSpacing: 1 }}>
+                  SEARCHING...
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -510,9 +624,12 @@ const Home = () => {
                 )}
                 ListEmptyComponent={() => (
                   <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
-                    <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-                    <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center', color: '#6B7280' }}>
-                      No salons found for "{searchQuery}"
+                    <Ionicons name="search-outline" size={64} color="rgba(255, 255, 255, 0.2)" />
+                    <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center', color: '#FFF', fontWeight: '600' }}>
+                      No Results Found
+                    </Text>
+                    <Text style={{ marginTop: 8, fontSize: 13, textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      Try searching for "{searchQuery}" in a different city
                     </Text>
                   </View>
                 )}
@@ -523,27 +640,45 @@ const Home = () => {
         ) : (
           <>
             {error && (
-              <View style={{ flexDirection: 'row', backgroundColor: '#FEF2F2', margin: 16, padding: 12, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
-                <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
-                <Text style={{ flex: 1, marginLeft: 8, color: '#6B7280' }}>{error}</Text>
+              <View style={{ 
+                flexDirection: 'row', 
+                backgroundColor: 'rgba(212, 175, 55, 0.1)', 
+                margin: 16, 
+                padding: 12, 
+                borderRadius: 12, 
+                borderLeftWidth: 3, 
+                borderLeftColor: '#D4AF37',
+                borderWidth: 1,
+                borderColor: 'rgba(212, 175, 55, 0.3)'
+              }}>
+                <Ionicons name="alert-circle-outline" size={20} color="#D4AF37" />
+                <Text style={{ flex: 1, marginLeft: 8, color: 'rgba(255, 255, 255, 0.8)' }}>{error}</Text>
               </View>
             )}
 
-            <View style={{ marginVertical: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#111827' }}>Services</Text>
+            {/* Services Section */}
+            <View style={{ marginVertical: 20 }}>
+              <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF' }}>Services</Text>
+                <Text style={{ fontSize: 11, color: 'rgba(212, 175, 55, 0.8)', marginTop: 2, letterSpacing: 1 }}>
+                  SELECT YOUR PREFERENCE
+                </Text>
+              </View>
               <ServiceFilter onServiceChange={handleServiceChange} />
             </View>
 
             {filterLoading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#4F46E5" />
-                <Text style={{ marginTop: 12, color: '#6B7280' }}>Filtering salons...</Text>
+                <ActivityIndicator size="large" color="#D4AF37" />
+                <Text style={{ marginTop: 12, color: 'rgba(212, 175, 55, 0.8)', fontSize: 13, letterSpacing: 1 }}>
+                  FILTERING...
+                </Text>
               </View>
             ) : (
               <>
                 {activeShops.length > 0 && (
                   <ShopCarousel
-                    title="Top Rated This Week"
+                    title="Top Rated Near You"
                     shops={getPopularShops()}
                     onViewAll={() => router.push('/(tabs)/BookNow')}
                     onEndReached={loadMoreShops}
@@ -552,35 +687,86 @@ const Home = () => {
                   />
                 )}
 
+                {/* Stats Section */}
+               
+
                 <PaisAdd />
-                <AdvancedFilter />
+                {/* <AdvancedFilter /> */}
               </>
             )}
 
-            <View style={{ marginVertical: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>Trending Styles</Text>
+            {/* Trending Styles */}
+            <View style={{ marginVertical: 24 }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                paddingHorizontal: 20, 
+                marginBottom: 16 
+              }}>
+                <View>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF' }}>Trending Styles</Text>
+                  <Text style={{ fontSize: 11, color: 'rgba(212, 175, 55, 0.8)', marginTop: 2, letterSpacing: 1 }}>
+                    POPULAR THIS WEEK
+                  </Text>
+                </View>
               </View>
               <FlatList
                 horizontal
                 data={trendingDesigns}
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingHorizontal: 20 }}
                 renderItem={({ item }) => (
-                  <View style={{ width: 140, marginRight: 12, backgroundColor: 'white', borderRadius: 12, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}>
+                  <TouchableOpacity 
+                    style={{ 
+                      width: 150, 
+                      marginRight: 16, 
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                      borderRadius: 12, 
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                  >
                     <Image 
                       source={{ uri: item.image }} 
                       style={{ 
                         width: '100%', 
-                        height: 140, 
-                        borderRadius: 8,
-                        marginBottom: 8 
+                        height: 150, 
                       }} 
                     />
-                    <Text style={{ marginTop: 4, textAlign: 'center', fontWeight: '600', color: '#111827' }}>{item.name}</Text>
-                    <Text style={{ marginTop: 2, textAlign: 'center', fontSize: 12, color: '#10B981' }}>{item.popularity} popular</Text>
-                  </View>
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.8)']}
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 80,
+                      }}
+                    />
+                    <View style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
+                      <Text style={{ 
+                        color: '#FFF', 
+                        fontWeight: '700', 
+                        fontSize: 14,
+                        marginBottom: 4
+                      }}>
+                        {item.name}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="trending-up" size={12} color="#D4AF37" />
+                        <Text style={{ 
+                          color: '#D4AF37', 
+                          fontSize: 11, 
+                          marginLeft: 4,
+                          fontWeight: '600'
+                        }}>
+                          {item.popularity}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 )}
               />
             </View>
@@ -591,4 +777,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

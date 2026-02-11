@@ -13,56 +13,61 @@ import {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    height: Platform.OS === 'ios' ? 85 : 75,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 15,
+    height: Platform.OS === 'ios' ? 88 : 72,
+    backgroundColor: '#141414',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 20,
     paddingTop: Platform.OS === 'ios' ? 12 : 8,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    borderTopWidth: 0.5,
-    borderTopColor: '#f1f5f9',
+    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212,175,55,0.2)',
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
+    width: 46,
     height: 32,
     borderRadius: 12,
   },
   activeIconContainer: {
-    backgroundColor: '#eff6ff',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
   },
   label: {
     fontSize: 10,
-    fontWeight: '500',
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 3,
     textAlign: 'center',
+    letterSpacing: 0.4,
   },
   activeLabel: {
-    color: '#2563eb',
+    color: '#D4AF37',
   },
   inactiveLabel: {
-    color: '#64748b',
+    color: 'rgba(255,255,255,0.35)',
+  },
+  /* Gold dot indicator under active icon */
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D4AF37',
+    marginTop: 4,
   },
 });
 
-// Tab configuration - Updated to match your actual file structure
 const tabConfig = {
   Home: {
     iconName: 'home',
@@ -99,26 +104,35 @@ interface AnimatedTabIconProps {
 }
 
 const AnimatedTabIcon = ({ focused, iconName, label, IconComponent }: AnimatedTabIconProps) => {
-  const fadeAnim = useRef(new Animated.Value(focused ? 1 : 0.6)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim   = useRef(new Animated.Value(1)).current;
+  const glowAnim    = useRef(new Animated.Value(0)).current;
+  const dotScaleAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
-    // Simple fade animation
-    Animated.timing(fadeAnim, {
-      toValue: focused ? 1 : 0.6,
+    // Icon spring scale on focus
+    Animated.spring(scaleAnim, {
+      toValue: focused ? 1.08 : 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 8,
+    }).start();
+
+    // Gold glow fade
+    Animated.timing(glowAnim, {
+      toValue: focused ? 1 : 0,
       duration: 200,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
 
-    // Subtle scale animation on focus
-    Animated.timing(scaleAnim, {
-      toValue: focused ? 1.05 : 1,
-      duration: 150,
-      easing: Easing.out(Easing.quad),
+    // Active dot pop
+    Animated.spring(dotScaleAnim, {
+      toValue: focused ? 1 : 0,
       useNativeDriver: true,
+      speed: 25,
+      bounciness: 10,
     }).start();
-  }, [focused, fadeAnim, scaleAnim]);
+  }, [focused]);
 
   const getIconName = () => {
     if (!focused && IconComponent === Ionicons) {
@@ -128,37 +142,25 @@ const AnimatedTabIcon = ({ focused, iconName, label, IconComponent }: AnimatedTa
   };
 
   return (
-    <Animated.View 
-      style={[
-        styles.tabItem,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        }
-      ]}
-    >
-      <View 
-        style={[
-          styles.iconContainer,
-          focused && styles.activeIconContainer,
-        ]}
-      >
-        <IconComponent
-          name={getIconName()}
-          size={focused ? 22 : 20}
-          color={focused ? '#2563eb' : '#64748b'}
-        />
-      </View>
-      
-      <Text
-        style={[
-          styles.label,
-          focused ? styles.activeLabel : styles.inactiveLabel,
-        ]}
-      >
+    <View style={styles.tabItem}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
+          <Animated.View style={{ opacity: glowAnim, position: 'absolute', width: '100%', height: '100%', borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.06)' }} />
+          <IconComponent
+            name={getIconName()}
+            size={focused ? 21 : 20}
+            color={focused ? '#D4AF37' : 'rgba(255,255,255,0.35)'}
+          />
+        </View>
+      </Animated.View>
+
+      <Text style={[styles.label, focused ? styles.activeLabel : styles.inactiveLabel]}>
         {label}
       </Text>
-    </Animated.View>
+
+      {/* Gold dot */}
+      <Animated.View style={[styles.activeDot, { transform: [{ scale: dotScaleAnim }] }]} />
+    </View>
   );
 };
 
@@ -167,7 +169,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={({ route }) => {
         const config = tabConfig[route.name as keyof typeof tabConfig];
-        
+
         if (!config) {
           return {
             headerShown: false,
@@ -181,8 +183,8 @@ export default function TabLayout() {
           tabBarHideOnKeyboard: true,
           tabBarShowLabel: false,
           tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: '#2563eb',
-          tabBarInactiveTintColor: '#64748b',
+          tabBarActiveTintColor: '#D4AF37',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.35)',
           tabBarIcon: ({ focused }) => (
             <AnimatedTabIcon
               focused={focused}
@@ -194,41 +196,11 @@ export default function TabLayout() {
         };
       }}
     >
-      <Tabs.Screen 
-        name="Home" 
-        options={{ 
-          title: 'Home',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="BookNow" 
-        options={{ 
-          title: 'Book Now',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="explore" 
-        options={{ 
-          title: 'Explore',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="Settings" 
-        options={{ 
-          title: 'Profile',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="Profile" 
-        options={{ 
-          title: 'Settings',
-          headerShown: false,
-        }} 
-      />
+      <Tabs.Screen name="Home"    options={{ title: 'Home',     headerShown: false }} />
+      <Tabs.Screen name="BookNow" options={{ title: 'Book Now', headerShown: false }} />
+      <Tabs.Screen name="explore" options={{ title: 'Explore',  headerShown: false }} />
+      <Tabs.Screen name="Settings" options={{ title: 'Profile', headerShown: false }} />
+      <Tabs.Screen name="Profile"  options={{ title: 'Settings',headerShown: false }} />
     </Tabs>
   );
 }

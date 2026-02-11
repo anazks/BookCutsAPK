@@ -1,23 +1,133 @@
+import { fetchUniqueServices } from '@/app/api/Service/User';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { fetchUniqueServices } from '@/app/api/Service/User';
 
 type ServiceItem = {
   id: string;
   name: string;
   icon: string;
 };
-  export default function ServiceFilter({ onServiceChange }) {
-  console.log("ServiceFilter rendered !!!!!!!!!!!!");
+
+const SERVICE_ICONS: Record<string, string> = {
+  all: 'apps',
+  haircut: 'cut-outline',
+  shave: 'cut',
+  beard: 'man-outline',
+  facial: 'sparkles-outline',
+  color: 'color-palette-outline',
+  waxing: 'flame-outline',
+  massage: 'hand-left-outline',
+  nails: 'finger-print-outline',
+  threading: 'git-merge-outline',
+};
+
+const getIcon = (name: string): string => {
+  const key = name.toLowerCase();
+  for (const k of Object.keys(SERVICE_ICONS)) {
+    if (key.includes(k)) return SERVICE_ICONS[k];
+  }
+  return 'cut-outline';
+};
+
+function ServiceChip({
+  service,
+  isSelected,
+  onPress,
+  index,
+}: {
+  service: ServiceItem;
+  isSelected: boolean;
+  onPress: () => void;
+  index: number;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      delay: index * 60,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.93,
+      useNativeDriver: true,
+      speed: 50,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ scale: scaleAnim }],
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        {isSelected ? (
+          /* Selected: gold gradient pill with glow border */
+          <View style={styles.selectedWrapper}>
+            <LinearGradient
+              colors={['rgba(212,175,55,0.25)', 'rgba(212,175,55,0.08)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.chipSelected}
+            >
+              <View style={styles.chipInner}>
+                <Ionicons
+                  name={service.icon as any}
+                  size={15}
+                  color="#D4AF37"
+                />
+                <Text style={styles.textSelected}>{service.name}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        ) : (
+          /* Unselected: ghost pill */
+          <View style={styles.chipUnselected}>
+            <Ionicons
+              name={service.icon as any}
+              size={15}
+              color="rgba(255,255,255,0.35)"
+            />
+            <Text style={styles.textUnselected}>{service.name}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+export default function ServiceFilter({ onServiceChange }: { onServiceChange?: (name: string | null) => void }) {
   const [services, setServices] = useState<ServiceItem[]>([]);
-  const [selectedService, setSelectedService] = useState('all');
+  const [selectedId, setSelectedId] = useState('all');
 
   useEffect(() => {
     fetchService();
@@ -26,123 +136,119 @@ type ServiceItem = {
   const fetchService = async () => {
     try {
       const response = await fetchUniqueServices();
-      console.log(response, 'UNIQUE SERVICE');
 
       if (response?.success && response?.service) {
-        const formattedServices: ServiceItem[] = [
-          {
-            id: 'all',
-            name: 'All',
-            icon: 'apps',
-          },
+        const formatted: ServiceItem[] = [
+          { id: 'all', name: 'All', icon: 'apps' },
           ...response.service.map((name: string, index: number) => ({
             id: index.toString(),
             name,
-            icon: 'cut-outline', // default icon
+            icon: getIcon(name),
           })),
         ];
-
-        setServices(formattedServices);
+        setServices(formatted);
       }
     } catch (error) {
       console.log('Service fetch error:', error);
     }
   };
 
-  const handleServicePress = (serviceName: string) => {
-    setSelectedService(serviceName);
-    onServiceChange?.(serviceName)
+  const handlePress = (service: ServiceItem) => {
+    setSelectedId(service.id);
+    onServiceChange?.(service.name === 'All' ? null : service.name);
   };
 
   return (
     <View style={styles.container}>
+      {/* Gold accent line at top */}
+      <View style={styles.accentLine} />
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {services.map((service) => {
-          const isSelected = selectedService === service.id;
-
-          return (
-            <TouchableOpacity
-              key={service.id}
-              style={[
-                styles.filterBox,
-                isSelected && styles.filterBoxSelected,
-              ]}
-              onPress={() => handleServicePress(service.name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={service.icon as any}
-                size={20}
-                color={isSelected ? '#FFFFFF' : '#6B7280'}
-              />
-              <Text
-                style={[
-                  styles.filterText,
-                  isSelected && styles.filterTextSelected,
-                ]}
-              >
-                {service.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {services.map((service, index) => (
+          <ServiceChip
+            key={service.id}
+            service={service}
+            isSelected={selectedId === service.id}
+            onPress={() => handlePress(service)}
+            index={index}
+          />
+        ))}
       </ScrollView>
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    paddingBottom: 4,
   },
+
+  accentLine: {
+    height: 1,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    backgroundColor: 'rgba(212,175,55,0.15)',
+  },
+
   scrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 20,
+    gap: 10,
+    alignItems: 'center',
   },
-  filterBox: {
+
+  /* ── Selected chip ──────────────────────────── */
+  selectedWrapper: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.45)',
+    // subtle glow via shadow
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  chipSelected: {
+    borderRadius: 23,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+  },
+
+  chipInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 7,
+  },
+
+  textSelected: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D4AF37',
+    letterSpacing: 0.4,
+  },
+
+  /* ── Unselected chip ────────────────────────── */
+  chipUnselected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 9,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  filterBoxSelected: {
-    backgroundColor: '#FC8019',
-    borderColor: '#FC8019',
-    borderWidth: 1,
-    shadowColor: '#FC8019',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  filterText: {
-    fontSize: 14,
+
+  textUnselected: {
+    fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
-  },
-  filterTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 0.2,
   },
 });

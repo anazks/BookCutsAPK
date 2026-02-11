@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
-  Linking,
   Modal,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,790 +17,513 @@ import {
 } from 'react-native';
 import { getShopById } from '../../api/Service/Shop';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ── Offer data ────────────────────────────────────────────
+const OFFERS = [
+  { id: '1', title: '20% OFF First Visit',   description: 'New customers get 20% off on all services', code: 'FIRST20',    validUntil: '2025-10-31' },
+  { id: '2', title: 'Free Beard Trim',        description: 'Get free beard trim with any haircut service', code: 'BEARDTRIM', validUntil: '2025-09-30' },
+  { id: '3', title: 'Weekend Special',        description: '15% off on weekend bookings',                  code: 'WEEKEND15', validUntil: '2025-12-31' },
+  { id: '4', title: 'Student Discount',       description: '25% off for students with valid ID',           code: 'STUDENT25', validUntil: '2025-12-31' },
+];
+
+// ═════════════════════════════════════════════════════════
 const BarberShopFeed = () => {
   const { shop_id } = useLocalSearchParams();
-  const [selectedMedia, setSelectedMedia] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [shopData, setShopData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const offerScrollRef = useRef(null);
-  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [modalVisible, setModalVisible]   = useState(false);
+  const [shopData, setShopData]           = useState<any>(null);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const offerScrollRef  = useRef<FlatList>(null);
+  const [offerIndex, setOfferIndex] = useState(0);
 
-  // Static offers data
-  const offers = [
-    {
-      id: '1',
-      title: '20% OFF First Visit',
-      description: 'New customers get 20% off on all services',
-      code: 'FIRST20',
-      validUntil: '2025-10-31',
-      gradient: ['#FF6B6B', '#FF8E8E'],
-    },
-    {
-      id: '2',
-      title: 'Free Beard Trim',
-      description: 'Get free beard trim with any haircut service',
-      code: 'BEARDTRIM',
-      validUntil: '2025-09-30',
-      gradient: ['#4ECDC4', '#44A08D'],
-    },
-    {
-      id: '3',
-      title: 'Weekend Special',
-      description: '15% off on weekend bookings',
-      code: 'WEEKEND15',
-      validUntil: '2025-12-31',
-      gradient: ['#A8E6CF', '#7FDBDA'],
-    },
-    {
-      id: '4',
-      title: 'Student Discount',
-      description: '25% off for students with valid ID',
-      code: 'STUDENT25',
-      validUntil: '2025-12-31',
-      gradient: ['#FFD93D', '#FF9A00'],
-    }
-  ];
+  // Modal animation
+  const modalOpacity = useRef(new Animated.Value(0)).current;
+  const modalScale   = useRef(new Animated.Value(0.92)).current;
+  // Book button pulse
+  const bookPulse    = useRef(new Animated.Value(1)).current;
 
-  // Fetch shop data from API
+  // ── Fetch ───────────────────────────────────────────────
   const fetchShopData = async () => {
-    if (!shop_id) {
-      setError('Shop ID not provided');
-      setLoading(false);
-      return;
-    }
+    if (!shop_id) { setError('Shop ID not provided'); setLoading(false); return; }
     try {
       setLoading(true);
-      const response = await getShopById(shop_id);
-      console.log(JSON.stringify(response, null, 2))
-      if (response && response.success && response.data && response.data.length > 0) {
-        setShopData(response.data[0]);
-        setError(null);
-      } else {
-        setError('Failed to fetch shop data');
-      }
-    } catch (error) {
-      console.error('Error fetching shop data:', error);
-      setError('Failed to load shop information');
-    } finally {
-      setLoading(false);
-    }
+      const res = await getShopById(shop_id);
+      if (res?.success && res?.data?.length > 0) {
+        setShopData(res.data[0]); setError(null);
+      } else { setError('Failed to fetch shop data'); }
+    } catch { setError('Failed to load shop information'); }
+    finally { setLoading(false); }
   };
 
-  // Auto-scroll offers banner
+  useEffect(() => { fetchShopData(); }, [shop_id]);
+
+  // ── Auto-scroll offers ──────────────────────────────────
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (offerScrollRef.current && offers.length > 0) {
-        const nextIndex = (currentOfferIndex + 1) % offers.length;
-        try {
-          offerScrollRef.current.scrollToIndex({
-            index: nextIndex,
-            animated: true,
-          });
-          setCurrentOfferIndex(nextIndex);
-        } catch (error) {
-          console.log('Auto-scroll error:', error);
-        }
+    const iv = setInterval(() => {
+      if (offerScrollRef.current && OFFERS.length > 0) {
+        const next = (offerIndex + 1) % OFFERS.length;
+        try { offerScrollRef.current.scrollToIndex({ index: next, animated: true }); setOfferIndex(next); }
+        catch {}
       }
     }, 3000);
-    return () => clearInterval(interval);
-  }, [currentOfferIndex, offers.length]);
+    return () => clearInterval(iv);
+  }, [offerIndex]);
 
-  // Fetch shop data on component mount
+  // ── Book button pulse ───────────────────────────────────
   useEffect(() => {
-    fetchShopData();
-  }, [shop_id]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bookPulse, { toValue: 1.03, duration: 900,  useNativeDriver: true }),
+        Animated.timing(bookPulse, { toValue: 1,    duration: 900,  useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
-  const handleMediaPress = (media) => {
+  // ── Modal open/close ────────────────────────────────────
+  const openModal = (media: any) => {
     setSelectedMedia(media);
     setModalVisible(true);
-  };
-
-  const handleShareMedia = async () => {
-    if (selectedMedia?.uri) {
-      try {
-        const shareOptions = {
-          message: `Check out this from ${shopData?.ShopName || 'Barber Shop'}: ${selectedMedia.caption || ''}`,
-          url: selectedMedia.uri,
-        };
-        await Share.share(shareOptions);
-      } catch (error) {
-        // Fallback to WhatsApp if Share fails
-        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(shareOptions.message)}&attach=${selectedMedia.uri}`;
-        Linking.openURL(whatsappUrl).catch(() => console.log('Sharing failed'));
-      }
-    }
-  };
-
-  const handleBookNow = () => {
-    console.log('Book Now pressed for:', shopData?.ShopName || 'Unknown Shop');
-    router.push({
-      pathname: '/Screens/User/BookNow',
-      params: { shop_id: shop_id }
-    })
+    modalOpacity.setValue(0);
+    modalScale.setValue(0.92);
+    Animated.parallel([
+      Animated.timing(modalOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.spring(modalScale,   { toValue: 1, useNativeDriver: true, damping: 18, stiffness: 120 }),
+    ]).start();
   };
 
   const closeModal = () => {
-    setModalVisible(false);
-    setSelectedMedia(null);
+    Animated.parallel([
+      Animated.timing(modalOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+      Animated.timing(modalScale,   { toValue: 0.92, duration: 180, useNativeDriver: true }),
+    ]).start(() => { setModalVisible(false); setSelectedMedia(null); });
   };
 
-  // Render feed item for the vertical feed
-  const renderFeedItem = (item) => {
-    let imageUrl = item.url;
-    if (!imageUrl && typeof item === 'object' && !Array.isArray(item)) {
-      const urlChars = Object.keys(item)
-        .filter(key => !isNaN(parseInt(key)) && key !== '_id')
-        .map(key => item[key])
-        .join('');
-      imageUrl = urlChars;
-    }
-    const caption = item.title || item.description || 'No caption';
-    return (
-      <View style={styles.feedItemContainer} key={item._id || item.id}>
-        <View style={styles.feedHeader}>
-          <View style={styles.feedAvatar} />
-          <View style={styles.feedUserInfo}>
-            <Text style={styles.feedShopName}>{shopData.ShopName || 'Barber Shop'}</Text>
-            {/* <Text style={styles.feedTimestamp}>2 hours ago</Text> */}
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.feedMedia}
-          onPress={() => handleMediaPress({ uri: imageUrl, caption, type: 'image' })}
-          activeOpacity={0.9}
-        >
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.feedImage}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-        <View style={styles.feedFooter}>
-          <Text style={styles.feedCaption} numberOfLines={2}>{caption}</Text>
-          {/* <Text style={styles.feedTimestampFooter}>2 HOURS AGO</Text> */}
-        </View>
-      </View>
-    );
+  const handleBookNow = () => {
+    router.push({ pathname: '/Screens/User/BookNow', params: { shop_id } });
   };
 
-  const renderOfferCard = ({ item }) => (
-    <View style={[styles.offerCard, { backgroundColor: item.gradient[0] }]}>
-      <View style={styles.offerContent}>
-        <Text style={styles.offerTitle}>{item.title}</Text>
-        <Text style={styles.offerDescription}>{item.description}</Text>
-        <View style={styles.offerCodeContainer}>
-          <Text style={styles.offerCode}>Code: {item.code}</Text>
-        </View>
-        <Text style={styles.offerValidity}>Valid until {item.validUntil}</Text>
-      </View>
-      <View style={styles.offerIcon}>
-        <Ionicons name="gift" size={24} color="#FFF" />
-      </View>
-    </View>
-  );
-
-  // Render header section
+  // ── Render helpers ──────────────────────────────────────
   const renderHeader = () => (
-    <View style={styles.headerSection}>
-      <View style={styles.profileImageContainer}>
-        {shopData?.ProfileImage ? (
-          <Image
-            source={{ uri: shopData.ProfileImage }}
-            style={styles.profileImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.profileImagePlaceholder}>
-            <Text style={styles.placeholderText}>
-              {shopData?.ShopName?.charAt(0) || 'S'}
-            </Text>
+    <View>
+      {/* Back button */}
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => router.back()}
+      >
+        <View style={styles.backBtnInner}>
+          <Ionicons name="arrow-back" size={20} color="#D4AF37" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Hero gradient header */}
+      <LinearGradient
+        colors={['#1A1A1A', '#0D0D0D']}
+        style={styles.heroHeader}
+      >
+        {/* Gold accent top bar */}
+        <View style={styles.goldAccentBar} />
+
+        <View style={styles.headerRow}>
+          {/* Profile image */}
+          <View style={styles.avatarRing}>
+            {shopData?.ProfileImage ? (
+              <Image source={{ uri: shopData.ProfileImage }} style={styles.avatar} resizeMode="cover" />
+            ) : (
+              <LinearGradient colors={['#D4AF37', '#A0832A']} style={styles.avatarFallback}>
+                <Text style={styles.avatarLetter}>{shopData?.ShopName?.charAt(0) || 'S'}</Text>
+              </LinearGradient>
+            )}
           </View>
-        )}
-      </View>
-      <View style={styles.shopDetails}>
-        <Text style={styles.shopName}>{shopData?.ShopName || 'Shop Name'}</Text>
-        <View style={styles.shopMetaRow}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.ratingText}>4.5</Text>
-          </View>
-          <View style={styles.statusBadge}>
-            <View style={styles.openDot} />
-            <Text style={styles.openText}>Open</Text>
+
+          {/* Shop info */}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroShopName} numberOfLines={1}>{shopData?.ShopName || 'Shop Name'}</Text>
+
+            <View style={styles.metaRow}>
+              <View style={styles.ratingPill}>
+                <Ionicons name="star" size={11} color="#D4AF37" />
+                <Text style={styles.ratingText}>4.5</Text>
+              </View>
+              <View style={styles.openPill}>
+                <View style={styles.openDot} />
+                <Text style={styles.openText}>Open</Text>
+              </View>
+            </View>
+
+            <View style={{ gap: 4 }}>
+              <View style={styles.infoLine}>
+                <Ionicons name="location-outline" size={12} color="rgba(212,175,55,0.7)" />
+                <Text style={styles.infoText} numberOfLines={1}>
+                  {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
+                </Text>
+              </View>
+              {shopData?.Timing && (
+                <View style={styles.infoLine}>
+                  <Ionicons name="time-outline" size={12} color="rgba(212,175,55,0.7)" />
+                  <Text style={styles.infoText}>{shopData.Timing}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-        <View style={styles.shopDetailsRow}>
-          <Text style={styles.locationText} numberOfLines={1}>
-            <Ionicons name="location-outline" size={14} color="#888" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
-          </Text>
-          {shopData?.Timing && (
-            <Text style={styles.timingText}>
-              <Ionicons name="time-outline" size={14} color="#888" /> {shopData.Timing}
-            </Text>
-          )}
-        </View>
-      </View>
+      </LinearGradient>
     </View>
   );
 
-  // Render offers section
   const renderOffers = () => (
-    <View style={styles.offersBannerContainer}>
-      <Text style={styles.offersBannerTitle}>Special Offers</Text>
+    <View style={styles.offersSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Special Offers</Text>
+        <Text style={styles.sectionSub}>EXCLUSIVE DEALS</Text>
+      </View>
+
       <FlatList
         ref={offerScrollRef}
-        data={offers}
-        renderItem={renderOfferCard}
+        data={OFFERS}
+        renderItem={({ item }) => (
+          <View style={styles.offerCard}>
+            {/* Gold gradient border */}
+            <LinearGradient
+              colors={['rgba(212,175,55,0.6)', 'rgba(212,175,55,0.15)', 'rgba(212,175,55,0.5)']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.offerBorder}
+            >
+              <LinearGradient
+                colors={['#1E1C14', '#171510']}
+                style={styles.offerInner}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.offerTitle}>{item.title}</Text>
+                  <Text style={styles.offerDesc}>{item.description}</Text>
+                  <View style={styles.offerCodeBadge}>
+                    <Text style={styles.offerCodeText}>CODE: {item.code}</Text>
+                  </View>
+                  <Text style={styles.offerValidity}>Valid until {item.validUntil}</Text>
+                </View>
+                <View style={styles.offerIconWrap}>
+                  <Ionicons name="gift" size={22} color="#D4AF37" />
+                </View>
+              </LinearGradient>
+            </LinearGradient>
+          </View>
+        )}
         keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.offersContainer}
-        snapToInterval={screenWidth * 0.8 + 12}
+        contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
+        snapToInterval={SCREEN_WIDTH * 0.82 + 12}
         decelerationRate="fast"
       />
     </View>
   );
 
-  // Render empty feed state
+  const renderFeedItem = (item: any) => {
+    let imageUrl = item.url;
+    if (!imageUrl && typeof item === 'object' && !Array.isArray(item)) {
+      imageUrl = Object.keys(item)
+        .filter(k => !isNaN(parseInt(k)) && k !== '_id')
+        .map(k => item[k]).join('');
+    }
+    const caption = item.title || item.description || '';
+
+    return (
+      <View style={styles.feedCard} key={item._id || item.id}>
+        {/* Feed post header */}
+        <View style={styles.feedCardHeader}>
+          <LinearGradient colors={['#D4AF37', '#A0832A']} style={styles.feedAvatar}>
+            <Text style={styles.feedAvatarLetter}>{shopData?.ShopName?.charAt(0) || 'S'}</Text>
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.feedShopName}>{shopData?.ShopName || 'Barber Shop'}</Text>
+            <Text style={styles.feedMeta}>FEATURED WORK</Text>
+          </View>
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color="#D4AF37" />
+          </View>
+        </View>
+
+        {/* Image */}
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={() => openModal({ uri: imageUrl, caption, type: 'image' })}
+        >
+          <Image source={{ uri: imageUrl }} style={styles.feedImage} resizeMode="cover" />
+          {/* Bottom gradient overlay */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.feedImageOverlay}
+          />
+        </TouchableOpacity>
+
+        {/* Caption */}
+        {!!caption && (
+          <View style={styles.feedCaption}>
+            <Text style={styles.feedCaptionText} numberOfLines={2}>{caption}</Text>
+          </View>
+        )}
+
+        {/* Divider */}
+        <View style={styles.feedDivider} />
+      </View>
+    );
+  };
+
   const renderEmptyFeed = () => (
-    <View style={styles.emptyFeedContainer}>
-      <Ionicons name="image-outline" size={48} color="#CCC" />
-      <Text style={styles.emptyFeedText}>No media available yet</Text>
+    <View style={styles.emptyState}>
+      <Ionicons name="image-outline" size={52} color="rgba(212,175,55,0.3)" />
+      <Text style={styles.emptyTitle}>No Media Yet</Text>
+      <Text style={styles.emptyText}>This shop hasn't posted any work yet</Text>
     </View>
   );
 
+  // ── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Loading shop details...</Text>
+      <View style={styles.loadingScreen}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={styles.loadingText}>LOADING...</Text>
       </View>
     );
   }
 
-  if (error) {
+  // ── Error ───────────────────────────────────────────────
+  if (error || !shopData) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchShopData}>
-          <Text style={styles.retryText}>Retry</Text>
+      <View style={styles.errorScreen}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+        <Ionicons name="alert-circle-outline" size={52} color="rgba(212,175,55,0.5)" />
+        <Text style={styles.errorTitle}>{error || 'Shop not found'}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchShopData}>
+          <LinearGradient colors={['#D4AF37', '#B8941E']} style={styles.retryGradient}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
   }
 
-  if (!shopData) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Shop not found</Text>
-      </View>
-    );
-  }
-
-  // Main list data
+  // ── Main list ───────────────────────────────────────────
   const listData = [
     { type: 'header', id: 'header' },
     { type: 'offers', id: 'offers' },
-    ...((shopData.media || []).map(item => ({ ...item, type: 'media' })))
+    ...((shopData.media || []).map((item: any) => ({ ...item, type: 'media' }))),
   ];
 
-  const renderItem = ({ item }) => {
-    switch (item.type) {
-      case 'header':
-        return renderHeader();
-      case 'offers':
-        return renderOffers();
-      case 'media':
-        return renderFeedItem(item);
-      default:
-        return null;
-    }
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+
       <FlatList
         data={listData}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => item._id || item.id || index.toString()}
+        keyExtractor={(item, i) => item._id || item.id || i.toString()}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 110 }}
         ListEmptyComponent={renderEmptyFeed}
+        renderItem={({ item }) => {
+          if (item.type === 'header') return renderHeader();
+          if (item.type === 'offers') return renderOffers();
+          if (item.type === 'media')  return renderFeedItem(item);
+          return null;
+        }}
       />
 
       {/* Floating Book Now Button */}
-      <TouchableOpacity
-        style={styles.floatingBookButton}
-        onPress={handleBookNow}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonText}>Book Now</Text>
-        <Ionicons name="calendar" size={20} color="#FFF" />
-      </TouchableOpacity>
+      <Animated.View style={[styles.floatingBtnWrap, { transform: [{ scale: bookPulse }] }]}>
+        <TouchableOpacity activeOpacity={0.88} onPress={handleBookNow}>
+          <LinearGradient colors={['#D4AF37', '#B8941E']} style={styles.floatingBtn}>
+            <Text style={styles.floatingBtnText}>Book Now</Text>
+            <Ionicons name="calendar" size={18} color="#0A0A0A" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Media Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-          <View style={styles.modalContent}>
+      {/* Media Preview Modal */}
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeModal}>
+        <Animated.View style={[styles.modalOverlay, { opacity: modalOpacity }]}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeModal} />
+
+          <Animated.View style={[styles.modalBox, { transform: [{ scale: modalScale }] }]}>
+            {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedMedia?.caption || 'Media Preview'}
+              <Text style={styles.modalTitle} numberOfLines={1}>
+                {selectedMedia?.caption || 'Preview'}
               </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={closeModal}
-              >
-                <Ionicons name="close" size={24} color="#333" />
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={closeModal}>
+                <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
-            <View style={styles.modalMediaContainer}>
-              {selectedMedia && (
-                <>
-                  <Image
-                    source={{ uri: selectedMedia.uri }}
-                    style={styles.modalImage}
-                    resizeMode="contain"
-                  />
-                  {selectedMedia.type === 'video' && (
-                    <TouchableOpacity
-                      style={styles.modalPlayButton}
-                      onPress={() => console.log('Play video')}
-                    >
-                      <View style={styles.playButtonLarge}>
-                        <Ionicons name="play" size={32} color="#FFF" />
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
-            </View>
-            <View style={styles.modalActions}>
-              {/* <TouchableOpacity style={styles.modalActionButton} onPress={handleShareMedia}>
-                <Ionicons name="share-social-outline" size={20} color="#FF6B6B" />
-                <Text style={styles.modalActionText}>Share</Text>
-              </TouchableOpacity> */}
-            </View>
-          </View>
-        </View>
+
+            {/* Image */}
+            {selectedMedia && (
+              <View style={styles.modalImageWrap}>
+                <Image source={{ uri: selectedMedia.uri }} style={styles.modalImage} resizeMode="contain" />
+              </View>
+            )}
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
 };
 
+// ── Styles ────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
+  screen: { flex: 1, backgroundColor: '#0A0A0A' },
+
+  // Loading / Error
+  loadingScreen: { flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' },
+  loadingText:   { marginTop: 14, color: '#D4AF37', fontSize: 12, fontWeight: '700', letterSpacing: 2 },
+  errorScreen:   { flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
+  errorTitle:    { fontSize: 15, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 16, marginBottom: 24 },
+  retryBtn:      { borderRadius: 25, overflow: 'hidden' },
+  retryGradient: { paddingHorizontal: 28, paddingVertical: 13 },
+  retryText:     { color: '#0A0A0A', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+
+  // Back button (floats over header)
+  backBtn: { position: 'absolute', top: 52, left: 18, zIndex: 10 },
+  backBtnInner: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(10,10,10,0.7)',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  // Loading and Error States
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+
+  // Hero header
+  heroHeader:   { paddingTop: 60, paddingBottom: 28, paddingHorizontal: 20 },
+  goldAccentBar: { height: 2, backgroundColor: '#D4AF37', marginBottom: 24, width: 40, borderRadius: 1 },
+  headerRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+
+  avatarRing: {
+    width: 76, height: 76, borderRadius: 38,
+    borderWidth: 2, borderColor: '#D4AF37',
+    padding: 2, overflow: 'hidden',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+  avatar:        { width: '100%', height: '100%', borderRadius: 36 },
+  avatarFallback: { width: '100%', height: '100%', borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  avatarLetter:  { fontSize: 28, fontWeight: '800', color: '#0A0A0A' },
+
+  heroShopName:  { fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 8, letterSpacing: 0.2 },
+  metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  ratingPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 40,
+  ratingText: { color: '#D4AF37', fontSize: 12, fontWeight: '700' },
+  openPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(52,211,153,0.12)',
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)',
   },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 20,
+  openDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' },
+  openText: { color: '#34D399', fontSize: 11, fontWeight: '600' },
+  infoLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  infoText: { color: 'rgba(255,255,255,0.55)', fontSize: 12, flex: 1 },
+
+  // Offers
+  offersSection: { backgroundColor: '#0A0A0A', paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.1)' },
+  sectionHeader: { paddingHorizontal: 20, marginBottom: 14 },
+  sectionTitle:  { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
+  sectionSub:    { fontSize: 10, color: 'rgba(212,175,55,0.7)', marginTop: 2, letterSpacing: 1.5, fontWeight: '700' },
+
+  offerCard:   { width: SCREEN_WIDTH * 0.82, marginRight: 12 },
+  offerBorder: { borderRadius: 16, padding: 1.5 },
+  offerInner: {
+    borderRadius: 15, padding: 18,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  retryButton: {
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  retryText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Header Section with Profile on Left and Details on Right
-  headerSection: {
-    flexDirection: 'row',
-    backgroundColor: '#FF6B6B',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
-  },
-  profileImageContainer: {
-    width: 80,
-    height: 80,
-    marginRight: 16,
-    position: 'relative',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#FFF',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  profileImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFF',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  placeholderText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FF6B6B',
-  },
-  shopDetails: {
-    flex: 1,
-    marginTop: 8,
-  },
-  shopName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFF',
-    marginBottom: 8,
-  },
-  shopMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-    paddingRight: 15,
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.3)',
-  },
-  ratingText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginRight: 15,
-  },
-  openDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-    backgroundColor: '#FFF',
-  },
-  openText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#FFF',
-  },
-  shopDetailsRow: {
-    flexDirection: 'column',
-    gap: 4,
-  },
-  locationText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
-    flexShrink: 1,
-  },
-  timingText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Offers Banner Styles
-  offersBannerContainer: {
-    backgroundColor: '#FFF',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  offersBannerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 12,
-    paddingHorizontal: 20,
-  },
-  offersContainer: {
-    paddingLeft: 20,
-  },
-  offerCard: {
-    width: screenWidth * 0.8,
-    marginRight: 12,
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  offerContent: {
-    flex: 1,
-  },
-  offerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  offerDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  offerCodeContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  offerTitle:     { fontSize: 16, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+  offerDesc:      { fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 18, marginBottom: 10 },
+  offerCodeBadge: {
     alignSelf: 'flex-start',
-    marginBottom: 6,
+    backgroundColor: 'rgba(212,175,55,0.15)',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)',
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, marginBottom: 6,
   },
-  offerCode: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFF',
+  offerCodeText:  { fontSize: 11, fontWeight: '700', color: '#D4AF37', letterSpacing: 0.5 },
+  offerValidity:  { fontSize: 10, color: 'rgba(255,255,255,0.35)' },
+  offerIconWrap: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: 'rgba(212,175,55,0.1)',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  offerValidity: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  offerIcon: {
-    marginLeft: 12,
-  },
-  // Scroll Container Styles
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  // Feed Item Styles
-  feedListContainer: {
-    backgroundColor: '#FFF',
-    flex: 1,
-  },
-  feedItemContainer: {
-    marginBottom: 2,
-    backgroundColor: '#FFF',
-  },
-  feedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+
+  // Feed cards
+  feedCard: { backgroundColor: '#0A0A0A', marginBottom: 2 },
+  feedCardHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12, gap: 12,
   },
   feedAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FF6B6B',
-    marginRight: 12,
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
   },
-  feedUserInfo: {
-    flex: 1,
+  feedAvatarLetter: { fontSize: 14, fontWeight: '800', color: '#0A0A0A' },
+  feedShopName:     { fontSize: 13, fontWeight: '700', color: '#FFFFFF', marginBottom: 1 },
+  feedMeta:         { fontSize: 9, fontWeight: '700', color: 'rgba(212,175,55,0.6)', letterSpacing: 1.2 },
+  verifiedBadge:    {},
+
+  feedImage: { width: '100%', height: 380 },
+  feedImageOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 },
+
+  feedCaption: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+  feedCaptionText: { fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 20 },
+  feedDivider: { height: 1, backgroundColor: 'rgba(212,175,55,0.08)', marginTop: 4 },
+
+  // Empty state
+  emptyState: { alignItems: 'center', paddingVertical: 80, paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.5)', marginTop: 16, marginBottom: 6 },
+  emptyText:  { fontSize: 13, color: 'rgba(255,255,255,0.3)', textAlign: 'center' },
+
+  // Floating book button
+  floatingBtnWrap: {
+    position: 'absolute', bottom: 28, left: 20, right: 20,
+    borderRadius: 50, overflow: 'hidden',
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 16,
+    elevation: 12,
   },
-  feedShopName: {
-    fontWeight: '700',
-    fontSize: 14,
-    color: '#1A1A1A',
-    marginBottom: 2,
+  floatingBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 17, gap: 10,
   },
-  feedTimestamp: {
-    fontSize: 12,
-    color: '#888',
-  },
-  feedMoreButton: {
-    padding: 4,
-  },
-  feedMedia: {
-    width: '100%',
-    height: 400,
-    position: 'relative',
-    backgroundColor: '#F0F0F0',
-  },
-  feedImage: {
-    width: '100%',
-    height: '100%',
-  },
-  feedFooter: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  feedCaption: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  feedTimestampFooter: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '400',
-  },
-  // Empty Feed State
-  emptyFeedContainer: {
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyFeedText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 12,
-  },
-  // Floating Button
-  floatingBookButton: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    backgroundColor: '#FF6B6B',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 50,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  floatingButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  // Modal Styles
+  floatingBtnText: { color: '#0A0A0A', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
+
+  // Modal
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.88)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  modalBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalContent: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    marginHorizontal: 20,
-    maxHeight: '80%',
-    width: '90%',
+  modalBox: {
+    backgroundColor: '#141414',
+    borderRadius: 20, marginHorizontal: 16,
+    width: SCREEN_WIDTH - 32,
     overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)',
   },
   modalHeader: {
-    flexDirection: 'row',
+    flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingHorizontal: 18, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.15)',
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    flex: 1,
+  modalTitle:    { flex: 1, fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginRight: 12 },
+  modalCloseBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  closeButton: {
-    padding: 4,
-  },
-  modalMediaContainer: {
-    position: 'relative',
-    aspectRatio: 1,
-    backgroundColor: '#000',
-  },
-  modalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  modalPlayButton: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -40 }, { translateY: -40 }],
-  },
-  playButtonLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 107, 107, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalActionButton: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  modalActionText: {
-    color: '#FF6B6B',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
+  modalImageWrap: { backgroundColor: '#000', aspectRatio: 1 },
+  modalImage:     { width: '100%', height: '100%' },
 });
 
-export default BarberShopFeed; 
+export default BarberShopFeed;

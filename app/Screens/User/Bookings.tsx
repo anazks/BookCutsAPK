@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
+  FlatList,
+  LayoutAnimation,
+  Platform,
+  RefreshControl,
   StatusBar,
   Text,
   TouchableOpacity,
-  View,
-  LayoutAnimation,
-  Platform,
   UIManager,
-  RefreshControl,
-  FlatList,
+  View
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { myBookings } from '../../api/Service/Booking';
 
 // Enable smooth animations on Android
@@ -129,29 +129,29 @@ export default function Bookings() {
   const getStatusStyle = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
-        return { bg: '#EEF2FF', text: '#4F46E5', border: '#4F46E5' };
+        return { bg: 'rgba(212, 175, 55, 0.15)', text: '#D4AF37', border: 'rgba(212, 175, 55, 0.4)' };
       case 'completed':
-        return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
+        return { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', border: 'rgba(34, 197, 94, 0.4)' };
       case 'pending':
-        return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
+        return { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.4)' };
       case 'cancelled':
-        return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
+        return { bg: 'rgba(239, 68, 68, 0.15)', text: '#EF4444', border: 'rgba(239, 68, 68, 0.4)' };
       default:
-        return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
+        return { bg: 'rgba(255, 255, 255, 0.1)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.2)' };
     }
   };
 
   const getPaymentStyle = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'paid':
-        return { bg: '#F0FDF4', text: '#059669', border: '#059669' };
+        return { bg: 'rgba(34, 197, 94, 0.15)', text: '#22C55E', border: 'rgba(34, 197, 94, 0.4)' };
       case 'partial':
-        return { bg: '#FFFBEB', text: '#D97706', border: '#D97706' };
+        return { bg: 'rgba(251, 146, 60, 0.15)', text: '#FB923C', border: 'rgba(251, 146, 60, 0.4)' };
       case 'pending':
       case 'unpaid':
-        return { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' };
+        return { bg: 'rgba(239, 68, 68, 0.15)', text: '#EF4444', border: 'rgba(239, 68, 68, 0.4)' };
       default:
-        return { bg: '#F9FAFB', text: '#6B7280', border: '#6B7280' };
+        return { bg: 'rgba(255, 255, 255, 0.1)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.2)' };
     }
   };
 
@@ -171,30 +171,33 @@ export default function Bookings() {
         activeOpacity={0.95}
         onPress={() => toggleExpand(booking._id)}
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 8,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: 12,
           marginBottom: 16,
           borderWidth: 1,
-          borderColor: isExpanded ? '#4F46E5' : '#E5E7EB',
+          borderColor: isExpanded ? 'rgba(212, 175, 55, 0.4)' : 'rgba(255, 255, 255, 0.1)',
           overflow: 'hidden',
         }}
       >
         {/* Card Header */}
         <View style={{
-          backgroundColor: isExpanded ? '#F9FAFB' : '#FFFFFF',
+          backgroundColor: isExpanded ? 'rgba(212, 175, 55, 0.08)' : 'transparent',
           paddingHorizontal: 16,
           paddingVertical: 16,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: 'rgba(255, 255, 255, 0.1)',
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 6 }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFF', marginBottom: 6 }}>
                 {booking.shopId?.ShopName || 'Salon Shop'}
               </Text>
-              <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '400' }}>
-                {formatDate(booking.bookingDate)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="calendar-outline" size={12} color="rgba(212, 175, 55, 0.8)" />
+                <Text style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 6 }}>
+                  {formatDate(booking.bookingDate)}
+                </Text>
+              </View>
             </View>
 
             {/* Status Badge */}
@@ -202,13 +205,13 @@ export default function Bookings() {
               style={{
                 paddingHorizontal: 10,
                 paddingVertical: 6,
-                borderRadius: 4,
+                borderRadius: 6,
                 backgroundColor: statusStyle.bg,
                 borderWidth: 1,
                 borderColor: statusStyle.border,
               }}
             >
-              <Text style={{ color: statusStyle.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.3 }}>
+              <Text style={{ color: statusStyle.text, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
                 {booking.bookingStatus?.toUpperCase() || 'UNKNOWN'}
               </Text>
             </View>
@@ -226,31 +229,31 @@ export default function Bookings() {
           }}>
             {/* Time */}
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 11, color: 'rgba(212, 175, 55, 0.8)', fontWeight: '600', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' }}>
                 Time Slot
               </Text>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFF' }}>
                 {startTime}
               </Text>
-              <Text style={{ fontSize: 13, fontWeight: '400', color: '#6B7280', marginTop: 2 }}>
+              <Text style={{ fontSize: 13, fontWeight: '400', color: 'rgba(255, 255, 255, 0.6)', marginTop: 2 }}>
                 to {endTime}
               </Text>
             </View>
 
             {/* Price */}
             <View style={{
-              backgroundColor: '#EEF2FF',
-              borderRadius: 6,
+              backgroundColor: 'rgba(212, 175, 55, 0.15)',
+              borderRadius: 8,
               paddingHorizontal: 14,
               paddingVertical: 10,
               borderWidth: 1,
-              borderColor: '#4F46E5',
+              borderColor: 'rgba(212, 175, 55, 0.4)',
               alignItems: 'flex-end',
             }}>
-              <Text style={{ fontSize: 11, color: '#4F46E5', fontWeight: '600', letterSpacing: 0.3, marginBottom: 4, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 11, color: '#D4AF37', fontWeight: '600', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase' }}>
                 Total
               </Text>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: '#4F46E5', letterSpacing: -0.5 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#D4AF37', letterSpacing: -0.5 }}>
                 ₹{booking.totalPrice || 0}
               </Text>
             </View>
@@ -263,22 +266,20 @@ export default function Bookings() {
             alignItems: 'center',
             paddingTop: 12,
             borderTopWidth: 1,
-            borderTopColor: '#E5E7EB',
+            borderTopColor: 'rgba(255, 255, 255, 0.1)',
           }}>
-            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500', marginRight: 8 }}>
+            <Text style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '500', marginRight: 8 }}>
               {isExpanded ? 'Show Less' : 'Show More'}
             </Text>
             <View style={{
-              width: 18,
-              height: 18,
-              borderRadius: 3,
-              backgroundColor: '#4F46E5',
+              width: 20,
+              height: 20,
+              borderRadius: 4,
+              backgroundColor: '#D4AF37',
               justifyContent: 'center',
               alignItems: 'center',
             }}>
-              <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '600' }}>
-                {isExpanded ? '−' : '+'}
-              </Text>
+              <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#0A0A0A" />
             </View>
           </View>
         </View>
@@ -289,23 +290,26 @@ export default function Bookings() {
             style={{
               padding: 16,
               paddingTop: 0,
-              backgroundColor: '#FAFAFA',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
               borderTopWidth: 1,
-              borderTopColor: '#E5E7EB',
+              borderTopColor: 'rgba(255, 255, 255, 0.1)',
             }}
           >
             {/* Services Section */}
             <View style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 6,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 8,
               padding: 16,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
-                Services Booked
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Ionicons name="cut-outline" size={16} color="#D4AF37" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF', marginLeft: 8 }}>
+                  Services Booked
+                </Text>
+              </View>
 
               {(booking.services || []).length > 0 ? (
                 booking.services.map((service: any, index: number) => (
@@ -317,24 +321,27 @@ export default function Bookings() {
                       alignItems: 'flex-start',
                       paddingVertical: 12,
                       borderBottomWidth: index < booking.services.length - 1 ? 1 : 0,
-                      borderBottomColor: '#F3F4F6',
+                      borderBottomColor: 'rgba(255, 255, 255, 0.05)',
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFF', marginBottom: 4 }}>
                         {service.name}
                       </Text>
-                      <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '400' }}>
-                        {service.duration} minutes
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="time-outline" size={12} color="rgba(212, 175, 55, 0.6)" />
+                        <Text style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 4 }}>
+                          {service.duration} minutes
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#D4AF37' }}>
                       ₹{service.price}
                     </Text>
                   </View>
                 ))
               ) : (
-                <Text style={{ color: '#9CA3AF', fontStyle: 'italic', fontSize: 14, paddingVertical: 8 }}>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.4)', fontStyle: 'italic', fontSize: 14, paddingVertical: 8 }}>
                   No services listed
                 </Text>
               )}
@@ -342,41 +349,56 @@ export default function Bookings() {
 
             {/* Booking Details Section */}
             <View style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 6,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 8,
               padding: 16,
               marginBottom: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
-                Booking Details
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Ionicons name="information-circle-outline" size={16} color="#D4AF37" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF', marginLeft: 8 }}>
+                  Booking Details
+                </Text>
+              </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Barber</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="person-outline" size={14} color="rgba(212, 175, 55, 0.6)" />
+                  <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 6 }}>Barber</Text>
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>
                   {booking.barberId?.BarberName || 'N/A'}
                 </Text>
               </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Time Slot</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="time-outline" size={14} color="rgba(212, 175, 55, 0.6)" />
+                  <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 6 }}>Time Slot</Text>
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>
                   {startTime} – {endTime}
                 </Text>
               </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Total Duration</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="hourglass-outline" size={14} color="rgba(212, 175, 55, 0.6)" />
+                  <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 6 }}>Total Duration</Text>
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>
                   {booking.totalDuration || 0} min
                 </Text>
               </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Booked On</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="calendar-outline" size={14} color="rgba(212, 175, 55, 0.6)" />
+                  <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400', marginLeft: 6 }}>Booked On</Text>
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>
                   {booking.bookingTimestamp
                     ? new Date(booking.bookingTimestamp).toLocaleDateString('en-IN', {
                         day: '2-digit',
@@ -392,27 +414,30 @@ export default function Bookings() {
 
             {/* Payment Details Section */}
             <View style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 6,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 8,
               padding: 16,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
-                Payment Summary
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Ionicons name="card-outline" size={16} color="#D4AF37" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF', marginLeft: 8 }}>
+                  Payment Summary
+                </Text>
+              </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Amount Paid</Text>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#059669' }}>
+                <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400' }}>Amount Paid</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#22C55E' }}>
                   ₹{booking.amountPaid || 0}
                 </Text>
               </View>
 
               {booking.remainingAmount > 0 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Remaining</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#DC2626' }}>
+                  <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400' }}>Remaining</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#EF4444' }}>
                     ₹{booking.remainingAmount}
                   </Text>
                 </View>
@@ -425,14 +450,14 @@ export default function Bookings() {
                 marginTop: 12,
                 paddingTop: 12,
                 borderTopWidth: 1,
-                borderTopColor: '#F3F4F6',
+                borderTopColor: 'rgba(255, 255, 255, 0.1)',
               }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>Payment Status</Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400' }}>Payment Status</Text>
                 <View
                   style={{
                     paddingHorizontal: 10,
                     paddingVertical: 6,
-                    borderRadius: 4,
+                    borderRadius: 6,
                     backgroundColor: getPaymentStyle(booking.paymentStatus).bg,
                     borderWidth: 1,
                     borderColor: getPaymentStyle(booking.paymentStatus).border,
@@ -442,7 +467,7 @@ export default function Bookings() {
                     color: getPaymentStyle(booking.paymentStatus).text,
                     fontSize: 11,
                     fontWeight: '700',
-                    letterSpacing: 0.3
+                    letterSpacing: 0.5
                   }}>
                     {booking.paymentStatus?.toUpperCase() || 'UNKNOWN'}
                   </Text>
@@ -456,8 +481,8 @@ export default function Bookings() {
               paddingVertical: 10,
               alignItems: 'center',
             }}>
-              <Text style={{ fontSize: 12, color: '#9CA3AF', fontWeight: '500' }}>
-                Booking ID: {booking._id.slice(-12).toUpperCase()}
+              <Text style={{ fontSize: 12, color: 'rgba(212, 175, 55, 0.6)', fontWeight: '500', letterSpacing: 1 }}>
+                ID: {booking._id.slice(-12).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -471,7 +496,10 @@ export default function Bookings() {
     
     return (
       <View style={{ paddingVertical: 20 }}>
-        <ActivityIndicator size="small" color="#4F46E5" />
+        <ActivityIndicator size="small" color="#D4AF37" />
+        <Text style={{ marginTop: 8, textAlign: 'center', color: 'rgba(212, 175, 55, 0.8)', fontSize: 13, letterSpacing: 1 }}>
+          LOADING MORE...
+        </Text>
       </View>
     );
   };
@@ -484,20 +512,20 @@ export default function Bookings() {
         <View style={{
           width: 100,
           height: 100,
-          borderRadius: 8,
-          backgroundColor: '#F9FAFB',
+          borderRadius: 12,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
           borderWidth: 1,
-          borderColor: '#E5E7EB',
+          borderColor: 'rgba(212, 175, 55, 0.3)',
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 24
         }}>
-          <Text style={{ fontSize: 48 }}>📅</Text>
+          <Ionicons name="calendar-outline" size={48} color="rgba(212, 175, 55, 0.6)" />
         </View>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700', color: '#FFF', marginBottom: 8 }}>
           No Bookings Yet
         </Text>
-        <Text style={{ fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center', lineHeight: 22 }}>
           Time to book your next haircut!
         </Text>
       </View>
@@ -508,34 +536,34 @@ export default function Bookings() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <View style={{
-          width: 64,
-          height: 64,
-          borderRadius: 8,
-          backgroundColor: '#F9FAFB',
+          width: 80,
+          height: 80,
+          borderRadius: 12,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
           borderWidth: 1,
-          borderColor: '#E5E7EB',
+          borderColor: 'rgba(239, 68, 68, 0.4)',
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 20
         }}>
-          <Text style={{ fontSize: 32 }}>⚠️</Text>
+          <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
         </View>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFF', marginBottom: 8 }}>
           Something went wrong
         </Text>
-        <Text style={{ fontSize: 15, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+        <Text style={{ fontSize: 15, color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center', marginBottom: 24 }}>
           {error}
         </Text>
         <TouchableOpacity
           onPress={() => fetchBookings(true)}
           style={{
-            backgroundColor: '#4F46E5',
+            backgroundColor: '#D4AF37',
             paddingHorizontal: 32,
             paddingVertical: 14,
-            borderRadius: 6,
+            borderRadius: 8,
           }}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 15 }}>Try Again</Text>
+          <Text style={{ color: '#0A0A0A', fontWeight: '700', fontSize: 15, letterSpacing: 0.5 }}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -543,69 +571,96 @@ export default function Bookings() {
 
   if (loading && bookings.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-          <Text style={{ marginTop: 16, color: '#6B7280', fontSize: 15, fontWeight: '500' }}>
-            Loading your bookings...
-          </Text>
-        </View>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+        <Text style={{ marginTop: 16, color: '#D4AF37', fontSize: 14, fontWeight: '600', letterSpacing: 1 }}>
+          LOADING...
+        </Text>
+      </View>
     );
   }
 
   if (error && bookings.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
         {renderErrorState()}
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
 
-      {/* Professional Header */}
-      <View
+      {/* Premium Header with Gradient */}
+      <LinearGradient
+        colors={['#1A1A1A', '#0A0A0A']}
         style={{
-          backgroundColor: '#FFFFFF',
-          paddingTop: Platform.OS === 'ios' ? 0 : 40,
+          paddingTop: 50,
           paddingBottom: 20,
           paddingHorizontal: 20,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: 'rgba(212, 175, 55, 0.2)',
+        }}
+      >
+        <View style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-        }}
-      >
-        {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/Home')}
-          style={{
-            backgroundColor: '#4F46E5',
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderRadius: 6,
-          }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
-            ← Home
+        }}>
+          {/* Back Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/Home')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(212, 175, 55, 0.1)',
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: 'rgba(212, 175, 55, 0.3)',
+            }}
+          >
+            <Ionicons name="arrow-back" size={18} color="#D4AF37" />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#D4AF37', marginLeft: 8 }}>
+              Home
+            </Text>
+          </TouchableOpacity>
+          
+          {/* Booking Count */}
+          <View style={{
+            backgroundColor: 'rgba(212, 175, 55, 0.1)',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(212, 175, 55, 0.3)',
+          }}>
+            <Text style={{ fontSize: 12, color: '#D4AF37', fontWeight: '700', letterSpacing: 1 }}>
+              {bookings.length} {bookings.length === 1 ? 'BOOKING' : 'BOOKINGS'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Title */}
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ color: 'rgba(212, 175, 55, 0.8)', fontSize: 11, fontWeight: '700', letterSpacing: 2 }}>
+            YOUR APPOINTMENTS
           </Text>
-        </TouchableOpacity>
-        
-        <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '400' }}>
-          {bookings.length} {bookings.length === 1 ? 'appointment' : 'appointments'}
-        </Text>
-      </View>
+          <Text style={{ color: '#FFF', fontSize: 26, fontWeight: '800', marginTop: 4 }}>
+            My Bookings
+          </Text>
+        </View>
+      </LinearGradient>
 
       {/* Infinite Scroll List */}
       <FlatList
         data={bookings}
         renderItem={renderBookingItem}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
@@ -615,8 +670,8 @@ export default function Bookings() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#4F46E5']}
-            tintColor="#4F46E5"
+            tintColor="#D4AF37"
+            colors={['#D4AF37']}
           />
         }
         // Performance optimizations
@@ -626,6 +681,6 @@ export default function Bookings() {
         removeClippedSubviews={true}
         updateCellsBatchingPeriod={50}
       />
-    </SafeAreaView>
+    </View>
   );
-} 
+}

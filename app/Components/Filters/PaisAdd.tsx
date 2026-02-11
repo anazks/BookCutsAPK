@@ -1,4 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+import { fetchPremiumShops } from '@/app/api/Service/User';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,8 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router'; // Make sure you're using expo-router
-import { fetchPremiumShops } from '@/app/api/Service/User';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,7 +33,6 @@ export default function ShopCarousel() {
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
 
-  // Navigate to shop detail page
   const handleShopPress = (shopId: string) => {
     router.push({
       pathname: '/Screens/User/BarberShopFeed',
@@ -57,22 +56,18 @@ export default function ShopCarousel() {
         setLoading(false);
       }
     };
-
     loadPremiumShops();
   }, []);
 
-  // Auto-scroll
   useEffect(() => {
     if (shops.length === 0 || loading) return;
-
     const timer = setInterval(() => {
       setActiveIndex((prev) => {
         const newIndex = (prev + 1) % shops.length;
         flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
         return newIndex;
       });
-    }, 3500);
-
+    }, 4500); // Slightly slower transition for luxury feel
     return () => clearInterval(timer);
   }, [shops.length, loading]);
 
@@ -87,9 +82,8 @@ export default function ShopCarousel() {
 
     return (
       <View style={styles.cardContainer}>
-        {/* Full Card Touchable - Navigate on press */}
         <TouchableOpacity
-          activeOpacity={0.85}
+          activeOpacity={0.9}
           onPress={() => handleShopPress(item._id)}
           style={styles.cardTouchable}
         >
@@ -99,33 +93,38 @@ export default function ShopCarousel() {
                 <Image source={{ uri: firstImage }} style={styles.image} />
               ) : (
                 <View style={[styles.image, styles.placeholderImage]}>
-                  <Ionicons name="image-outline" size={50} color="#9CA3AF" />
+                  <Ionicons name="image-outline" size={50} color="#333" />
                 </View>
               )}
 
-              {/* Premium Badge */}
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>PREMIUM</Text>
+              {/* Minimalist Top Gradient for Badge visibility */}
+              <View style={styles.topGradient} />
+
+              {/* Elite Badge - Square & Gold */}
+              <View style={styles.premiumBadge}>
+                <FontAwesome5 name="crown" size={10} color="#000" />
+                <Text style={styles.premiumText}>ELITE SELECTION</Text>
               </View>
 
-              {/* Overlay Info */}
+              {/* Info Overlay - Bottom Aligned */}
               <View style={styles.infoContainer}>
-                <View style={styles.nameContainer}>
-                  <Text style={styles.shopName}>{item.ShopName}</Text>
-                  <Text style={styles.tagline}>Premium Grooming Experience</Text>
+                <View style={styles.textWrapper}>
+                  <Text style={styles.shopName}>{item.ShopName.toUpperCase()}</Text>
+                  <View style={styles.taglineRow}>
+                    <View style={styles.goldLine} />
+                    <Text style={styles.tagline}>PREMIUM GROOMING</Text>
+                  </View>
                 </View>
 
-                {/* Book Button - Also navigates (optional: you can keep or remove onPress here) */}
                 <TouchableOpacity
                   style={styles.bookButton}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                   onPress={(e) => {
-                    e.stopPropagation(); // Prevent double navigation if parent is also pressed
+                    e.stopPropagation();
                     handleShopPress(item._id);
                   }}
                 >
-                  <Text style={styles.bookButtonText}>Book Now</Text>
-                  <Ionicons name="calendar-outline" size={18} color="#FFFFFF" />
+                  <Ionicons name="chevron-forward" size={20} color="#000" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -152,14 +151,12 @@ export default function ShopCarousel() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#EF4444" />
+        <ActivityIndicator size="small" color="#D4AF37" />
       </View>
     );
   }
 
-  if (shops.length === 0) {
-    return null;
-  }
+  if (shops.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -173,10 +170,8 @@ export default function ShopCarousel() {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        style={styles.carousel}
         snapToInterval={SCREEN_WIDTH - 32}
         decelerationRate="fast"
-        onScrollToIndexFailed={() => {}}
       />
       {renderPagination()}
     </View>
@@ -185,33 +180,29 @@ export default function ShopCarousel() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F8FAFC',
-    marginBottom: 24,
-    marginTop: 8,
+    backgroundColor: 'transparent',
+    marginBottom: 10,
+    marginTop: 10,
   },
   loadingContainer: {
     height: 240,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  carousel: {
-    flexGrow: 0,
-  },
   cardContainer: {
     width: SCREEN_WIDTH - 32,
-    paddingHorizontal: 8,
-    height: 240,
+    marginHorizontal: 16,
+    height: 260,
   },
   cardTouchable: {
     flex: 1,
   },
   card: {
     flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: '#121212',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#262626',
+    // Square edges
   },
   imageContainer: {
     flex: 1,
@@ -220,77 +211,99 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+    opacity: 0.85, // Darkens image slightly to make text pop
   },
   placeholderImage: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  discountBadge: {
+  topGradient: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  discountText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  premiumBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backgroundColor: '#D4AF37',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  premiumText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   infoContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 12,
-  },
-  nameContainer: {
-    marginBottom: 12,
-  },
-  shopName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  tagline: {
-    fontSize: 12,
-    color: '#D1D5DB',
-    fontWeight: '400',
-  },
-  bookButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 6,
-    gap: 8,
-    backgroundColor: '#EF4444',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 175, 55, 0.3)',
   },
-  bookButtonText: {
+  textWrapper: {
+    flex: 1,
+  },
+  shopName: {
+    fontSize: 20,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  taglineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goldLine: {
+    width: 20,
+    height: 1,
+    backgroundColor: '#D4AF37',
+  },
+  tagline: {
+    fontSize: 11,
+    color: '#D4AF37',
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  bookButton: {
+    width: 45,
+    height: 45,
+    backgroundColor: '#D4AF37',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
-    gap: 6,
+    paddingVertical: 16,
+    gap: 8,
   },
   paginationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#D1D5DB',
+    width: 4,
+    height: 4,
+    backgroundColor: '#333',
   },
   activePaginationDot: {
-    width: 24,
-    backgroundColor: '#EF4444',
+    width: 20,
+    height: 4,
+    backgroundColor: '#D4AF37',
   },
 });
