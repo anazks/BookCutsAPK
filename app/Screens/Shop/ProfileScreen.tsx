@@ -14,6 +14,7 @@ import {
   Platform,
   Linking
 } from 'react-native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -354,6 +355,8 @@ const ProfileScreen = () => {
         onPress: async () => {
           try {
             await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();
             Alert.alert('Success', 'Logged out successfully');
             router.replace('/Home');
           } catch (error) {

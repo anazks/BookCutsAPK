@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import {
   AddBarber,
   AddService,
@@ -28,6 +27,7 @@ import {
   viewMyShop,
   ownerToBarber
 } from '../api/Service/Shop';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 // ────────────────────────────────────────────────
 // Logout helper function - FIXED
@@ -35,6 +35,8 @@ import {
 const performLogout = async (navigation: any) => {
   try {
     await AsyncStorage.multiRemove(['accessToken', 'shopId', 'refreshToken']);
+    await GoogleSignin.revokeAccess();
+    await GoogleSignin.signOut();
     // You can add more keys if you store others (userId, etc.)
 
     // FIX: Use navigation.replace() instead of reset()

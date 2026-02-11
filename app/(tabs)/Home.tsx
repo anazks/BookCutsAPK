@@ -19,7 +19,7 @@ import {
   BackHandler,
   RefreshControl, // ← ADD THIS IMPORT
 } from 'react-native';
-
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
 import { getmyProfile } from '../api/Service/User';
 import AdvancedFilter from '../Components/Filters/AdvancedFilter';
@@ -235,6 +235,8 @@ const Home = () => {
         onPress: async () => {
           try {
             await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();
             router.replace('/Screens/User/Login');
           } catch (error) {
             console.error('Logout Error:', error);

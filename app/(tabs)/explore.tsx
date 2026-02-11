@@ -4,6 +4,9 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import { getmyProfile } from '../api/Service/User';
+import {
+  GoogleSignin
+} from '@react-native-google-signin/google-signin';
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -41,6 +44,8 @@ export default function Profile() {
           onPress: async () => {
             try {
               await AsyncStorage.multiRemove(['accessToken', 'shopId']);
+              await GoogleSignin.revokeAccess();
+              await GoogleSignin.signOut();
               Alert.alert('Success', 'Logged out successfully');
               router.replace('/Screens/User/Login');
             } catch (error) {
