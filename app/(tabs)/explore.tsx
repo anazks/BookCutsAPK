@@ -1,12 +1,12 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
-import { getmyProfile } from '../api/Service/User';
 import {
   GoogleSignin
 } from '@react-native-google-signin/google-signin';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getmyProfile } from '../api/Service/User';
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -185,6 +185,27 @@ export default function Profile() {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
+
+             <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() =>
+  router.push({
+    pathname: '/Screens/User/ReferralDetails',
+    params: {
+      referralCode: userData?.referralCode,
+    },
+  })
+}
+
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="gift-outline" size={18} color="#D97706" />  
+              </View>
+              <Text style={styles.menuText}>Refer & Reward</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+          </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>

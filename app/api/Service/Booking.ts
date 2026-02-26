@@ -137,3 +137,12 @@ export const fetchAllAvailableTimeSlots = async (shopId,dateStr) => {
     return []
   }
 }
+
+export  const  getdiscount = async () => {
+    try {
+        const response = await Axios.get('/booking/discount')
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}

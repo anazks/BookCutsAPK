@@ -94,3 +94,22 @@ export const userGoogleSignin = async (data) => {
         console.log(error)
     }
 }
+
+export const getNearbyCitiesFallback = async (lat: number, lon: number) => {
+  try {
+    const response = await Axios.get('/api/cities/nearby', {   // ← better endpoint name
+      params: { lat, lon },
+    });
+
+    return response.data;   // ← usually you want this
+  } catch (error) {
+    console.error('Error fetching nearby cities:', error);
+    
+    // Option A: throw so caller can handle it
+    throw error;
+
+    // Option B: return null / empty array + handle in UI
+    // return { success: false, data: [], error: 'Failed to load cities' };
+  }
+};
+

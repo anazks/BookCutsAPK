@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
-import { getmyProfile } from '../api/Service/User';
+import { getmyProfile,getNearbyCitiesFallback } from '../api/Service/User';
 import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
@@ -107,46 +107,80 @@ const Home = () => {
     }
   };
 
-  const getNearByCities = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
-    try {
-      const lat = Number(latitude.toFixed(4));
-      const lon = Number(longitude.toFixed(4));
-      const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
+const getNearByCities = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
+  try {
+    const lat = Number(latitude.toFixed(4));
+    const lon = Number(longitude.toFixed(4));
 
-      const res = await fetch(url);
+    // ── Primary: Try Geobytes ────────────────────────────────────────
+    const geobytesUrl = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+
+    try {
+      const res = await fetch(geobytesUrl, { signal: controller.signal });
+      clearTimeout(timeoutId); // prevent abort if fetch succeeds quickly
+
       const text = await res.text();
 
-      if (!text || text.trim() === '[[%s]]') return [];
+      if (text && text.trim() !== '' && text.trim() !== '[["%s"]]') {
+        try {
+          const data = JSON.parse(text);
+          if (Array.isArray(data) && data.length > 0 && data[0][1] !== '%s') {
+            // ... rest of your parsing + sorting logic remains the same
+            const citiesList = data.map((item: any) => ({
+              name: item[1],
+              lat: Number(item[8]),
+              lon: Number(item[10]),
+            }));
 
-      const data = JSON.parse(text);
-      const citiesList = data.map((item: any) => ({
-        name: item[1],
-        lat: Number(item[8]),
-        lon: Number(item[10]),
-      }));
+            // Your distance sort function...
+            const toRad = (deg: number) => (deg * Math.PI) / 180;
+            const distanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+              const R = 6371;
+              const dLat = toRad(lat2 - lat1);
+              const dLon = toRad(lon2 - lon1);
+              const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+              return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            };
 
-      const toRad = (deg: number) => (deg * Math.PI) / 180;
-      const distanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371;
-        const dLat = toRad(lat2 - lat1);
-        const dLon = toRad(lon2 - lon1);
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      };
+            const sorted = citiesList.sort(
+              (a: any, b: any) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon)
+            );
 
-      const sorted = citiesList.sort(
-        (a: any, b: any) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon)
-      );
-
-      setCities(sorted);
-      return sorted;
-    } catch (err) {
-      console.error('Failed to fetch nearby cities:', err);
-      return [];
+            setCities(sorted);
+            return sorted;
+          }
+        } catch (parseErr) {
+          console.warn('Geobytes parse failed:', parseErr);
+        }
+      }
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        console.warn('Geobytes request timed out');
+      } else {
+        console.warn('Geobytes fetch failed:', fetchErr);
+      }
     }
-  };
+
+    // ── Fallback: Your own backend ───────────────────────────────
+    console.log('Geobytes failed → using fallback API');
+    const fallbackCities = await getNearbyCitiesFallback(lat, lon, 15);
+
+    if (fallbackCities?.length > 0) {
+      setCities(fallbackCities);
+      return fallbackCities;
+    }
+
+    console.warn('No cities from either source');
+    return [];
+  } catch (err) {
+    console.error('Failed to fetch nearby cities (both methods):', err);
+    return [];
+  }
+};
 
   const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
     if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
