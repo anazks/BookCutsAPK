@@ -1,4 +1,3 @@
-
 import { userLogin, userGoogleSignin } from '@/app/api/Service/User';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,7 +36,6 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Configure Google Sign-In once when component mounts
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
@@ -61,17 +59,15 @@ export default function Login() {
 
       console.log('Google ID Token:', idToken.substring(0, 50) + '...');
 
-      // Send idToken to your backend
       const response = await userGoogleSignin({ idToken });
 
       console.log('Google login response:', response);
 
       if (response.success === true && response.token && response.user) {
-        // Store exactly like normal login
         await AsyncStorage.setItem('userId', response.user.id);
         await AsyncStorage.setItem('accessToken', response.token);
+        await AsyncStorage.setItem('authProvider', 'google');
 
-        // Redirect to home
         router.replace('/(tabs)/Home');
       } else {
         const errorMessage = response.message || 'Google login failed';
@@ -117,6 +113,8 @@ export default function Login() {
       if (response.success === true && response.token && response.user) {
         await AsyncStorage.setItem('userId', response.user.id);
         await AsyncStorage.setItem('accessToken', response.token);
+        await AsyncStorage.setItem('authProvider', 'local');
+
         router.replace('/(tabs)/Home');
       } else {
         const errorMessage = response.message || 'Invalid login details.';
@@ -132,7 +130,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
+      <StatusBar backgroundColor="#1877F2" barStyle="light-content" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -243,11 +241,11 @@ export default function Login() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FF6B6B" size="small" />
+                <ActivityIndicator color="#1877F2" size="small" />
               ) : (
                 <View style={styles.loginButtonContent}>
                   <Text style={styles.loginButtonText}>Sign In</Text>
-                  <MaterialIcons name="arrow-forward" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="arrow-forward" size={22} color="#1877F2" />
                 </View>
               )}
             </TouchableOpacity>
@@ -308,187 +306,186 @@ export default function Login() {
   );
 }
 
-  const styles = StyleSheet.create({
-    policyContainer: {
-      // marginTop: 12,
-      marginTop:2,
-      marginBottom:10,
-      alignItems: 'center',
-      paddingHorizontal: 16,
-    },
-    policyText: {
-      fontSize: 12,
-      color: '#ffffff',
-      textAlign: 'center',
-    },
-    link: {
-      color: '#8fc2f9',
-      textDecorationLine: 'underline',
-    },
-    container: {
-      flex: 1,
-      backgroundColor: '#FF6B6B',
-    },
-    keyboardAvoidingView: {
-      flex: 1,
-    },
-    scrollContainer: {
-      flex: 1,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      paddingBottom: 40,
-    },
-    headerSection: {
-      paddingHorizontal: 40,
-      alignItems: 'center',
-      marginBottom: 50,
-      marginTop: 60,
-    },
-    welcomeText: {
-      fontSize: 32,
-      fontWeight: '700',
-      color: '#FFFFFF',
-      letterSpacing: -0.5,
-      marginBottom: 10,
-    },
-    subtitleText: {
-      fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.9)',
-      fontWeight: '400',
-      textAlign: 'center',
-    },
-    formContainer: {
-      paddingHorizontal: 40,
-    },
-    inputContainer: {
-      marginBottom: 30,
-    },
-    inputLabelContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    inputLabel: {
-      fontSize: 15,
-      fontWeight: '500',
-      color: '#FFFFFF',
-      marginLeft: 10,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    input: {
-      flex: 1,
-      fontSize: 17,
-      color: '#FFFFFF',
-      paddingVertical: 12,
-      fontWeight: '500',
-    },
-    underline: {
-      height: 2,
-      backgroundColor: 'rgba(255, 255, 255, 0.5)',
-      marginTop: 2,
-    },
-    visibilityToggle: {
-      padding: 10,
-      marginLeft: 10,
-    },
-    forgotPassword: {
-      alignSelf: 'flex-end',
-      marginBottom: 35,
-      marginTop: -10,
-    },
-    forgotPasswordText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '600',
-      textDecorationLine: 'underline',
-      opacity: 0.9,
-    },
-    loginButton: {
-      backgroundColor: '#FFFFFF',
-      height: 58,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 25,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.1,
-      shadowRadius: 16,
-      elevation: 8,
-    },
-    loginButtonDisabled: {
-      opacity: 0.6,
-    },
-    loginButtonContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    loginButtonText: {
-      color: '#FF6B6B',
-      fontSize: 18,
-      fontWeight: '700',
-      marginRight: 10,
-      letterSpacing: 0.5,
-    },
-    dividerContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 25,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    dividerText: {
-      paddingHorizontal: 16,
-      color: 'rgba(255, 255, 255, 0.8)',
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    otpLoginButton: {
-      backgroundColor: 'transparent',
-      height: 56,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    otpButtonContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    otpLoginButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 10,
-    },
-    footer: {
-      alignItems: 'center',
-      paddingHorizontal: 40,
-      marginTop: 40,
-      gap: 16,
-    },
-    footerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    footerText: {
-      color: 'rgba(255, 255, 255, 0.9)',
-      fontSize: 15,
-      fontWeight: '400',
-    },
-    linkText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: '700',
-      textDecorationLine: 'underline',
-    },
-  });
+const styles = StyleSheet.create({
+  policyContainer: {
+    marginTop: 2,
+    marginBottom: 10,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  policyText: {
+    fontSize: 12,
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#A8D4FF',             // light sky blue — readable on blue bg
+    textDecorationLine: 'underline',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#1877F2',   // Facebook primary blue
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  headerSection: {
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    marginBottom: 50,
+    marginTop: 60,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 10,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '400',
+    textAlign: 'center',
+  },
+  formContainer: {
+    paddingHorizontal: 40,
+  },
+  inputContainer: {
+    marginBottom: 30,
+  },
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
+    fontSize: 17,
+    color: '#FFFFFF',
+    paddingVertical: 12,
+    fontWeight: '500',
+  },
+  underline: {
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
+  visibilityToggle: {
+    padding: 10,
+    marginLeft: 10,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 35,
+    marginTop: -10,
+  },
+  forgotPasswordText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    opacity: 0.9,
+  },
+  loginButton: {
+    backgroundColor: '#FFFFFF',          // white button on blue bg
+    height: 58,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 25,
+    shadowColor: '#0D4FB5',              // deep blue shadow
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    color: '#1877F2',                    // blue text on white button
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 10,
+    letterSpacing: 0.5,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  otpLoginButton: {
+    backgroundColor: 'transparent',
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  otpButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  otpLoginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    marginTop: 40,
+    gap: 16,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  linkText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+});

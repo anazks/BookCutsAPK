@@ -3,26 +3,24 @@ import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Import your logo - make sure the path is correct
 import Logo from '../assets/images/logo.png';
 
 export default function GetStartedScreen() {
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const buttonScale = useRef(new Animated.Value(0.9)).current;
+  const buttonScale = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
-    // Start animations when component mounts
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1200,
+        duration: 1400,
         useNativeDriver: true,
       }),
       Animated.spring(buttonScale, {
         toValue: 1,
-        friction: 3,
-        delay: 600,
+        friction: 4,
+        tension: 40,
+        delay: 400,
         useNativeDriver: true,
       })
     ]).start();
@@ -35,9 +33,7 @@ export default function GetStartedScreen() {
         <Animated.View
           style={[
             styles.logoWrapper,
-            {
-              opacity: fadeAnim,
-            }
+            { opacity: fadeAnim }
           ]}
         >
           <Image 
@@ -48,7 +44,7 @@ export default function GetStartedScreen() {
         </Animated.View>
       </View>
 
-      {/* Bottom Button Section */}
+      {/* Bottom Section */}
       <View style={styles.bottomSection}>
         <Animated.View
           style={{
@@ -59,10 +55,10 @@ export default function GetStartedScreen() {
           <TouchableOpacity 
             style={styles.getStartedButton}
             onPress={() => router.push('/Screens/User/Login')}
-            activeOpacity={0.9}
+            activeOpacity={0.85}
           >
             <Text style={styles.buttonText}>Get Started</Text>
-            <MaterialIcons name="arrow-forward" size={24} color="#FF6B6B" />
+            <MaterialIcons name="arrow-forward" size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </Animated.View>
         
@@ -72,7 +68,7 @@ export default function GetStartedScreen() {
             { opacity: fadeAnim }
           ]}
         >
-          Join thousands of happy customers
+          Join thousands of happy & secure customers
         </Animated.Text>
       </View>
     </SafeAreaView>
@@ -82,65 +78,59 @@ export default function GetStartedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',   // Facebook's iconic primary blue
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
   },
   logoWrapper: {
-    width: '90%',
+    width: '82%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   logoImage: {
     width: '100%',
     height: '100%',
   },
-  appName: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -1,
-    textAlign: 'center',
-  },
   bottomSection: {
-    paddingBottom: 40,
-    paddingHorizontal: 24,
+    paddingBottom: 60,
+    paddingHorizontal: 28,
     alignItems: 'center',
   },
   getStartedButton: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 18,
-    paddingHorizontal: 50,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',           // white button pops on blue bg
+    paddingVertical: 20,
+    paddingHorizontal: 56,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-    minWidth: 220,
+    shadowColor: '#0D4FB5',               // deeper blue shadow for depth
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
+    minWidth: 240,
+    borderWidth: 0,
   },
   buttonText: {
-    color: '#FF6B6B',
+    color: '#1877F2',                     // match the brand blue on white
     fontSize: 20,
     fontWeight: '700',
-    marginRight: 12,
-    letterSpacing: 0.5,
+    marginRight: 14,
+    letterSpacing: 0.4,
   },
   partnerText: {
-    marginTop: 24,
+    marginTop: 28,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: '#FFFFFF',                     // white text on blue bg — clean & clear
     fontWeight: '500',
     textAlign: 'center',
-    opacity: 0.8,
+    opacity: 0.88,
   },
 });

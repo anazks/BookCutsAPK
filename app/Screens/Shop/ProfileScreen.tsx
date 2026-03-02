@@ -353,16 +353,42 @@ const ProfileScreen = () => {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          try {
-            await AsyncStorage.multiRemove(['accessToken', 'shopId']);
-            await GoogleSignin.revokeAccess();
-            await GoogleSignin.signOut();
-            Alert.alert('Success', 'Logged out successfully');
-            router.replace('/Home');
-          } catch (error) {
-            Alert.alert('Error', 'Failed to logout');
-          }
-        },
+  try {
+    // 1. First, find out how the user logged in
+    const authProvider = await AsyncStorage.getItem('authProvider');
+
+    // 2. Only trigger Google SDK methods if they logged in via Google
+    if (authProvider === 'google') {
+      try {
+        const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+        if (isGoogleSignedIn) {
+          // Optional: revokeAccess() removes the app from user's Google account settings. 
+          // Usually, just signOut() is enough for a standard logout, but keeping it is fine.
+          await GoogleSignin.revokeAccess();
+          await GoogleSignin.signOut();
+        }
+      } catch (googleErr: any) {
+        // Silently ignore SIGN_IN_REQUIRED if it somehow still fires, log other errors
+        if (googleErr.code !== 'SIGN_IN_REQUIRED') {
+          console.log('Google sign-out failed:', googleErr);
+        }
+      }
+    }
+
+    // 3. Clear all local credentials, including the provider flag and shopId
+    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+
+    // 4. Navigate back to Login
+    router.replace('/Screens/User/Login');
+
+  } catch (error) {
+    console.error('Logout Error:', error);
+    
+    // Fallback: Ensure everything is wiped even if the try block fails, then navigate
+    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+    router.replace('/Home'); 
+  }
+}
       },
     ]);
   };

@@ -74,6 +74,7 @@ export default function Login() {
 
       if (response.success && response.token) {
         await AsyncStorage.setItem('accessToken', response.token);
+        await AsyncStorage.setItem('authProvider', 'google');
 
         if (response.user?.shopId) {
           await AsyncStorage.setItem('shopId', response.user.shopId);
@@ -127,6 +128,7 @@ export default function Login() {
 
       if (response.success && response.token) {
         await AsyncStorage.setItem('accessToken', response.token);
+        await AsyncStorage.setItem('authProvider', 'local');
 
         if (response.user?.shopId) {
           await AsyncStorage.setItem('shopId', response.user.shopId);
