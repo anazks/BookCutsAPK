@@ -35,7 +35,7 @@ const BarberShopFeed = () => {
       description: 'New customers get 20% off on all services',
       code: 'FIRST20',
       validUntil: '2025-10-31',
-      gradient: ['#FF6B6B', '#FF8E8E'],
+      gradient: ['#1877F2', '#FF8E8E'],
     },
     {
       id: '2',
@@ -274,7 +274,7 @@ const BarberShopFeed = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#1877F2" />
         <Text style={styles.loadingText}>Loading shop details...</Text>
       </View>
     );
@@ -283,7 +283,7 @@ const BarberShopFeed = () => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+        <Ionicons name="alert-circle-outline" size={48} color="#1877F2" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={fetchShopData}>
           <Text style={styles.retryText}>Retry</Text>
@@ -389,7 +389,7 @@ const BarberShopFeed = () => {
             </View>
             <View style={styles.modalActions}>
               {/* <TouchableOpacity style={styles.modalActionButton} onPress={handleShareMedia}>
-                <Ionicons name="share-social-outline" size={20} color="#FF6B6B" />
+                <Ionicons name="share-social-outline" size={20} color="#1877F2" />
                 <Text style={styles.modalActionText}>Share</Text>
               </TouchableOpacity> */}
             </View>
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   // Header Section with Profile on Left and Details on Right
   headerSection: {
     flexDirection: 'row',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#1877F2',
   },
   shopDetails: {
     flex: 1,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',
     marginRight: 12,
   },
   feedUserInfo: {
@@ -702,14 +702,14 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 20,
     right: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 50,
-    shadowColor: '#FF6B6B',
+    shadowColor: '#1877F2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   modalActionText: {
-    color: '#FF6B6B',
+    color: '#1877F2',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,

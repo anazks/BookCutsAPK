@@ -124,10 +124,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   filterBoxSelected: {
-    backgroundColor: '#FC8019',
-    borderColor: '#FC8019',
+    backgroundColor: '#1877F2',
+    borderColor: '#1877F2',
     borderWidth: 1,
-    shadowColor: '#FC8019',
+    shadowColor: '#1877F2',
     shadowOffset: {
       width: 0,
       height: 2,

@@ -126,27 +126,27 @@ console.log('Total Duration:', totalDuration);
     return groups;
   }, [generateTimeSlots]);
 
-  const getPeriodIcon = (period) => {
-    switch(period) {
-      case 'morning': 
-        return <Feather name="sunrise" size={14} color="#FF6B35" />;
-      case 'afternoon': 
-        return <MaterialIcons name="wb-sunny" size={16} color="#FF9500" />;
-      case 'evening': 
-        return <Feather name="moon" size={14} color="#5856D6" />;
-      default: 
-        return <Feather name="clock" size={14} color="#8E8E93" />;
-    }
-  };
+const getPeriodIcon = (period) => {
+  switch(period) {
+    case 'morning': 
+      return <Feather name="sunrise" size={14} color="#1877F2" />; // Primary blue
+    case 'afternoon': 
+      return <MaterialIcons name="wb-sunny" size={16} color="#5C9CFF" />; // Light blue
+    case 'evening': 
+      return <Feather name="moon" size={14} color="#0F4FA6" />; // Dark blue
+    default: 
+      return <Feather name="clock" size={14} color="#8AB8FF" />; // Very light blue
+  }
+};
 
-  const getPeriodColor = (period) => {
-    switch(period) {
-      case 'morning': return '#FF6B35';
-      case 'afternoon': return '#FF9500';
-      case 'evening': return '#5856D6';
-      default: return '#8E8E93';
-    }
-  };
+const getPeriodColor = (period) => {
+  switch(period) {
+    case 'morning': return '#1877F2'; // Primary blue
+    case 'afternoon': return '#5C9CFF'; // Light blue
+    case 'evening': return '#0F4FA6'; // Dark blue
+    default: return '#8AB8FF'; // Very light blue
+  }
+};
 
   const renderTimeSlot = (slot, period, index) => {
     const isSelected = selectedSlot?.startTime === slot.startTime;
@@ -239,7 +239,7 @@ console.log('Total Duration:', totalDuration);
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.headerIcon}>
-              <Feather name="scissors" size={18} color="#FF3B30" />
+              <Feather name="scissors" size={18} color="#5C9CFF" />
             </View>
             <View>
               <Text style={styles.headerTitle}>Available Times</Text>
@@ -276,7 +276,7 @@ console.log('Total Duration:', totalDuration);
         {selectedSlot && (
           <View style={styles.selectedDisplay}>
             <View style={styles.selectedHeader}>
-              <Feather name="check-circle" size={14} color="#FF3B30" />
+              <Feather name="check-circle" size={14} color="#5C9CFF" />
               <Text style={styles.selectedTitle}>Selected time</Text>
             </View>
             <Text style={styles.selectedTime}>

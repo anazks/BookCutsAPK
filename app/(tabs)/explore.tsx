@@ -18,7 +18,6 @@ export default function Profile() {
       setLoading(true);
       const response = await getmyProfile();
       console.log("profile data:", JSON.stringify(response, null, 2));
-      
       if (response && response.success) {
         setUserData(response.user);
       } else {
@@ -42,42 +41,29 @@ export default function Profile() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-  try {
-    // 1. First, find out how the user logged in
-    const authProvider = await AsyncStorage.getItem('authProvider');
-
-    // 2. Only trigger Google SDK methods if they logged in via Google
-    if (authProvider === 'google') {
-      try {
-        const isGoogleSignedIn = await GoogleSignin.isSignedIn();
-        if (isGoogleSignedIn) {
-          // Optional: revokeAccess() removes the app from user's Google account settings. 
-          // Usually, just signOut() is enough for a standard logout, but keeping it is fine.
-          await GoogleSignin.revokeAccess();
-          await GoogleSignin.signOut();
-        }
-      } catch (googleErr: any) {
-        // Silently ignore SIGN_IN_REQUIRED if it somehow still fires, log other errors
-        if (googleErr.code !== 'SIGN_IN_REQUIRED') {
-          console.log('Google sign-out failed:', googleErr);
-        }
-      }
-    }
-
-    // 3. Clear all local credentials, including the provider flag and shopId
-    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-
-    // 4. Navigate back to Login
-    router.replace('/Screens/User/Login');
-
-  } catch (error) {
-    console.error('Logout Error:', error);
-    
-    // Fallback: Ensure everything is wiped even if the try block fails, then navigate
-    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-    router.replace('/Screens/User/Login'); 
-  }
-}
+            try {
+              const authProvider = await AsyncStorage.getItem('authProvider');
+              if (authProvider === 'google') {
+                try {
+                  const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                  if (isGoogleSignedIn) {
+                    await GoogleSignin.revokeAccess();
+                    await GoogleSignin.signOut();
+                  }
+                } catch (googleErr: any) {
+                  if (googleErr.code !== 'SIGN_IN_REQUIRED') {
+                    console.log('Google sign-out failed:', googleErr);
+                  }
+                }
+              }
+              await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+              router.replace('/Screens/User/Login');
+            } catch (error) {
+              console.error('Logout Error:', error);
+              await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+              router.replace('/Screens/User/Login');
+            }
+          },
         },
       ]
     );
@@ -90,7 +76,7 @@ export default function Profile() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#1877F2" />
         <Text style={styles.loadingText}>Loading your profile...</Text>
       </View>
     );
@@ -99,12 +85,9 @@ export default function Profile() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+        <Ionicons name="alert-circle-outline" size={48} color="#1877F2" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={fetchProfile}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={fetchProfile}>
           <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -113,192 +96,189 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      {/* Header with gradient */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>My Profile</Text>
-          <Text style={styles.headerSubtitle}>Manage your account</Text>
-        </View>
-      </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile Info Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
+      {/* ── Hero Header ── */}
+      <View style={styles.heroHeader}>
+        {/* decorative circles for depth */}
+        <View style={styles.heroBubble1} />
+        <View style={styles.heroBubble2} />
+
+    
+
+        {/* Avatar + name inside hero */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarRing}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
                 {userData?.firstName?.[0]}{userData?.lastName?.[0]}
               </Text>
             </View>
-            <View style={styles.onlineIndicator} />
           </View>
-
-          <View style={styles.profileInfo}>
-            <Text style={styles.userName}>
-              {userData?.firstName} {userData?.lastName}
-            </Text>
-            <Text style={styles.userEmail}>{userData?.email}</Text>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-outline" size={14} color="#64748B" />
-              <Text style={styles.userLocation}>
-                {userData?.city || 'Location not set'}
-              </Text>
+          <View style={styles.onlineIndicator} />
+          <Text style={styles.heroName}>
+            {userData?.firstName} {userData?.lastName}
+          </Text>
+          <Text style={styles.heroEmail}>{userData?.email}</Text>
+          {userData?.city ? (
+            <View style={styles.locationPill}>
+              <Ionicons name="location-sharp" size={12} color="#1877F2" />
+              <Text style={styles.locationPillText}>{userData.city}</Text>
             </View>
+          ) : null}
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Stats Bar ── */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statLabel}>Bookings</Text>
           </View>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Bookings</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>4.8</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>18</Text>
-              <Text style={styles.statLabel}>Rewards</Text>
-            </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>4.8</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>18</Text>
+            <Text style={styles.statLabel}>Rewards</Text>
           </View>
         </View>
 
-        {/* Quick Actions */}
+        {/* ── Quick Actions ── */}
         <View style={styles.quickActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push('/Screens/User/Bookings')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#FFF5F5' }]}>
-              <Ionicons name="calendar-outline" size={22} color="#FF6B6B" />
+            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
+              <Ionicons name="calendar-outline" size={22} color="#1877F2" />
             </View>
             <Text style={styles.actionText}>Bookings</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push('/Screens/User/Rewards')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#F0F9FF' }]}>
-              <MaterialIcons name="card-giftcard" size={22} color="#3B82F6" />
+            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
+              <MaterialIcons name="card-giftcard" size={22} color="#1877F2" />
             </View>
             <Text style={styles.actionText}>Rewards</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push('/Screens/User/Payment')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#F0FDF4' }]}>
-              <Ionicons name="card-outline" size={22} color="#10B981" />
+            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
+              <Ionicons name="card-outline" size={22} color="#1877F2" />
             </View>
             <Text style={styles.actionText}>Payment</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Menu Section */}
+        {/* ── Menu Section ── */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
 
-             <TouchableOpacity 
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() =>
-  router.push({
-    pathname: '/Screens/User/ReferralDetails',
-    params: {
-      referralCode: userData?.referralCode,
-    },
-  })
-}
-
+              router.push({
+                pathname: '/Screens/User/ReferralDetails',
+                params: { referralCode: userData?.referralCode },
+              })
+            }
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="gift-outline" size={18} color="#D97706" />  
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="gift-outline" size={18} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Refer & Reward</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="person-outline" size={18} color="#D97706" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="person-outline" size={18} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Personal Information</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/Screens/User/Payment')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#DBEAFE' }]}>
-                <Ionicons name="wallet-outline" size={18} color="#2563EB" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="wallet-outline" size={18} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Payment Methods</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FCE7F3' }]}>
-                <Ionicons name="notifications-outline" size={18} color="#DB2777" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="notifications-outline" size={18} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
           </TouchableOpacity>
 
-       <TouchableOpacity
-  style={styles.menuItem}
-  onPress={() =>
-    Linking.openURL('https://www.bookmycuts.com/privacy')
-  }
->
-  <View style={styles.menuItemLeft}>
-    <View
-      style={[
-        styles.menuIconContainer,
-        { backgroundColor: '#F3F4F6' },
-      ]}
-    >
-      <Ionicons
-        name="shield-checkmark-outline"
-        size={18}
-        color="#6B7280"
-      />
-    </View>
-    <Text style={styles.menuText}>Privacy & Policy</Text>
-  </View>
-  <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
-</TouchableOpacity>
-
-
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color="#1877F2" />
+              </View>
+              <Text style={styles.menuText}>Privacy & Policy</Text>
+            </View>
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, { borderBottomWidth: 0 }]}
             onPress={() => router.push('/Screens/User/Support')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="help-circle-outline" size={18} color="#D97706" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="help-circle-outline" size={18} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Help & Support</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button - Fixed positioning */}
+        {/* ── Logout ── */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
@@ -311,126 +291,151 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF4FF',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 60,
+
+  /* ── Hero Header ── */
+  heroHeader: {
+    backgroundColor: '#1877F2',
+    paddingTop: 56,
+    paddingBottom: 32,
     paddingHorizontal: 24,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: 'hidden',
+    shadowColor: '#0D4FB5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  headerContent: {
-    flex: 1,
+  heroBubble1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    top: -40,
+    right: -40,
+  },
+  heroBubble2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    bottom: 10,
+    left: -30,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
     fontWeight: '400',
   },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFF5F5',
+  avatarSection: {
+    alignItems: 'center',
+  },
+  avatarRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#FFE5E5',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 120, // Increased padding to ensure logout button is visible
-  },
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    marginTop: 24,
-    padding: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF6B6B',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
   avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: 1,
   },
   onlineIndicator: {
     position: 'absolute',
-    right: 0,
-    bottom: 8,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
+    right: '34%',
+    top: 68,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#22C55E',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#1877F2',
   },
-  profileInfo: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  userName: {
-    fontSize: 22,
+  heroName: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  userEmail: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 8,
+  heroEmail: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 10,
   },
-  locationContainer: {
+  locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     gap: 4,
   },
-  userLocation: {
-    fontSize: 14,
-    color: '#64748B',
+  locationPillText: {
+    fontSize: 12,
+    color: '#1877F2',
+    fontWeight: '600',
   },
-  statsContainer: {
+
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 120 },
+
+  /* ── Stats ── */
+  statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    marginTop: 20,
+    borderRadius: 20,
+    paddingVertical: 20,
     paddingHorizontal: 8,
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FF6B6B',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1877F2',
     marginBottom: 4,
   },
   statLabel: {
@@ -441,56 +446,72 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#DBEAFE',
     alignSelf: 'center',
   },
+
+  /* ── Quick Actions ── */
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 24,
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: 20,
+    marginBottom: 8,
   },
   actionButton: {
     alignItems: 'center',
     flex: 1,
   },
   actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#BFDBFE',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   actionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: '#1877F2',
   },
+
+  /* ── Menu ── */
   menuSection: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
+    marginTop: 20,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#DBEAFE',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 20,
+    color: '#1877F2',
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#EEF4FF',
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -503,9 +524,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#BFDBFE',
   },
   menuText: {
     fontSize: 15,
@@ -513,60 +534,83 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     flex: 1,
   },
+  chevronBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#EEF4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+
+  /* ── Logout ── */
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FEF2F2',
     marginHorizontal: 24,
-    marginTop: 32,
-    marginBottom: 40, // Added margin bottom for extra space
+    marginTop: 24,
+    marginBottom: 40,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#FECACA',
     gap: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   logoutText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#DC2626',
   },
+
+  /* ── Loading / Error ── */
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF4FF',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#64748B',
+    color: '#1877F2',
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF4FF',
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
+    color: '#1877F2',
     textAlign: 'center',
     marginVertical: 20,
   },
   retryButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingVertical: 12,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFE5E5',
+    backgroundColor: '#1877F2',
+    borderRadius: 14,
+    shadowColor: '#0D4FB5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   retryText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

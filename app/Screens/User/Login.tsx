@@ -38,7 +38,8 @@ export default function Login() {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com', 
+      // webClientId:'293758521018-en9762n993a249rik4r3snavhblsa7s7.apps.googleusercontent.com', THIS ID IS USED FOR DEVELOPMENT 
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });

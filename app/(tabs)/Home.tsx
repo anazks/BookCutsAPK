@@ -160,6 +160,7 @@ const Home = () => {
 
   const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
     if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
+
     try {
       if (isRefresh) {
         setIsRefreshing(true);
@@ -169,31 +170,50 @@ const Home = () => {
       } else {
         setLoading(true);
       }
-      const result = await findNearestShops({ ...coordinates, page, limit: 10 });
+      
+      const result = await findNearestShops({ 
+        ...coordinates, 
+        page, 
+        limit: 10 
+      });
+      
+      console.log('API Response:', result);
+
       if (result?.success) {
         if (isLoadMore) {
+          // Append new shops for infinite scroll
           setShops(prev => [...prev, ...(result.shops || [])]);
         } else {
+          // First load or refresh
           setShops(result.shops || []);
         }
+        
         setTotalShops(result.total || result.shops?.length || 0);
-        setHasMoreShops((result.shops || []).length === 10);
+        setHasMoreShops((result.shops || []).length === 10); // 10 items per page
         setError(null);
       } else {
         setError('Failed to fetch nearby shops.');
       }
     } catch (error) {
       console.error('Error fetching shops:', error);
-      if (!isLoadMore) setError('Failed to load shops. Check your connection.');
+      if (!isLoadMore) {
+        setError('Failed to load shops. Check your connection.');
+      }
     } finally {
-      if (isRefresh) setIsRefreshing(false);
-      else if (isLoadMore) setLoadingMore(false);
-      else setLoading(false);
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else if (isLoadMore) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   const handleRefresh = () => {
-    if (!isRefreshing) findNearestShopApi(1, false, true);
+    if (!isRefreshing) {
+      findNearestShopApi(1, false, true);
+    }
   };
 
   const loadMoreShops = () => {
@@ -203,6 +223,8 @@ const Home = () => {
       findNearestShopApi(nextPage, true);
     }
   };
+
+
 
   const getProfile = async () => {
     if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
@@ -587,12 +609,12 @@ const Home = () => {
                   />
                 )}
                 <PaisAdd />
-                <AdvancedFilter />
+                {/* <AdvancedFilter /> */}
               </>
             )}
 
             {/* Trending Styles */}
-            <View style={{ marginVertical: 16 }}>
+            {/* <View style={{ marginVertical: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#1877F2' }}>Trending Styles</Text>
               </View>
@@ -628,7 +650,7 @@ const Home = () => {
                   </View>
                 )}
               />
-            </View>
+            </View> */}
           </>
         )}
       </ScrollView>
@@ -636,4 +658,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;

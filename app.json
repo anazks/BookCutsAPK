@@ -15,7 +15,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/scissors_icon.png",
-        "backgroundColor": "#E10600"
+        "backgroundColor": "#1877F2"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anazk.bookmycuts",
@@ -33,10 +33,10 @@
   [
     "expo-splash-screen",
     {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/scissors_icon",
       "imageWidth": 200,
       "resizeMode": "contain",
-      "backgroundColor": "#FF6B6B"
+      "backgroundColor": "#1877F2"
     }
   ],
   "expo-web-browser",

@@ -194,7 +194,7 @@ const ManualCalendar = ({ selectedDate, onDateSelect, isVisible, onClose }: any)
                 <Text style={calendarStyles.legendText}>Today</Text>
               </View>
               <View style={calendarStyles.legendItem}>
-                <View style={[calendarStyles.legendDot, { backgroundColor: '#FF6B6B' }]} />
+                <View style={[calendarStyles.legendDot, { backgroundColor: '#1877F2' }]} />
                 <Text style={calendarStyles.legendText}>Selected</Text>
               </View>
             </View>
@@ -611,7 +611,7 @@ export default function BookNow() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
+          <ActivityIndicator size="large" color="#1877F2" />
           <Text style={styles.loadingText}>Loading shop details...</Text>
           <Text style={styles.loadingSubtext}>Preparing your booking experience</Text>
         </View>
@@ -623,7 +623,7 @@ export default function BookNow() {
     return (
       <SafeAreaView style={styles.errorContainer}>
         <View style={styles.errorContent}>
-          <Ionicons name="alert-circle-outline" size={60} color="#FF6B6B" />
+          <Ionicons name="alert-circle-outline" size={60} color="#1877F2" />
           <Text style={styles.errorText}>{error || "Failed to load shop details"}</Text>
           <TouchableOpacity 
             style={styles.retryButton} 
@@ -905,7 +905,7 @@ export default function BookNow() {
           >
             <View style={styles.dateSelectorContent}>
               <View style={styles.dateIconContainer}>
-                <Ionicons name="calendar" size={24} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+                <Ionicons name="calendar" size={24} color={selectedDate ? "#1877F2" : "#94A3B8"} />
               </View>
               <View style={styles.dateTextContainer}>
                 <Text style={selectedDate ? styles.selectedDateLabel : styles.placeholderLabel}>
@@ -915,7 +915,7 @@ export default function BookNow() {
                   {selectedDate ? selectedDate.toDateString() : "Choose a date"}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={selectedDate ? "#FF6B6B" : "#94A3B8"} />
+              <Ionicons name="chevron-forward" size={20} color={selectedDate ? "#1877F2" : "#94A3B8"} />
             </View>
           </TouchableOpacity>
         </View>
@@ -1001,7 +1001,7 @@ export default function BookNow() {
               
               {loadingAllSlots && !selectedBarber?.id ? (
                 <View style={styles.loadingSlotsContainer}>
-                  <ActivityIndicator size="small" color="#FF6B6B" />
+                  <ActivityIndicator size="small" color="#1877F2" />
                   <Text style={styles.loadingSlotsText}>Loading available slots...</Text>
                 </View>
               ) : freeGaps.freeSlots?.length > 0 ? (
@@ -1068,7 +1068,7 @@ export default function BookNow() {
               )}
               {selectedDate && (
                 <View style={styles.previewItem}>
-                  <Ionicons name="calendar" size={12} color="#FF6B6B" />
+                  <Ionicons name="calendar" size={12} color="#1877F2" />
                   <Text style={styles.previewText} numberOfLines={1}>
                     {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                   </Text>
@@ -1163,7 +1163,7 @@ export default function BookNow() {
       lineHeight: 24,
     },
     retryButton: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -1232,10 +1232,10 @@ export default function BookNow() {
       marginBottom: 4,
     },
     stepCircleActive: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
     },
     stepCircleCurrent: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       transform: [{ scale: 1.1 }],
     },
     stepNumber: {
@@ -1263,7 +1263,7 @@ export default function BookNow() {
     },
     progressFill: {
       height: '100%',
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       borderRadius: 1,
     },
     scrollContainer: {
@@ -1278,7 +1278,7 @@ export default function BookNow() {
       marginBottom: 16,
     },
     sectionIconContainer: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       width: 40,
       height: 40,
       borderRadius: 12,
@@ -1315,8 +1315,8 @@ export default function BookNow() {
       elevation: 0,
     },
     selectedCompactServiceCard: {
-      borderColor: '#FF6B6B',
-      backgroundColor: '#FFF5F5',
+      borderColor: '#1877F2',
+      backgroundColor: '#B0BFE0',
       transform: [{ scale: 1.01 }],
     },
     compactServiceCardContent: {
@@ -1332,7 +1332,7 @@ export default function BookNow() {
     compactServicePrice: {
       fontSize: 15, // Reduced from 16
       fontWeight: '700',
-      color: '#FF6B6B',
+      color: '#1877F2',
       marginBottom: 2, // Reduced margin
     },
     compactServiceDurationBadge: {
@@ -1425,8 +1425,8 @@ export default function BookNow() {
       elevation: 2,
     },
     selectedDateSelector: {
-      borderColor: '#FF6B6B',
-      backgroundColor: '#FFF5F5',
+      borderColor: '#1877F2',
+      backgroundColor: '#B0BFE0',
     },
     dateSelectorContent: {
       flexDirection: 'row',
@@ -1495,8 +1495,8 @@ export default function BookNow() {
       elevation: 0,
     },
     selectedBarberCard: {
-      borderColor: '#FF6B6B',
-      backgroundColor: '#FFF5F5',
+      borderColor: '#1877F2',
+      backgroundColor: '#B0BFE0',
       transform: [{ scale: 1.05 }],
     },
     barberAvatar: {
@@ -1510,7 +1510,7 @@ export default function BookNow() {
       position: 'relative',
     },
     selectedBarberAvatar: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
     },
     barberInitial: {
       fontSize: 20,
@@ -1648,21 +1648,21 @@ export default function BookNow() {
       fontWeight: '500',
     },
     bookButton: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       borderRadius: 16,
       padding: 20,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#FF6B6B',
+      shadowColor: '#1877F2',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
       elevation: 4,
     },
     disabledButton: {
-      backgroundColor: '#FCA5A5',
-      shadowColor: '#FCA5A5',
+      backgroundColor: '#4A8BC2',
+      shadowColor: '#1455B0',
       shadowOpacity: 0.1,
     },
     bookButtonContent: {
@@ -1686,7 +1686,7 @@ export default function BookNow() {
     priceBadgeText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#FF6B6B',
+      color: '#1877F2',
     },
     modalOverlay: {
       flex: 1,
@@ -1767,7 +1767,7 @@ export default function BookNow() {
     },
     totalValue: {
       fontSize: 20,
-      color: '#FF6B6B',
+      color: '#1877F2',
       fontWeight: '700',
     },
     modalButtons: {
@@ -1784,7 +1784,7 @@ export default function BookNow() {
       backgroundColor: '#F1F5F9',
     },
     confirmButton: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
     },
     cancelButtonText: {
       color: '#475569',
@@ -1978,7 +1978,7 @@ discountBannerAmountText: {
       alignItems: 'center',
     },
     selectedDayInner: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
     },
     todayCell: {},
     selectedCell: {},
@@ -1991,7 +1991,7 @@ discountBannerAmountText: {
       fontWeight: '500',
     },
     todayText: {
-      color: '#FF6B6B',
+      color: '#1877F2',
       fontWeight: '700',
     },
     selectedText: {
@@ -2007,7 +2007,7 @@ discountBannerAmountText: {
       width: 4,
       height: 4,
       borderRadius: 2,
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
     },
     calendarFooter: {
       borderTopWidth: 1,
@@ -2035,7 +2035,7 @@ discountBannerAmountText: {
       color: '#64748B',
     },
     closeButton: {
-      backgroundColor: '#FF6B6B',
+      backgroundColor: '#1877F2',
       paddingHorizontal: 32,
       paddingVertical: 14,
       borderRadius: 12,
@@ -2199,7 +2199,7 @@ discountBannerAmountText: {
     fontWeight: '800',
   },
   priceBadgeText: {
-    color: '#FF6B6B',
+    color: '#1877F2',
     fontSize: 15,
     fontWeight: '800',
   },
