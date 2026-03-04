@@ -158,71 +158,71 @@ const Home = () => {
     }
   };
 
-  const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
-    if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
+    const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
+      if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
 
-    try {
-      if (isRefresh) {
-        setIsRefreshing(true);
-        setCurrentPage(1);
-      } else if (isLoadMore) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      
-      const result = await findNearestShops({ 
-        ...coordinates, 
-        page, 
-        limit: 10 
-      });
-      
-      console.log('API Response:', result);
-
-      if (result?.success) {
-        if (isLoadMore) {
-          // Append new shops for infinite scroll
-          setShops(prev => [...prev, ...(result.shops || [])]);
+      try {
+        if (isRefresh) {
+          setIsRefreshing(true);
+          setCurrentPage(1);
+        } else if (isLoadMore) {
+          setLoadingMore(true);
         } else {
-          // First load or refresh
-          setShops(result.shops || []);
+          setLoading(true);
         }
         
-        setTotalShops(result.total || result.shops?.length || 0);
-        setHasMoreShops((result.shops || []).length === 10); // 10 items per page
-        setError(null);
-      } else {
-        setError('Failed to fetch nearby shops.');
-      }
-    } catch (error) {
-      console.error('Error fetching shops:', error);
-      if (!isLoadMore) {
-        setError('Failed to load shops. Check your connection.');
-      }
-    } finally {
-      if (isRefresh) {
-        setIsRefreshing(false);
-      } else if (isLoadMore) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  };
+        const result = await findNearestShops({ 
+          ...coordinates, 
+          page, 
+          limit: 10 
+        });
+        
+        console.log('API Response:', result);
 
-  const handleRefresh = () => {
-    if (!isRefreshing) {
-      findNearestShopApi(1, false, true);
-    }
-  };
+        if (result?.success) {
+          if (isLoadMore) {
+            // Append new shops for infinite scroll
+            setShops(prev => [...prev, ...(result.shops || [])]);
+          } else {
+            // First load or refresh
+            setShops(result.shops || []);
+          }
+          
+          setTotalShops(result.total || result.shops?.length || 0);
+          setHasMoreShops((result.shops || []).length === 10); // 10 items per page
+          setError(null);
+        } else {
+          setError('Failed to fetch nearby shops.');
+        }
+      } catch (error) {
+        console.error('Error fetching shops:', error);
+        if (!isLoadMore) {
+          setError('Failed to load shops. Check your connection.');
+        }
+      } finally {
+        if (isRefresh) {
+          setIsRefreshing(false);
+        } else if (isLoadMore) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    };
 
-  const loadMoreShops = () => {
-    if (!loadingMore && hasMoreShops) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      findNearestShopApi(nextPage, true);
-    }
-  };
+    const handleRefresh = () => {
+      if (!isRefreshing) {
+        findNearestShopApi(1, false, true);
+      }
+    };
+
+    const loadMoreShops = () => {
+      if (!loadingMore && hasMoreShops) {
+        const nextPage = currentPage + 1;
+        setCurrentPage(nextPage);
+        findNearestShopApi(nextPage, true);
+      }
+    };
 
 
 

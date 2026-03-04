@@ -216,25 +216,7 @@ export default function Login() {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            <View style={styles.policyContainer}>
-              <Text style={styles.policyText}>
-                By continuing, you agree to our{' '}
-                <Text
-                  style={styles.link}
-                  onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                >
-                  Privacy Policy
-                </Text>{' '}
-                and{' '}
-                <Text
-                  style={styles.link}
-                  onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                >
-                  Terms & Conditions
-                </Text>
-              </Text>
-            </View>
-
+         
             {/* Email Login Button */}
             <TouchableOpacity
               style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
@@ -273,16 +255,7 @@ export default function Login() {
             </View>
 
             {/* OTP Button */}
-            <TouchableOpacity
-              style={[styles.otpLoginButton, isLoading && styles.loginButtonDisabled]}
-              onPress={() => router.push('/Screens/User/LoginOtp')}
-              disabled={isLoading}
-            >
-              <View style={styles.otpButtonContent}>
-                <MaterialIcons name="sms" size={22} color="#FFFFFF" />
-                <Text style={styles.otpLoginButtonText}>Login with OTP</Text>
-              </View>
-            </TouchableOpacity>
+
           </View>
 
           {/* Footer */}
@@ -300,6 +273,25 @@ export default function Login() {
                 <Text style={styles.linkText}>Login here</Text>
               </TouchableOpacity>
             </View>
+               <View style={styles.policyContainer}>
+              <Text style={styles.policyText}>
+                By continuing, you agree to our{' '}
+                <Text
+                  style={styles.link}
+                  onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                >
+                  Privacy Policy
+                </Text>{' '}
+                and{' '}
+                <Text
+                  style={styles.link}
+                  onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                >
+                  Terms & Conditions
+                </Text>
+              </Text>
+            </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
