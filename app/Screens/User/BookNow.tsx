@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchAllAvailableTimeSlots, getBarberFreeTime, SlotBooking, getdiscount } from '../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../api/Service/Shop';
 import BarberScheduleTimeline from './BarberScheduleTimeLine';
+import { red } from 'react-native-reanimated/lib/typescript/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -843,7 +844,7 @@ export default function BookNow() {
         </View>
 
         {/* Selected Services Summary */}
-        {selectedServices.length > 0 && (
+        {/* {selectedServices.length > 0 && (
           <View style={styles.selectionSummary}>
             <View style={styles.summaryHeader}>
               <Text style={styles.summaryHeaderText}>Selected Services</Text>
@@ -864,7 +865,7 @@ export default function BookNow() {
               </View>
             </View>
           </View>
-        )}
+        )} */}
 
         {/* Discount Banner - Updated to show dynamic discount amount */}
         {hasDiscount && (
@@ -1316,8 +1317,8 @@ export default function BookNow() {
     },
     selectedCompactServiceCard: {
       borderColor: '#1877F2',
-      backgroundColor: '#B0BFE0',
-      transform: [{ scale: 1.01 }],
+      // backgroundColor: '#B0BFE0',
+      transform: [{ scale:  1.01 }],
     },
     compactServiceCardContent: {
       alignItems: 'flex-start',
@@ -1418,15 +1419,14 @@ export default function BookNow() {
       borderWidth: 1,
       borderColor: '#F1F5F9',
       padding: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 2,
+      // shadowColor: '#000',
+      // shadowOffset: { width: 0, height: 2 },
+      // shadowOpacity: 0.05,
+      // shadowRadius: 8,
+      // elevation: 2,
     },
     selectedDateSelector: {
       borderColor: '#1877F2',
-      backgroundColor: '#B0BFE0',
     },
     dateSelectorContent: {
       flexDirection: 'row',
@@ -1476,8 +1476,10 @@ export default function BookNow() {
       letterSpacing: 1,
     },
     barbersScrollContent: {
+      backgroundColor:'',
       paddingRight: 20,
       gap: 12,
+      paddingVertical: 3
     },
     barberCard: {
       width: 100,
@@ -1496,7 +1498,6 @@ export default function BookNow() {
     },
     selectedBarberCard: {
       borderColor: '#1877F2',
-      backgroundColor: '#B0BFE0',
       transform: [{ scale: 1.05 }],
     },
     barberAvatar: {

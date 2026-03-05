@@ -99,12 +99,6 @@ export default function Profile() {
 
       {/* ── Hero Header ── */}
       <View style={styles.heroHeader}>
-        {/* decorative circles for depth */}
-        <View style={styles.heroBubble1} />
-        <View style={styles.heroBubble2} />
-
-    
-
         {/* Avatar + name inside hero */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarRing}>
@@ -133,60 +127,30 @@ export default function Profile() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Stats Bar ── */}
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.statLabel}>Bookings</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>4.8</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>18</Text>
-            <Text style={styles.statLabel}>Rewards</Text>
-          </View>
-        </View>
-
-        {/* ── Quick Actions ── */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/Screens/User/Bookings')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
-              <Ionicons name="calendar-outline" size={22} color="#1877F2" />
-            </View>
-            <Text style={styles.actionText}>Bookings</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/Screens/User/Rewards')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
-              <MaterialIcons name="card-giftcard" size={22} color="#1877F2" />
-            </View>
-            <Text style={styles.actionText}>Rewards</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/Screens/User/Payment')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: '#EEF4FF' }]}>
-              <Ionicons name="card-outline" size={22} color="#1877F2" />
-            </View>
-            <Text style={styles.actionText}>Payment</Text>
-          </TouchableOpacity>
-        </View>
-
+              
         {/* ── Menu Section ── */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
+
+           <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() =>
+              router.push({
+                pathname: '/Screens/User/Bookings',
+                params: { referralCode: userData?.referralCode },
+              })
+            }
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="calendar-outline" size={18} color="#1877F2" />
+              </View>
+              <Text style={styles.menuText}>Bookings</Text>
+            </View>
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -208,18 +172,6 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="person-outline" size={18} color="#1877F2" />
-              </View>
-              <Text style={styles.menuText}>Personal Information</Text>
-            </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/Screens/User/Payment')}
@@ -235,17 +187,7 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="notifications-outline" size={18} color="#1877F2" />
-              </View>
-              <Text style={styles.menuText}>Notifications</Text>
-            </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
-          </TouchableOpacity>
+         
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -308,24 +250,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 12,
-  },
-  heroBubble1: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -40,
-    right: -40,
-  },
-  heroBubble2: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: 10,
-    left: -30,
   },
   headerTopRow: {
     flexDirection: 'row',

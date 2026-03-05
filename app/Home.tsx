@@ -43,13 +43,9 @@ export default function GetStartedScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
-        {/* Top decorative elements */}
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-        
         {/* Main Content */}
         <View style={styles.contentContainer}>
-          {/* Animated Logo without rotation */}
+          {/* Animated Logo */}
           <Animated.View
             style={[
               styles.logoWrapper,
@@ -78,32 +74,7 @@ export default function GetStartedScreen() {
               }
             ]}
           >
-            Your Style, Your Way
           </Animated.Text>
-
-          {/* Features */}
-          <Animated.View 
-            style={[
-              styles.featuresContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <View style={styles.featureRow}>
-              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.featureText}>Book appointments instantly</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.featureText}>Discover top-rated salons</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.featureText}>Exclusive offers & rewards</Text>
-            </View>
-          </Animated.View>
         </View>
 
         {/* Bottom Section */}
@@ -150,24 +121,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     position: 'relative',
-  },
-  decorCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: -50,
-    right: -50,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    bottom: 100,
-    left: -150,
   },
   contentContainer: {
     flex: 1,

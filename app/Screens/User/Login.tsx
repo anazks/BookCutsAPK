@@ -362,12 +362,12 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 30,
+    marginTop: 10,      // Reduced from 60 to pull everything up slightly
+    marginBottom: 5,    // Reduced from 30 to remove the huge gap below the logo
   },
   logoWrapper: {
-    width: width * 0.7,
-    height: 100,
+    width: width * 0.85, // Increased from 0.7 to give it more horizontal space
+    height: 160,         // Increased from 100 to make the logo significantly bigger
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
   },
   welcomeText: {
     fontSize: 32,

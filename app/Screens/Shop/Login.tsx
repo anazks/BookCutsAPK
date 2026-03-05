@@ -360,15 +360,23 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 10,      // Reduced from 20 to pull the logo up slightly
+    paddingBottom: 0,    // Reduced from 10 to 0 to cut out the gap
     backgroundColor: '#FFFFFF',
     width: '100%',
   },
   logo: {
-    width: width * 0.9, // 90% of screen width - almost full width
-    height: 100,
+    width: width * 0.9, 
+    height: 160,         // Increased from 100 to let the logo scale up significantly
   },
+  welcomeSection: {
+    alignItems: 'center',
+    marginTop: 10,       // Controls the exact spacing between the logo and text
+    marginBottom: 30,
+    paddingHorizontal: 24,
+  },
+ 
+
   scrollContainer: {
     flex: 1,
   },
@@ -376,11 +384,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 30,
   },
-  welcomeSection: {
-    alignItems: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 24,
-  },
+
   welcomeText: {
     fontSize: 28,
     fontWeight: '700',

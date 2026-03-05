@@ -8,98 +8,69 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
-  Alert,
+  Image,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
+import Customer from '../../assets/images/customer.png';
+import Barber from '../../assets/images/barber.png';
 
-const BRAND_BLUE = '#1877F2';
-const LIGHT_BLUE = '#EFF6FF';
-const TEXT_DARK = '#1e293b';
-const TEXT_GRAY = '#64748b';
+const { width, height } = Dimensions.get('window');
+
+const BRAND_BLUE = '#0066FF';
+const BG_LIGHT = '#F9FAFB';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E5E7EB';
+const TEXT_DARK = '#111827';
+const TEXT_GRAY = '#6B7280';
 
 export default function RoleSelectionScreen() {
   const navigation = useNavigation();
   const [selected, setSelected] = useState<'user' | 'shop' | null>(null);
 
-  // Animated values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  
-  // Card animations
-  const userCardScale = useRef(new Animated.Value(1)).current;
-  const shopCardScale = useRef(new Animated.Value(1)).current;
-  
-  // Button animation
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
-  const buttonSlide = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+
+  const userScale = useRef(new Animated.Value(1)).current;
+  const shopScale = useRef(new Animated.Value(1)).current;
+
+  const btnOpacity = useRef(new Animated.Value(0)).current;
+  const btnTranslateY = useRef(new Animated.Value(60)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, damping: 18, stiffness: 120, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const handleSelect = (role: 'user' | 'shop') => {
     if (selected === role) {
       setSelected(null);
-      // Hide button
       Animated.parallel([
-        Animated.timing(buttonOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
+        Animated.timing(btnOpacity, { toValue: 0, duration: 280, useNativeDriver: true }),
+        Animated.timing(btnTranslateY, { toValue: 60, duration: 280, useNativeDriver: true }),
       ]).start();
       return;
     }
-    
+
     setSelected(role);
 
-    // Scale animation for selected card
-    const scale = role === 'user' ? userCardScale : shopCardScale;
-    const otherScale = role === 'user' ? shopCardScale : userCardScale;
+    const activeScale  = role === 'user' ? userScale : shopScale;
+    const otherScale   = role === 'user' ? shopScale : userScale;
 
     otherScale.setValue(1);
 
     Animated.sequence([
-      Animated.timing(scale, {
-        toValue: 0.98,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scale, {
-        toValue: 1.02,
-        friction: 3,
-        tension: 40,
-        useNativeDriver: true,
-      }),
+      Animated.timing(activeScale, { toValue: 0.97, duration: 120, useNativeDriver: true }),
+      Animated.spring(activeScale, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
     ]).start();
 
-    // Show continue button
     Animated.parallel([
-      Animated.timing(buttonOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(buttonSlide, {
-        toValue: 0,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
+      Animated.timing(btnOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
+      Animated.spring(btnTranslateY, { toValue: 0, friction: 9, tension: 60, useNativeDriver: true }),
     ]).start();
   };
 
@@ -113,170 +84,96 @@ export default function RoleSelectionScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      {/* Simple Background Pattern */}
-      <View style={styles.backgroundPattern}>
-        <View style={[styles.patternCircle, styles.patternCircle1]} />
-        <View style={[styles.patternCircle, styles.patternCircle2]} />
+      <StatusBar barStyle="dark-content" backgroundColor={BG_LIGHT} />
+
+      <View style={styles.header}>
+        <Text style={styles.title}>Choose Your Role</Text>
+        <Text style={styles.subtitle}>Select how you'll use BookMyCuts</Text>
       </View>
 
-      <Animated.View 
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
+      <Animated.View
+        style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoInner}>
-              <MaterialIcons name="content-cut" size={32} color={BRAND_BLUE} />
-            </View>
-          </View>
-          <Text style={styles.greeting}>Welcome to BookMyCuts</Text>
-          <Text style={styles.subtitle}>
-            Select who you are to continue
-          </Text>
-        </View>
-
-        {/* Cards - Full Width Stacked */}
         <View style={styles.cardsContainer}>
-          {/* Customer Card */}
-          <Animated.View style={[
-            styles.cardWrapper,
-            {
-              transform: [{ scale: userCardScale }],
-            }
-          ]}>
+          {/* Customer */}
+          <Animated.View style={[styles.cardWrapper, { transform: [{ scale: userScale }] }]}>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.88}
               onPress={() => handleSelect('user')}
-              style={styles.cardTouchable}
-            >
-              <View style={[
+              style={[
                 styles.card,
-                selected === 'user' && styles.cardSelected
-              ]}>
-                <View style={styles.cardContent}>
-                  <View style={[
-                    styles.iconContainer,
-                    selected === 'user' && styles.iconContainerSelected
-                  ]}>
-                    <MaterialIcons 
-                      name="person" 
-                      size={28} 
-                      color={selected === 'user' ? '#FFFFFF' : BRAND_BLUE} 
-                    />
-                  </View>
-                  
-                  <View style={styles.cardTextContainer}>
-                    <Text style={[
-                      styles.cardTitle,
-                      selected === 'user' && styles.cardTitleSelected
-                    ]}>
-                      Customer
-                    </Text>
-                    
-                    <Text style={[
-                      styles.cardDescription,
-                      selected === 'user' && styles.cardDescriptionSelected
-                    ]}>
-                      Find salons, book appointments, get haircuts
-                    </Text>
-                  </View>
+                selected === 'user' && styles.cardSelected,
+              ]}
+            >
+              <View style={styles.imageContainer}>
+                <Image
+                  source={Customer}
+                  style={styles.cardImage}
+                  resizeMode="contain"
+                />
+              </View>
 
-                  {selected === 'user' && (
-                    <View style={styles.selectedBadge}>
-                      <MaterialIcons name="check-circle" size={24} color={BRAND_BLUE} />
-                    </View>
-                  )}
-                </View>
+              <View style={styles.textContainer}>
+                <Text style={[
+                  styles.cardTitle,
+                  selected === 'user' && styles.cardTitleSelected,
+                ]}>
+                  Customer
+                </Text>
+                <Text style={styles.cardSubtitle}>
+                  Discover salons • View styles • Book instantly
+                </Text>
               </View>
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Business Card */}
-          <Animated.View style={[
-            styles.cardWrapper,
-            {
-              transform: [{ scale: shopCardScale }],
-            }
-          ]}>
+          {/* Business */}
+          <Animated.View style={[styles.cardWrapper, { transform: [{ scale: shopScale }] }]}>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.88}
               onPress={() => handleSelect('shop')}
-              style={styles.cardTouchable}
-            >
-              <View style={[
+              style={[
                 styles.card,
-                selected === 'shop' && styles.cardSelected
-              ]}>
-                <View style={styles.cardContent}>
-                  <View style={[
-                    styles.iconContainer,
-                    selected === 'shop' && styles.iconContainerSelected
-                  ]}>
-                    <MaterialIcons 
-                      name="storefront" 
-                      size={28} 
-                      color={selected === 'shop' ? '#FFFFFF' : BRAND_BLUE} 
-                    />
-                  </View>
-                  
-                  <View style={styles.cardTextContainer}>
-                    <Text style={[
-                      styles.cardTitle,
-                      selected === 'shop' && styles.cardTitleSelected
-                    ]}>
-                      Business
-                    </Text>
-                    
-                    <Text style={[
-                      styles.cardDescription,
-                      selected === 'shop' && styles.cardDescriptionSelected
-                    ]}>
-                      Own a salon? Manage bookings, staff & grow
-                    </Text>
-                  </View>
+                selected === 'shop' && styles.cardSelected,
+              ]}
+            >
+              <View style={styles.imageContainer}>
+                <Image
+                  source={Barber}
+                  style={styles.cardImage}
+                  resizeMode="contain"
+                />
+              </View>
 
-                  {selected === 'shop' && (
-                    <View style={styles.selectedBadge}>
-                      <MaterialIcons name="check-circle" size={24} color={BRAND_BLUE} />
-                    </View>
-                  )}
-                </View>
+              <View style={styles.textContainer}>
+                <Text style={[
+                  styles.cardTitle,
+                  selected === 'shop' && styles.cardTitleSelected,
+                ]}>
+                  Business Owner
+                </Text>
+                <Text style={styles.cardSubtitle}>
+                  Manage bookings • Track earnings • Grow your shop
+                </Text>
               </View>
             </TouchableOpacity>
           </Animated.View>
         </View>
+      </Animated.View>
 
-        {/* Continue Button */}
-        <Animated.View style={[
-          styles.buttonWrapper,
-          {
-            opacity: buttonOpacity,
-            transform: [{ translateY: buttonSlide }],
-          }
-        ]}>
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={handleContinue}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.continueButtonText}>
-              {selected === 'user' && 'Continue as Customer'}
-              {selected === 'shop' && 'Continue as Business Owner'}
-            </Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Footer */}
-      
+      <Animated.View
+        style={[
+          styles.fabContainer,
+          { opacity: btnOpacity, transform: [{ translateY: btnTranslateY }] },
+        ]}
+        pointerEvents={selected ? 'auto' : 'none'}
+      >
+        <TouchableOpacity style={styles.fab} onPress={handleContinue} activeOpacity={0.9}>
+          <Text style={styles.fabText}>
+            Continue as {selected === 'user' ? 'Customer' : 'Business'}
+          </Text>
+          <MaterialIcons name="arrow-forward" size={24} color="#fff" />
+        </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>
   );
@@ -285,165 +182,119 @@ export default function RoleSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: BG_LIGHT,
   },
-  backgroundPattern: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+  header: {
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 24 : 40,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
-  patternCircle: {
-    position: 'absolute',
-    borderRadius: 1000,
-    backgroundColor: BRAND_BLUE,
-    opacity: 0.03,
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: TEXT_DARK,
+    letterSpacing: -0.6,
+    lineHeight: 36,
   },
-  patternCircle1: {
-    width: 300,
-    height: 300,
-    top: -100,
-    right: -100,
-  },
-  patternCircle2: {
-    width: 200,
-    height: 200,
-    bottom: 50,
-    left: -50,
+  subtitle: {
+    fontSize: 16,
+    color: TEXT_GRAY,
+    marginTop: 8,
+    lineHeight: 24,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  header: {
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 30,
-  },
-  logoContainer: {
-    marginBottom: 16,
-  },
-  logoInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
-    backgroundColor: LIGHT_BLUE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: BRAND_BLUE,
-  },
-  greeting: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: TEXT_DARK,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: TEXT_GRAY,
-    textAlign: 'center',
-  },
   cardsContainer: {
-    gap: 12,
-    marginBottom: 24,
+    flex: 1,
+    gap: 24,
+    paddingBottom: 140,
   },
   cardWrapper: {
-    width: '100%',
-  },
-  cardTouchable: {
-    borderRadius: 16,
-    overflow: 'hidden',
+    flex: 1,
+    maxHeight: height * 0.42,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: CARD_BG,
+    borderRadius: 28,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     borderWidth: 1.5,
-    borderColor: '#F1F5F9',
-    padding: 16,
+    borderColor: BORDER,
+    alignItems: 'center',           // ← crucial for vertical centering
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
   },
   cardSelected: {
     borderColor: BRAND_BLUE,
-    borderWidth: 2,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    shadowOpacity: 0.14,
+    shadowColor: BRAND_BLUE,
+    elevation: 10,
   },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: LIGHT_BLUE,
+  imageContainer: {
+    width: 140,
+    height: 140,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    // removed backgroundColor
   },
-  iconContainerSelected: {
-    backgroundColor: BRAND_BLUE,
+  cardImage: {
+    width: 140,          // explicit size helps with contain
+    height: 140,
   },
-  cardTextContainer: {
+  textContainer: {
     flex: 1,
+    marginLeft: 28,      // increased a bit for better breathing room
+    justifyContent: 'center',  // helps vertical alignment
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: '700',
     color: TEXT_DARK,
-    marginBottom: 4,
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
   cardTitleSelected: {
     color: BRAND_BLUE,
   },
-  cardDescription: {
-    fontSize: 13,
+  cardSubtitle: {
+    fontSize: 15.5,
     color: TEXT_GRAY,
-    lineHeight: 18,
+    lineHeight: 23,
+    letterSpacing: -0.1,
   },
-  cardDescriptionSelected: {
-    color: '#334155',
-  },
-  selectedBadge: {
+  fabContainer: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    bottom: Platform.OS === 'ios' ? 44 : 32,
+    left: 24,
+    right: 24,
+    zIndex: 10,
   },
-  buttonWrapper: {
-    marginBottom: 20,
-  },
-  continueButton: {
+  fab: {
     backgroundColor: BRAND_BLUE,
-    height: 54,
-    borderRadius: 14,
+    height: 64,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
     shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
   },
-  continueButtonText: {
+  fabText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 'auto',
-    paddingBottom: 10,
-  },
-  footerNote: {
-    fontSize: 13,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  helpLink: {
-    fontSize: 14,
-    color: BRAND_BLUE,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 });
