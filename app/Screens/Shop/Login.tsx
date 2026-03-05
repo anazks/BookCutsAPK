@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
   Linking,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
@@ -24,21 +25,19 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
-import { LoginShopUser,  otpLogin, verifyOtp } from '../../api/Service/Shop';
+import { LoginShopUser } from '../../api/Service/Shop';
 import { userGoogleSignin} from '../../api/Service/User'
+import Logo from '../../../assets/images/logo_black.png'
 
 const { width, height } = Dimensions.get('window');
 
 export default function Login() {
-  const [activeTab, setActiveTab] = useState<'password' | 'otp' | 'google'>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otpMobile, setOtpMobile] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   // Configure Google Sign-In
   useEffect(() => {
@@ -152,62 +151,6 @@ export default function Login() {
     }
   };
 
-  // ---------------- OTP login functions ----------------
-  const handleSendOtp = async () => {
-    if (!otpMobile) {
-      Alert.alert('Error', 'Please enter your mobile number');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload = { mobileNo: otpMobile, role: 'shopper' };
-      const otpResponse = await otpLogin(payload);
-
-      if (otpResponse.success) {
-        setOtpSent(true);
-        Alert.alert('OTP Sent', 'OTP has been sent to your mobile number');
-      } else {
-        Alert.alert('Error', otpResponse.message || 'Failed to send OTP.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otpMobile || !otp) {
-      Alert.alert('Error', 'Please enter both mobile number and OTP');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload = { mobileNo: otpMobile, otp, role: 'shopper' };
-      const verifyResponse = await verifyOtp(payload);
-
-      if (verifyResponse.success && verifyResponse.token) {
-        await AsyncStorage.setItem('accessToken', verifyResponse.token);
-
-        if (verifyResponse.userDate?.shopId) {
-          await AsyncStorage.setItem('shopId', verifyResponse.userDate.shopId);
-        }
-
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.push('/ShopOwner/shopOwnerHome') },
-        ]);
-      } else {
-        Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -216,242 +159,188 @@ export default function Login() {
         style={styles.keyboardAvoidingView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header */}
-          <View style={styles.headerSection}>
-            <View style={styles.logoContainer}>
-              <View style={styles.logoIcon}>
-                <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
+        <View style={styles.innerContainer}>
+          {/* Full Width Logo at Top */}
+          <View style={styles.logoSection}>
+            <Image 
+              source={Logo} 
+              style={styles.logo} 
+              resizeMode="contain" 
+            />
+          </View>
+
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            bounces={false}
+          >
+            {/* Welcome Text */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeText}>Welcome Back!</Text>
+              <Text style={styles.subtitleText}>Sign in to manage your salon</Text>
+            </View>
+
+            {/* Form Section */}
+            <View style={styles.formContainer}>
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={[
+                  styles.inputWrapper,
+                  focusedInput === 'email' && styles.inputWrapperFocused
+                ]}>
+                  <MaterialIcons 
+                    name="email" 
+                    size={20} 
+                    color={focusedInput === 'email' ? '#1877F2' : '#94A3B8'} 
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                    onFocus={() => setFocusedInput('email')}
+                    onBlur={() => setFocusedInput(null)}
+                    editable={!loading && !googleLoading}
+                  />
+                </View>
               </View>
-            </View>
-            <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Shop Owner Login</Text>
-              <Text style={styles.subtitleText}>Manage your salon bookings</Text>
-            </View>
-          </View>
 
-          {/* Tabs */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'password' && styles.activeTab]}
-              onPress={() => setActiveTab('password')}
-              disabled={loading || googleLoading}
-            >
-              <Text style={[styles.tabText, activeTab === 'password' && styles.activeTabText]}>
-                Email Login
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'otp' && styles.activeTab]}
-              onPress={() => setActiveTab('otp')}
-              disabled={loading || googleLoading}
-            >
-              <Text style={[styles.tabText, activeTab === 'otp' && styles.activeTabText]}>
-                Mobile OTP
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {activeTab === 'password' && (
-              <>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputWrapper}>
-                    <View style={styles.inputIconContainer}>
-                      <MaterialIcons name="email" size={22} color="#FF6B6B" />
-                    </View>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email Address"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={setEmail}
-                      editable={!loading && !googleLoading}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputWrapper}>
-                    <View style={styles.inputIconContainer}>
-                      <MaterialIcons name="lock" size={22} color="#FF6B6B" />
-                    </View>
-                    <TextInput
-                      style={[styles.input, styles.passwordInput]}
-                      placeholder="Password"
-                      placeholderTextColor="#94A3B8"
-                      secureTextEntry={!showPassword}
-                      value={password}
-                      onChangeText={setPassword}
-                      editable={!loading && !googleLoading}
-                    />
-                    <TouchableOpacity
-                      style={styles.visibilityToggle}
-                      onPress={() => setShowPassword(!showPassword)}
-                      disabled={loading || googleLoading}
-                    >
-                      <MaterialIcons
-                        name={showPassword ? 'visibility-off' : 'visibility'}
-                        size={22}
-                        color="#64748B"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  disabled={loading || googleLoading}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/Screens/User/ForgotPassword',
-                      params: { role: 'shopper' },
-                    })
-                  }
-                >
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.loginButton, (loading || googleLoading) && styles.loginButtonDisabled]}
-                  onPress={handleLogin}
-                  disabled={loading || googleLoading || !email || !password}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <View style={styles.loginButtonContent}>
-                      <Text style={styles.loginButtonText}>Sign In</Text>
-                      <MaterialIcons name="arrow-forward" size={22} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
-
-            {activeTab === 'otp' && (
-              <>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputWrapper}>
-                    <View style={styles.inputIconContainer}>
-                      <MaterialIcons name="phone" size={22} color="#FF6B6B" />
-                    </View>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Mobile Number"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="phone-pad"
-                      value={otpMobile}
-                      onChangeText={setOtpMobile}
-                      editable={!loading && !googleLoading}
-                    />
-                  </View>
-                </View>
-
-                {otpSent && (
-                  <View style={styles.inputContainer}>
-                    <View style={styles.inputWrapper}>
-                      <View style={styles.inputIconContainer}>
-                        <MaterialIcons name="sms" size={22} color="#FF6B6B" />
-                      </View>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter OTP"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="number-pad"
-                        value={otp}
-                        onChangeText={setOtp}
-                        maxLength={6}
-                        editable={!loading && !googleLoading}
-                      />
-                    </View>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={[styles.loginButton, (loading || googleLoading) && styles.loginButtonDisabled]}
-                  onPress={otpSent ? handleVerifyOtp : handleSendOtp}
-                  disabled={loading || googleLoading || (otpSent ? !otp : !otpMobile)}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <View style={styles.loginButtonContent}>
-                      <Text style={styles.loginButtonText}>
-                        {otpSent ? 'Verify OTP' : 'Send OTP'}
-                      </Text>
-                      <MaterialIcons name="arrow-forward" size={22} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {otpSent && (
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={[
+                  styles.inputWrapper,
+                  focusedInput === 'password' && styles.inputWrapperFocused
+                ]}>
+                  <MaterialIcons 
+                    name="lock" 
+                    size={20} 
+                    color={focusedInput === 'password' ? '#1877F2' : '#94A3B8'} 
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#94A3B8"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setFocusedInput('password')}
+                    onBlur={() => setFocusedInput(null)}
+                    editable={!loading && !googleLoading}
+                  />
                   <TouchableOpacity
-                    style={styles.resendOtp}
-                    onPress={handleSendOtp}
+                    style={styles.visibilityToggle}
+                    onPress={() => setShowPassword(!showPassword)}
                     disabled={loading || googleLoading}
                   >
-                    <Text style={styles.resendOtpText}>Resend OTP</Text>
+                    <MaterialIcons
+                      name={showPassword ? 'visibility-off' : 'visibility'}
+                      size={20}
+                      color="#64748B"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Forgot Password */}
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                disabled={loading || googleLoading}
+                onPress={() =>
+                  router.push({
+                    pathname: '/Screens/User/ForgotPassword',
+                    params: { role: 'shopper' },
+                  })
+                }
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                style={[styles.loginButton, (loading || googleLoading || !email || !password) && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={loading || googleLoading || !email || !password}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <View style={styles.loginButtonContent}>
+                    <Text style={styles.loginButtonText}>Sign In</Text>
+                    <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Sign-In Button */}
+              <View style={styles.googleButtonContainer}>
+                {googleLoading ? (
+                  <ActivityIndicator size="large" color="#1877F2" />
+                ) : (
+                  <TouchableOpacity
+                    style={styles.googleButton}
+                    onPress={handleGoogleSignin}
+                    disabled={loading || googleLoading}
+                  >
+                    <Image 
+                      source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.googleButtonText}>Continue with Google</Text>
                   </TouchableOpacity>
                 )}
-              </>
-            )}
-          </View>
-
-          {/* Google Sign-In Button */}
-          <View style={{ alignItems: 'center', marginVertical: 24, paddingHorizontal: 40 }}>
-            {googleLoading ? (
-              <ActivityIndicator size="large" color="#FF6B6B" />
-            ) : (
-              <GoogleSigninButton
-                size={GoogleSigninButton.Size.Wide}
-                color={GoogleSigninButton.Color.Light}
-                onPress={handleGoogleSignin}
-                disabled={loading || googleLoading}
-              />
-            )}
-          </View>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity
-                onPress={() => router.push('/Screens/Shop/Register')}
-                disabled={loading || googleLoading}
-              >
-                <Text style={styles.linkText}>Register your salon</Text>
-              </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.policyContainer}>
-            <Text style={styles.policyText}>
-              By continuing, you agree to our{' '}
-              <Text
-                style={styles.link}
-                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-              >
-                Privacy Policy
-              </Text>{' '}
-              and{' '}
-              <Text
-                style={styles.link}
-                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-              >
-                Terms & Conditions
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View style={styles.footerRow}>
+                <Text style={styles.footerText}>New to BookMyCuts? </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/Screens/Shop/Register')}
+                  disabled={loading || googleLoading}
+                >
+                  <Text style={styles.linkText}>Register your salon</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Terms and Privacy */}
+            <View style={styles.policyContainer}>
+              <Text style={styles.policyText}>
+                By continuing, you agree to our{' '}
+                <Text
+                  style={styles.link}
+                  onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+                >
+                  Privacy Policy
+                </Text>{' '}
+                and{' '}
+                <Text
+                  style={styles.link}
+                  onPress={() => Linking.openURL('https://www.bookmycuts.com/terms')}
+                >
+                  Terms of Service
+                </Text>
               </Text>
-            </Text>
-          </View>
-        </ScrollView>
+            </View>
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -465,43 +354,38 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
+  innerContainer: {
+    flex: 1,
+  },
+  logoSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+  },
+  logo: {
+    width: width * 0.9, // 90% of screen width - almost full width
+    height: 100,
+  },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 30,
   },
-  headerSection: {
-    paddingTop: 60,
+  welcomeSection: {
+    alignItems: 'center',
+    marginBottom: 30,
     paddingHorizontal: 24,
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoContainer: {
-    marginBottom: 32,
-  },
-  logoIcon: {
-    width: 90,
-    height: 90,
-    borderRadius: 28,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  welcomeContainer: {
-    alignItems: 'center',
   },
   welcomeText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -1,
+    color: '#1E293B',
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   subtitleText: {
@@ -509,117 +393,139 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '400',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  activeTab: {
-    backgroundColor: '#FF6B6B',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: '#FFFFFF',
-  },
   formContainer: {
     paddingHorizontal: 24,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#F1F5F9',
-    height: 60,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    minHeight: 56,
+    paddingHorizontal: 16,
   },
-  inputIconContainer: {
-    width: 50,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  inputWrapperFocused: {
+    borderColor: '#1877F2',
+    backgroundColor: '#FFFFFF',
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#0F172A',
-    paddingRight: 16,
-    fontWeight: '500',
+    color: '#1E293B',
+    fontWeight: '400',
+    paddingVertical: 16, // Increased for better touch area
+    margin: 0, // Remove default margin
   },
   passwordInput: {
     paddingRight: 0,
   },
   visibilityToggle: {
-    padding: 18,
+    padding: 12, // Increased for better touch area
+    marginLeft: 4,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 28,
-    marginTop: 4,
+    marginBottom: 32,
   },
   forgotPasswordText: {
-    color: '#FF6B6B',
-    fontSize: 15,
+    color: '#1877F2',
+    fontSize: 14,
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: '#FF6B6B',
-    height: 60,
+    backgroundColor: '#1877F2',
+    height: 56,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 5,
   },
   loginButtonDisabled: {
     opacity: 0.6,
+    backgroundColor: '#94A3B8',
   },
   loginButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   loginButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    marginRight: 8,
     letterSpacing: 0.5,
   },
-  resendOtp: {
-    alignSelf: 'center',
-    marginBottom: 24,
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
   },
-  resendOtpText: {
-    color: '#FF6B6B',
-    fontSize: 15,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+    marginHorizontal: 16,
+  },
+  googleButtonContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 24,
+    gap: 12,
+    width: '100%',
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+  },
+  googleButtonText: {
+    color: '#1E293B',
+    fontSize: 16,
     fontWeight: '600',
   },
   footer: {
     alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 16,
+    marginTop: 8,
+    marginBottom: 20,
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   footerText: {
     color: '#64748B',
@@ -627,23 +533,23 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   linkText: {
-    color: '#FF6B6B',
+    color: '#1877F2',
     fontSize: 15,
     fontWeight: '700',
   },
-   policyContainer: {
+  policyContainer: {
     marginTop: 20,
-    marginBottom:10,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   policyText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#94A3B8',
     textAlign: 'center',
+    lineHeight: 18,
   },
   link: {
-    color: '#007AFF',
-    textDecorationLine: 'underline',
-  }
+    color: '#1877F2',
+    fontWeight: '600',
+  },
 });

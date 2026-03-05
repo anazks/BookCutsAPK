@@ -33,7 +33,7 @@
     [
       "expo-splash-screen",
       {
-        "image": "./assets/images/scissors_icon",
+        "image": "./assets/images/scissors_icon.png",
         "imageWidth": 200,
         "resizeMode": "contain",
         "backgroundColor": "#1877F2"

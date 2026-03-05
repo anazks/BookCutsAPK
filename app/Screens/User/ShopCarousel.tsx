@@ -41,7 +41,8 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   hasMore = true,
 }) => {
   const flatListRef = useRef<FlatList>(null);
-  
+  const onEndReachedCalled = useRef(false); // simple guard against spam calls
+
   const handleShopPress = (shop: ShopItem) => {
     router.push({
       pathname: '/Screens/User/BarberShopFeed',
@@ -49,38 +50,38 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
     });
   };
 
-  const handleLoadMore = () => {
-    if (onEndReached && !isLoadingMore && hasMore) {
-      onEndReached();
-    }
-  };
+  const handleLoadMore = useCallback(() => {
+    // Extra safety: only call once per "session" until reset
+    if (!hasMore || isLoadingMore || onEndReachedCalled.current) return;
+
+    onEndReachedCalled.current = true;
+    onEndReached?.();
+
+    // Reset flag after a short delay (helps if parent fetch is slow)
+    setTimeout(() => {
+      onEndReachedCalled.current = false;
+    }, 800);
+  }, [hasMore, isLoadingMore, onEndReached]);
 
   const renderShopItem = ({ item, index }: { item: ShopItem; index: number }) => (
     <TouchableOpacity
       style={{
         width: 160,
-        marginRight: index === shops.length - 1 ? 16 : 16,
+        marginRight: 16, // consistent margin (last item also has margin)
         backgroundColor: 'white',
         borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: '#F3F4F6',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
       }}
       onPress={() => handleShopPress(item)}
       activeOpacity={0.9}
     >
+      {/* ... same image + rating badge ... */}
       <View style={{ position: 'relative' }}>
         <Image
           source={{ uri: item.image }}
-          style={{
-            width: '100%',
-            height: 100,
-          }}
+          style={{ width: '100%', height: 100 }}
           resizeMode="cover"
         />
         <View
@@ -97,14 +98,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           }}
         >
           <Ionicons name="star" size={10} color="#F59E0B" />
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: '700',
-              color: '#111827',
-              marginLeft: 2,
-            }}
-          >
+          <Text style={{ fontSize: 10, fontWeight: '700', color: '#111827', marginLeft: 2 }}>
             {item.rating?.toFixed(1) || '4.5'}
           </Text>
         </View>
@@ -112,28 +106,12 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
 
       <View style={{ padding: 12 }}>
         <View style={{ marginBottom: 8 }}>
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: '700',
-              color: '#111827',
-              marginBottom: 4,
-            }}
-            numberOfLines={1}
-          >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 }} numberOfLines={1}>
             {item.name}
           </Text>
-
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Ionicons name="location-outline" size={12} color="#6B7280" />
-            <Text
-              style={{
-                fontSize: 12,
-                color: '#6B7280',
-                marginLeft: 4,
-              }}
-              numberOfLines={1}
-            >
+            <Text style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }} numberOfLines={1}>
               {item.location}
             </Text>
           </View>
@@ -168,13 +146,13 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-    
+
     return (
-      <View style={{ width: 160, marginRight: 16, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: 160, justifyContent: 'center', alignItems: 'center' }}>
         <View
           style={{
             width: 160,
-            height: 188,
+            height: 188, // fixed height matching card → prevents layout jump
             backgroundColor: 'white',
             borderRadius: 16,
             justifyContent: 'center',
@@ -184,9 +162,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           }}
         >
           <ActivityIndicator size="small" color="#10B981" />
-          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>
-            Loading more...
-          </Text>
+          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>Loading more...</Text>
         </View>
       </View>
     );
@@ -205,30 +181,13 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           marginBottom: 12,
         }}
       >
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: '800',
-            color: '#111827',
-            letterSpacing: -0.5,
-          }}
-        >
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#111827', letterSpacing: -0.5 }}>
           {title}
         </Text>
 
         {onViewAll && (
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            onPress={onViewAll}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: '600',
-                color: '#10B981',
-                marginRight: 4,
-              }}
-            >
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={onViewAll}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#10B981', marginRight: 4 }}>
               View All
             </Text>
             <Ionicons name="arrow-forward" size={16} color="#10B981" />
@@ -245,22 +204,24 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
         contentContainerStyle={{ paddingHorizontal: 16 }}
         renderItem={renderShopItem}
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.35}           // ← lowered + tuned for horizontal
         ListFooterComponent={renderFooter}
-        // For better performance with many items
+        ListFooterComponentStyle={{           // ← very important
+          marginRight: 16,                     // consistent spacing
+          alignSelf: 'center',
+        }}
+        bounces={false}                        // ← helps a lot on iOS (prevents double calls)
         initialNumToRender={5}
         maxToRenderPerBatch={5}
-        windowSize={5}
+        windowSize={7}                         // slightly higher for horizontal
         getItemLayout={(data, index) => ({
-          length: 176, // 160 + 16 margin
+          length: 176, // card width 160 + marginRight 16
           offset: 176 * index,
           index,
         })}
       />
-      
-      {/* Dot indicators REMOVED from here */}
     </View>
   );
 };
 
-export default ShopCarousel;
+export default ShopCarousel;  

@@ -34,13 +34,19 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 // ────────────────────────────────────────────────
 const performLogout = async (navigation: any) => {
   try {
-    await AsyncStorage.multiRemove(['accessToken', 'shopId', 'refreshToken']);
-    await GoogleSignin.revokeAccess();
-    await GoogleSignin.signOut();
-    // You can add more keys if you store others (userId, etc.)
-
-    // FIX: Use navigation.replace() instead of reset()
-    // This will clear the navigation stack and redirect to Home
+      const authProvider = await AsyncStorage.getItem('authProvider');
+            if (authProvider === 'google') {
+              try {
+                const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                if (isGoogleSignedIn) {
+                  await GoogleSignin.revokeAccess();
+                  await GoogleSignin.signOut();
+                }
+              } catch (googleErr: any) {
+                if (googleErr.code !== 'SIGN_IN_REQUIRED') console.log('Google sign-out failed:', googleErr);
+              }
+            }
+            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
     navigation.replace('Home');
   } catch (error) {
     console.error('Logout failed:', error);
@@ -1001,11 +1007,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     maxWidth: 380,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',     // subtle modern border
   },
   noShopTitle: {
     fontSize: 24,
@@ -1062,11 +1065,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1241,11 +1241,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 18,
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   workingHoursText: {
     flex: 1,
@@ -1285,6 +1282,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     maxHeight: '85%',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1344,36 +1343,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   activationNotice: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  backgroundColor: '#FEF3C7',
-  padding: 12,
-  borderRadius: 8,
-  marginTop: 16,
-  marginHorizontal: 16,
-  gap: 8,
-},
-activationText: {
-  flex: 1,
-  fontSize: 13,
-  color: '#92400E',
-  lineHeight: 18,
-},
-becomeBarberButton: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: '#3B82F6',
-  paddingVertical: 12,
-  paddingHorizontal: 24,
-  borderRadius: 8,
-  marginTop: 16,
-  marginHorizontal: 16,
-  gap: 8,
-},
-becomeBarberButtonText: {
-  color: '#FFFFFF',
-  fontSize: 16,
-  fontWeight: '600',
-},
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    marginHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  activationText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  becomeBarberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 16,
+    marginHorizontal: 16,
+    gap: 8,
+  },
+  becomeBarberButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

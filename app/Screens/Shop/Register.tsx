@@ -13,12 +13,21 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    Linking
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RegisterShopUser } from '../../api/Service/Shop';
 
 const { width, height } = Dimensions.get('window');
+
+// Updated color scheme to match login
+const PRIMARY_COLOR = '#1877F2'; // Facebook blue
+const TEXT_DARK = '#1e293b';
+const TEXT_GRAY = '#64748b';
+const ERROR_RED = '#ef4444';
+const INPUT_BG = '#f8fafc';
+const INPUT_BORDER = '#e2e8f0';
 
 export default function ShopRegister() {
   const [formData, setFormData] = useState({
@@ -133,14 +142,10 @@ export default function ShopRegister() {
         >
           {/* Header Section */}
           <View style={styles.headerSection}>
-            <View style={styles.logoContainer}>
-              <View style={styles.logoIcon}>
-                <MaterialIcons name="content-cut" size={36} color="#FFFFFF" />
-              </View>
-            </View>
+            {/*  */}
             
             <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Create Your Shop Account</Text>
+              <Text style={styles.welcomeText}>Create Shop Account</Text>
               <Text style={styles.subtitleText}>Register to manage your salon bookings</Text>
             </View>
           </View>
@@ -151,7 +156,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="person" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="person" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={styles.input}
@@ -169,7 +174,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="person-outline" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="person-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={styles.input}
@@ -187,7 +192,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="phone" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="phone" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.countryCodeContainer}>
                   <Text style={styles.countryCodeText}>+91</Text>
@@ -209,7 +214,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="location-city" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="location-city" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={styles.input}
@@ -227,7 +232,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="email" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="email" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={styles.input}
@@ -247,7 +252,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="lock" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="lock" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={[styles.input, styles.passwordInput]}
@@ -266,7 +271,7 @@ export default function ShopRegister() {
                   <MaterialIcons 
                     name={showPassword ? 'visibility-off' : 'visibility'} 
                     size={22} 
-                    color="#64748B" 
+                    color={TEXT_GRAY} 
                   />
                 </TouchableOpacity>
               </View>
@@ -276,7 +281,7 @@ export default function ShopRegister() {
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconContainer}>
-                  <MaterialIcons name="lock-outline" size={22} color="#FF6B6B" />
+                  <MaterialIcons name="lock-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <TextInput
                   style={[styles.input, styles.passwordInput]}
@@ -295,13 +300,13 @@ export default function ShopRegister() {
                   <MaterialIcons 
                     name={showConfirmPassword ? 'visibility-off' : 'visibility'} 
                     size={22} 
-                    color="#64748B" 
+                    color={TEXT_GRAY} 
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Register Button */}
+            {/* Register Button - Updated to blue */}
             <TouchableOpacity
               style={[
                 styles.registerButton,
@@ -333,24 +338,24 @@ export default function ShopRegister() {
               </TouchableOpacity>
             </View>
           </View>
-                              <View style={styles.policyContainer}>
-                                <Text style={styles.policyText}>
-                                  By signing up, you agree to our{' '}
-                                  <Text
-                                    style={styles.link}
-                                    onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                                  >
-                                    Privacy Policy
-                                  </Text>{' '}
-                                  and{' '}
-                                  <Text
-                                    style={styles.link}
-                                    onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
-                                  >
-                                    Terms & Conditions
-                                  </Text>
-                                </Text>
-                              </View>
+          <View style={styles.policyContainer}>
+            <Text style={styles.policyText}>
+              By signing up, you agree to our{' '}
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+              >
+                Privacy Policy
+              </Text>{' '}
+              and{' '}
+              <Text
+                style={styles.link}
+                onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
+              >
+                Terms & Conditions
+              </Text>
+            </Text>
+          </View>
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -358,6 +363,7 @@ export default function ShopRegister() {
   );
 }
 
+// Updated styles with blue/white color scheme
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -386,10 +392,10 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 28,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: PRIMARY_COLOR, // Changed to blue
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
+    shadowColor: PRIMARY_COLOR,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -401,14 +407,15 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_DARK,
     letterSpacing: -1,
     marginBottom: 8,
   },
   subtitleText: {
     fontSize: 16,
-    color: '#64748B',
+    color: TEXT_GRAY,
     fontWeight: '400',
+    textAlign: 'center',
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -419,10 +426,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: INPUT_BG,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: INPUT_BORDER,
     height: 60,
   },
   inputIconContainer: {
@@ -434,7 +441,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#0F172A',
+    color: TEXT_DARK,
     paddingRight: 16,
     fontWeight: '500',
   },
@@ -447,34 +454,35 @@ const styles = StyleSheet.create({
   countryCodeContainer: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#EFF6FF', // Light blue background
     borderRadius: 8,
     marginRight: 8,
   },
   countryCodeText: {
     fontSize: 16,
-    color: '#FF6B6B',
+    color: PRIMARY_COLOR, // Changed to blue
     fontWeight: '600',
   },
   mobileInput: {
     paddingLeft: 0,
   },
   registerButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: PRIMARY_COLOR, // Changed to blue
     height: 60,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 24,
-    shadowColor: '#FF6B6B',
+    shadowColor: PRIMARY_COLOR,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 8,
   },
   registerButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
+    backgroundColor: '#94a3b8', // Gray when disabled
   },
   buttonContent: {
     flexDirection: 'row',
@@ -497,28 +505,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: '#64748B',
+    color: TEXT_GRAY,
     fontSize: 15,
     fontWeight: '400',
   },
   linkText: {
-    color: '#FF6B6B',
+    color: PRIMARY_COLOR, // Changed to blue
     fontSize: 15,
     fontWeight: '700',
   },
   policyContainer: {
     marginTop: 20,
-    marginBottom:10,
+    marginBottom: 10,
     alignItems: 'center',
     paddingHorizontal: 16,
   },
   policyText: {
     fontSize: 12,
-    color: '#666',
+    color: TEXT_GRAY,
     textAlign: 'center',
   },
   link: {
-    color: '#007AFF',
+    color: PRIMARY_COLOR, // Changed to blue
+    fontWeight: '600',
     textDecorationLine: 'underline',
   }  
 });

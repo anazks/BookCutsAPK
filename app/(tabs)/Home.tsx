@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
@@ -30,6 +31,7 @@ import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
 
 const Home = () => {
+  const isFetchingMoreRef = useRef(false);
   const [shops, setShops] = useState<any[]>([]);
   const [filteredShops, setFilteredShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,71 +160,144 @@ const Home = () => {
     }
   };
 
-    const findNearestShopApi = async (page = 1, isLoadMore = false, isRefresh = false) => {
-      if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
+   const findNearestShopApi = async (
+  page: number = 1,
+  isLoadMore: boolean = false,
+  isRefresh: boolean = false
+) => {
+  // Early return if we don't have coordinates yet
+  if (coordinates.latitude === 0 && coordinates.longitude === 0) {
+    console.warn('findNearestShopApi called without valid coordinates');
+    return;
+  }
 
-      try {
-        if (isRefresh) {
-          setIsRefreshing(true);
-          setCurrentPage(1);
-        } else if (isLoadMore) {
-          setLoadingMore(true);
-        } else {
-          setLoading(true);
-        }
-        
-        const result = await findNearestShops({ 
-          ...coordinates, 
-          page, 
-          limit: 10 
-        });
-        
-        console.log('API Response:', result);
+  // ─── Set appropriate loading states ───
+  if (isRefresh) {
+    setIsRefreshing(true);
+    setCurrentPage(1);           // reset pagination on pull-to-refresh
+    setShops([]);                // clear old data on full refresh (optional but recommended)
+    setHasMoreShops(true);       // optimistic reset
+  } else if (isLoadMore) {
+    setLoadingMore(true);
+  } else {
+    setLoading(true);
+    setError(null);              // clear previous errors on fresh load
+  }
 
-        if (result?.success) {
-          if (isLoadMore) {
-            // Append new shops for infinite scroll
-            setShops(prev => [...prev, ...(result.shops || [])]);
-          } else {
-            // First load or refresh
-            setShops(result.shops || []);
-          }
-          
-          setTotalShops(result.total || result.shops?.length || 0);
-          setHasMoreShops((result.shops || []).length === 10); // 10 items per page
-          setError(null);
-        } else {
-          setError('Failed to fetch nearby shops.');
-        }
-      } catch (error) {
-        console.error('Error fetching shops:', error);
-        if (!isLoadMore) {
-          setError('Failed to load shops. Check your connection.');
-        }
-      } finally {
-        if (isRefresh) {
-          setIsRefreshing(false);
-        } else if (isLoadMore) {
-          setLoadingMore(false);
-        } else {
-          setLoading(false);
-        }
-      }
+  try {
+    const payload = {
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      page,
+      limit: 10,
     };
 
+    console.log('Fetching shops →', payload);
+
+    const result = await findNearestShops(payload);
+
+    console.log('API Response:', result);
+
+    if (!result?.success) {
+      // Handle backend saying "no shops" or other failure
+      if (result?.message?.includes('No nearby shops found')) {
+        setError('No salons found nearby.');
+      } else {
+        setError(result?.message || 'Failed to fetch nearby salons.');
+      }
+
+      // Important: stop pagination if explicit "no shops" message
+      if (page === 1 || result?.shops?.length === 0) {
+        setHasMoreShops(false);
+      }
+
+      return;
+    }
+
+    const newShops = result.shops || [];
+
+    // ─── Update shops list ───
+    if (isLoadMore) {
+      // Append for infinite scroll
+      setShops((prev) => [...prev, ...newShops]);
+    } else {
+      // Replace on initial load or refresh
+      setShops(newShops);
+    }
+
+    // ─── Update pagination state ───
+    const receivedCount = newShops.length;
+    const pageSize = 10;
+
+    // Most reliable way: if we got fewer items than requested → end reached
+    const hasMore = receivedCount === pageSize;
+
+    setHasMoreShops(hasMore);
+
+    // Bonus: if backend sends total count, use it for even better UX
+    if (result.total !== undefined && result.total !== null) {
+      setTotalShops(result.total);
+      // More precise hasMore calculation
+      setHasMoreShops(page * pageSize < result.total);
+    }
+
+    setError(null);
+  } catch (err: any) {
+    console.log('Error fetching shops:', err);
+
+    let errorMessage = 'Failed to load salons. Please check your connection.';
+
+    if (err?.response?.status === 404) {
+      errorMessage = 'No salons found in this area.';
+      setHasMoreShops(false);
+    } else if (err?.message?.includes('timeout')) {
+      errorMessage = 'Request timed out. Try again later.';
+    } else if (err?.message?.includes('network')) {
+      errorMessage = 'Network error. Please check your internet.';
+    }
+
+    setError(errorMessage);
+
+    // Stop trying to load more on error
+    if (isLoadMore) {
+      setHasMoreShops(false);
+    }
+  } finally {
+    // ─── Always clean up loading states ───
+    if (isRefresh) {
+      setIsRefreshing(false);
+    } else if (isLoadMore) {
+      setLoadingMore(false);
+    } else {
+      setLoading(false);
+    }
+  }
+};
     const handleRefresh = () => {
       if (!isRefreshing) {
         findNearestShopApi(1, false, true);
       }
     };
 
-    const loadMoreShops = () => {
-      if (!loadingMore && hasMoreShops) {
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
-        findNearestShopApi(nextPage, true);
-      }
-    };
+   const loadMoreShops = useCallback(() => {
+  // ─── The three most important guards ───
+  if (isFetchingMoreRef.current) return;
+  if (loadingMore) return;
+  if (!hasMoreShops) return;
+
+  isFetchingMoreRef.current = true;
+  setLoadingMore(true);
+
+  const nextPage = currentPage + 1;
+  setCurrentPage(nextPage);
+
+  findNearestShopApi(nextPage, true, false)
+    .finally(() => {
+      isFetchingMoreRef.current = false;
+      setLoadingMore(false);
+    });
+
+}, [currentPage, hasMoreShops, loadingMore]);
 
 
 
@@ -382,84 +457,103 @@ const Home = () => {
       <StatusBar barStyle="light-content" backgroundColor="#1877F2" />
 
       {/* ── Header ── */}
-      <View style={{
-        backgroundColor: '#1877F2',          // Facebook blue header
-        paddingTop: 50,
-        paddingBottom: 18,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        shadowColor: '#0D4FB5',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 10,
-      }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+    <View style={{
+  backgroundColor: '#1877F2',          // Facebook blue header
+  paddingTop: 48,
+  paddingBottom: 16,
+  paddingHorizontal: 16,
+  borderBottomLeftRadius: 24,
+  borderBottomRightRadius: 24,
+  shadowColor: '#0D4FB5',
+  shadowOffset: { width: 0, height: 5 },
+  shadowOpacity: 0.22,
+  shadowRadius: 10,
+  elevation: 9,
+}}>
+  <View style={{ 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 12
+  }}>
 
-          {/* City pill */}
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.18)',  // frosted white on blue
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.35)',
-            }}
-            onPress={() => setShowCityDropdown(true)}
-          >
-            <Ionicons name="location-sharp" size={16} color="#FFFFFF" />
-            <Text style={{ marginLeft: 8, marginRight: 4, fontWeight: '600', color: '#FFFFFF' }}>{selectedCity}</Text>
-            <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
+    {/* City pill - smaller and more compact */}
+    <TouchableOpacity
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 16,                  // Smaller radius
+        paddingHorizontal: 8,               // Tighter padding
+        paddingVertical: 5,                 // Smaller vertical padding
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.35)',
+      }}
+      onPress={() => setShowCityDropdown(true)}
+    >
+      <Ionicons name="location-sharp" size={13} color="#FFFFFF" />
+      <Text style={{ 
+        marginLeft: 5,
+        marginRight: 2,
+        fontWeight: '500',                  // Lighter weight for hierarchy
+        color: '#FFFFFF',
+        fontSize: 13                         // Smaller font
+      }}>{selectedCity}</Text>
+      <Ionicons name="chevron-down" size={11} color="rgba(255,255,255,0.8)" />
+    </TouchableOpacity>
 
-          {/* Logout */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.18)',
-              borderRadius: 20,
-              padding: 8,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.35)',
-            }}
-            onPress={handleLogout}
-          >
-            <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+    {/* Logout - matching smaller size */}
+    <TouchableOpacity
+      style={{
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 16,
+        padding: 5,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.35)',
+      }}
+      onPress={handleLogout}
+    >
+      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+    </TouchableOpacity>
+  </View>
 
-        {/* Search bar */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#FFFFFF',
-          borderRadius: 14,
-          paddingHorizontal: 14,
-          paddingVertical: 11,
-          shadowColor: '#0D4FB5',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          elevation: 3,
-        }}>
-          <Ionicons name="search" size={20} color="#1877F2" style={{ marginRight: 8 }} />
-          <TextInput
-            style={{ flex: 1, fontSize: 14, color: '#111827' }}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search for salons, services, or styles..."
-            placeholderTextColor="#9CA3AF"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
-              <Ionicons name="close-circle" size={20} color="#1877F2" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+  {/* Search bar - taller and more prominent */}
+  <View style={{
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,                        // Slightly larger radius
+    paddingHorizontal: 14,
+    paddingVertical: 12,                      // Taller than before
+    shadowColor: '#0D4FB5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,                           // Added subtle border
+    borderColor: 'rgba(255,255,255,0.3)',
+  }}>
+    <Ionicons name="search" size={20} color="#1877F2" style={{ marginRight: 8 }} />
+    <TextInput
+      style={{ 
+        flex: 1, 
+        fontSize: 15,                          // Slightly larger font
+        color: '#111827',
+        fontWeight: '400',
+        paddingVertical: 2
+      }}
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      placeholder="Search for salons, services, or styles..."
+      placeholderTextColor="#9CA3AF"
+    />
+    {searchQuery.length > 0 && (
+      <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
+        <Ionicons name="close-circle" size={20} color="#1877F2" />
+      </TouchableOpacity>
+    )}
+  </View>
+</View>
 
       <BookingReminder />
 
@@ -568,7 +662,7 @@ const Home = () => {
           </>
         ) : (
           <>
-            {error && (
+            {/* {error && (
               <View style={{
                 flexDirection: 'row',
                 backgroundColor: '#DBEAFE',         // light blue error band
@@ -581,7 +675,7 @@ const Home = () => {
                 <Ionicons name="alert-circle-outline" size={20} color="#1877F2" />
                 <Text style={{ flex: 1, marginLeft: 8, color: '#1D4ED8' }}>{error}</Text>
               </View>
-            )}
+            )} */}
 
             {/* Services section */}
             <View style={{ marginVertical: 16 }}>

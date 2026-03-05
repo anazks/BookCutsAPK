@@ -213,7 +213,7 @@ export const findNearestShops = async ({ latitude, longitude, page = 1, limit = 
 
     return shops.data;
   } catch (error) {
-    console.error("Error fetching nearest shops:", error);
+    console.log("Error fetching nearest shops:", error);
     throw error;
   }
 };

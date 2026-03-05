@@ -277,7 +277,7 @@ const ForgotPassword = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   keyboardAvoid: {
     flex: 1,
@@ -291,12 +291,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#333',
+    color: '#1877F2',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#64748B',
     lineHeight: 24,
     marginBottom: 40,
   },
@@ -304,14 +304,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   input: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
-    borderColor: '#eee',
+    borderColor: '#E2E8F0',
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#333',
+    color: '#1E293B',
   },
   otpInput: {
     fontSize: 22,
@@ -322,18 +322,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#1877F2',
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
+    shadowColor: '#1877F2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
   },
@@ -344,17 +344,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   success: {
-    color: '#4CAF50',
+    color: '#1877F2',
   },
   error: {
-    color: '#e74c3c',
+    color: '#EF4444',
   },
   link: {
     marginTop: 20,
     alignItems: 'center',
   },
   linkText: {
-    color: '#FF6B6B',
+    color: '#1877F2',
     fontSize: 15,
     fontWeight: '500',
   },

@@ -1,136 +1,278 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import Logo from '../assets/images/logo.png';
 
+const { width, height } = Dimensions.get('window');
+
 export default function GetStartedScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const buttonScale = useRef(new Animated.Value(0.92)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const buttonScale = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1400,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.spring(buttonScale, {
         toValue: 1,
-        friction: 4,
+        friction: 6,
         tension: 40,
-        delay: 400,
+        delay: 600,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Centered Logo Container */}
-      <View style={styles.centerContainer}>
-        <Animated.View
-          style={[
-            styles.logoWrapper,
-            { opacity: fadeAnim }
-          ]}
-        >
-          <Image 
-            source={Logo} 
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </View>
+    <LinearGradient
+      colors={['#1877F2', '#0A4EB0', '#06357A']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        {/* Top decorative elements */}
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        
+        {/* Main Content */}
+        <View style={styles.contentContainer}>
+          {/* Animated Logo without rotation */}
+          <Animated.View
+            style={[
+              styles.logoWrapper,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.logoGlow}>
+              <Image 
+                source={Logo} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+          </Animated.View>
 
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        <Animated.View
-          style={{
-            transform: [{ scale: buttonScale }],
-            opacity: fadeAnim
-          }}
+          {/* Tagline */}
+          <Animated.Text 
+            style={[
+              styles.tagline,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            Your Style, Your Way
+          </Animated.Text>
+
+          {/* Features */}
+          <Animated.View 
+            style={[
+              styles.featuresContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.featureRow}>
+              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+              <Text style={styles.featureText}>Book appointments instantly</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+              <Text style={styles.featureText}>Discover top-rated salons</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+              <Text style={styles.featureText}>Exclusive offers & rewards</Text>
+            </View>
+          </Animated.View>
+        </View>
+
+        {/* Bottom Section */}
+        <Animated.View 
+          style={[
+            styles.bottomSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: buttonScale }]
+            }
+          ]}
         >
           <TouchableOpacity 
             style={styles.getStartedButton}
-            onPress={() => router.push('/Screens/User/Login')}
-            activeOpacity={0.85}
+            onPress={() => router.push('/Screens/RoleSelectionScreen')}
+            activeOpacity={0.9}
           >
-            <Text style={styles.buttonText}>Get Started</Text>
-            <MaterialIcons name="arrow-forward" size={26} color="#FFFFFF" />
+            <LinearGradient
+              colors={['#FFFFFF', '#F5F7FA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.buttonText}>Get Started</Text>
+              <View style={styles.iconCircle}>
+                <MaterialIcons name="arrow-forward" size={22} color="#1877F2" />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
+          
+          <Text style={styles.partnerText}>
+            Trusted by 10,000+ salon owners
+          </Text>
         </Animated.View>
-        
-        <Animated.Text 
-          style={[
-            styles.partnerText,
-            { opacity: fadeAnim }
-          ]}
-        >
-          Join thousands of happy & secure customers
-        </Animated.Text>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1877F2',   // Facebook's iconic primary blue
   },
-  centerContainer: {
+  safeArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: -50,
+    right: -50,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    bottom: 100,
+    left: -150,
+  },
+  contentContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 32,
   },
   logoWrapper: {
-    width: '82%',
-    aspectRatio: 1,
+    width: width * 0.5,
+    height: width * 0.5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  logoGlow: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
   logoImage: {
     width: '100%',
     height: '100%',
   },
+  tagline: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 32,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  featuresContainer: {
+    width: '100%',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 30,
+    width: '100%',
+  },
+  featureText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginLeft: 12,
+    fontWeight: '500',
+  },
   bottomSection: {
-    paddingBottom: 60,
+    paddingBottom: 40,
     paddingHorizontal: 28,
     alignItems: 'center',
+    width: '100%',
   },
   getStartedButton: {
-    backgroundColor: '#FFFFFF',           // white button pops on blue bg
-    paddingVertical: 20,
-    paddingHorizontal: 56,
-    borderRadius: 20,
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  buttonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0D4FB5',               // deeper blue shadow for depth
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
-    minWidth: 240,
-    borderWidth: 0,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
   },
   buttonText: {
-    color: '#1877F2',                     // match the brand blue on white
+    color: '#1877F2',
     fontSize: 20,
     fontWeight: '700',
-    marginRight: 14,
-    letterSpacing: 0.4,
+    marginRight: 12,
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   partnerText: {
-    marginTop: 28,
-    fontSize: 15,
-    color: '#FFFFFF',                     // white text on blue bg — clean & clear
-    fontWeight: '500',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    opacity: 0.88,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 });

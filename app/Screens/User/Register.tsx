@@ -18,12 +18,16 @@ import {
   Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { userLogin, userRegister } from '../../api/Service/User'; // ← updated import
+import { userLogin, userRegister } from '../../api/Service/User';
 
-const PRIMARY_COLOR = '#FF6B6B';
-const TEXT_DARK = '#1a1a1a';
+// Updated color scheme to match login
+const PRIMARY_COLOR = '#1877F2'; // Facebook blue
+const TEXT_DARK = '#1e293b';
 const TEXT_GRAY = '#64748b';
 const ERROR_RED = '#ef4444';
+const BACKGROUND_WHITE = '#ffffff';
+const INPUT_BG = '#f8fafc';
+const INPUT_BORDER = '#e2e8f0';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -84,7 +88,6 @@ export default function Register() {
         payload.referralCode = formData.referralCode.trim();
       }
 
-      // Using userRegister instead of userLogin
       const response = await userRegister(payload);
 
       if (response.success) {
@@ -281,7 +284,7 @@ export default function Register() {
               </View>
             </View>
 
-            {/* Action Button */}
+            {/* Action Button - Redesigned with blue background */}
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRegister}
@@ -289,11 +292,11 @@ export default function Register() {
               activeOpacity={0.8}
             >
               {loading ? (
-                <ActivityIndicator color={PRIMARY_COLOR} size="small" />
+                <ActivityIndicator color="#ffffff" size="small" />
               ) : (
                 <>
                   <Text style={styles.buttonText}>Create Account</Text>
-                  <MaterialIcons name="arrow-forward" size={20} color={PRIMARY_COLOR} />
+                  <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
                 </>
               )}
             </TouchableOpacity>
@@ -338,6 +341,7 @@ export default function Register() {
   );
 }
 
+// Updated styles to match login color scheme
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -416,9 +420,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: PRIMARY_COLOR,
+    backgroundColor: PRIMARY_COLOR, // Solid blue background
+    borderWidth: 0, // Removed border
     borderRadius: 16,
     height: 58,
     marginTop: 12,
@@ -431,10 +434,10 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
-    borderColor: '#d1d5db',
+    backgroundColor: '#94a3b8', // Gray when disabled
   },
   buttonText: {
-    color: PRIMARY_COLOR,
+    color: '#ffffff', // White text
     fontSize: 17,
     fontWeight: '700',
     marginRight: 8,

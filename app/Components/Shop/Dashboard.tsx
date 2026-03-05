@@ -290,366 +290,452 @@ export default function Dashboard() {
 
 // Styles remain exactly the same
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F8FAFC' 
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
   },
-  header: { 
-    paddingVertical: 24, 
-    paddingHorizontal: 20, 
-    backgroundColor: '#FFFFFF', 
-    borderBottomWidth: 1, 
+
+  header: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    zIndex: 1 
+    zIndex: 1,
   },
-  headerTop: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start' 
+
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  headerTitle: { 
-    fontSize: 24, 
-    fontWeight: '600', 
-    color: '#1E293B', 
-    letterSpacing: -0.5 
+
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1E293B',
+    letterSpacing: -0.5,
   },
-  headerSubtitle: { 
-    fontSize: 14, 
-    color: '#64748B', 
-    marginTop: 4, 
-    fontWeight: '400' 
+
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '400',
   },
-  topListedBadge: { 
-    backgroundColor: '#F59E0B', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 16 
+
+  topListedBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  topListedText: { 
-    color: '#FFFFFF', 
-    fontSize: 11, 
-    fontWeight: '600', 
-    letterSpacing: 0.5 
+
+  topListedText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  scrollContent: { 
-    paddingBottom: 32 
+
+  scrollContent: {
+    paddingBottom: 32,
   },
-  section: { 
-    marginTop: 24, 
-    paddingHorizontal: 20 
+
+  section: {
+    marginTop: 24,
+    paddingHorizontal: 20,
   },
-  sectionHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 16 
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    color: '#1E293B', 
-    letterSpacing: -0.3, 
-    paddingBottom: 4 
-  },
-  viewAllButton: { 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 6, 
-    backgroundColor: '#F1F5F9' 
-  },
-  viewAllText: { 
-    fontSize: 14, 
-    color: '#4F46E5', 
-    fontWeight: '500' 
-  },
-  subscriptionCard: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    padding: 20, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#10B981'
-  },
-  subscriptionHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 16 
-  },
-  subscriptionIcon: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: '#10B981', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 12 
-  },
-  subscriptionIconText: { 
-    fontSize: 20 
-  },
-  subscriptionInfo: { 
-    flex: 1 
-  },
-  subscriptionTitle: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#1E293B', 
-    marginBottom: 2 
-  },
-  subscriptionStatus: { 
-    fontSize: 13, 
-    color: '#10B981', 
-    fontWeight: '500' 
-  },
-  subscriptionDetails: { 
-    marginTop: 8 
-  },
-  dateContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 16 
-  },
-  dateItem: { 
-    flex: 1, 
-    alignItems: 'center', 
-    padding: 12, 
-    backgroundColor: '#F8FAFC', 
-    borderRadius: 8, 
-    marginHorizontal: 4 
-  },
-  dateLabel: { 
-    fontSize: 11, 
-    color: '#64748B', 
-    fontWeight: '500', 
-    textTransform: 'uppercase', 
-    letterSpacing: 0.5, 
-    marginBottom: 4 
-  },
-  dateValue: { 
-    fontSize: 13, 
-    color: '#1E293B', 
-    fontWeight: '500' 
-  },
-  daysRemainingContainer: { 
-    marginTop: 8 
-  },
-  daysRemainingText: { 
-    fontSize: 13, 
-    color: '#64748B', 
-    fontWeight: '500', 
-    marginBottom: 8, 
-    textAlign: 'center' 
-  },
-  subscriptionOfferCard: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    padding: 20, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4F46E5'
-  },
-  offerHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 16 
-  },
-  offerIcon: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: '#4F46E5', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 12 
-  },
-  offerIconText: { 
-    fontSize: 20 
-  },
-  offerContent: { 
-    flex: 1 
-  },
-  offerTitle: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#1E293B', 
-    marginBottom: 2 
-  },
-  offerDescription: { 
-    fontSize: 13, 
-    color: '#64748B', 
-    lineHeight: 18 
-  },
-  offerPricing: { 
-    alignItems: 'center', 
-    marginBottom: 16 
-  },
-  priceText: { 
-    fontSize: 32, 
-    fontWeight: '700', 
-    color: '#4F46E5', 
-    letterSpacing: -0.5 
-  },
-  priceSubtext: { 
-    fontSize: 13, 
-    color: '#64748B', 
-    fontWeight: '500' 
-  },
-  subscribeButton: { 
-    backgroundColor: '#4F46E5', 
-    paddingVertical: 14, 
-    paddingHorizontal: 32, 
-    borderRadius: 8, 
-    alignItems: 'center', 
+
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+    letterSpacing: -0.3,
+    paddingBottom: 4,
+  },
+
+  viewAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#F1F5F9',
+  },
+
+  viewAllText: {
+    fontSize: 14,
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+
+  // ────────────────────────────────────────────────
+  // Main cards with consistent tiny border
+  // ────────────────────────────────────────────────
+
+  subscriptionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#4F46E5'
+    borderColor: '#CBD5E1',
+    borderLeftColor: '#10B981',
   },
-  subscribeButtonText: { 
-    color: '#FFFFFF', 
-    fontSize: 15, 
-    fontWeight: '600', 
-    letterSpacing: 0.3 
+
+  subscriptionOfferCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
-  benefitsList: { 
-    alignItems: 'center' 
+
+  statCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    width: (width - 48) / 2,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
-  benefitItem: { 
-    fontSize: 13, 
-    color: '#10B981', 
-    fontWeight: '500', 
-    marginBottom: 6, 
-    textAlign: 'center' 
+
+  featuredCard: {
+    backgroundColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#059669', // darker green for better contrast
   },
-  gridContainer: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'space-between' 
+
+  successCard: {
+    borderLeftColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
-  statCard: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 16, 
-    width: (width - 48) / 2, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0'
+
+  warningCard: {
+    borderLeftColor: '#F59E0B',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
-  featuredCard: { 
-    backgroundColor: '#10B981', 
-    borderColor: '#10B981' 
+
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderColor: '#CBD5E1',
   },
-  successCard: { 
-    borderLeftWidth: 3, 
-    borderLeftColor: '#10B981' 
+
+  // ────────────────────────────────────────────────
+  // Card inner elements
+  // ────────────────────────────────────────────────
+
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  warningCard: { 
-    borderLeftWidth: 3, 
-    borderLeftColor: '#F59E0B' 
+
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
   },
-  cardHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 8 
+
+  cardValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
   },
-  cardTitle: { 
-    fontSize: 13, 
-    fontWeight: '500', 
-    color: '#64748B' 
+
+  featuredValue: {
+    color: '#FFFFFF',
   },
-  cardValue: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    color: '#1E293B' 
+
+  trendIndicator: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  featuredValue: { 
-    color: '#FFFFFF' 
+
+  trendText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
-  trendIndicator: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+
+  subtitleContainer: {
+    marginTop: 4,
   },
-  trendText: { 
-    color: '#FFFFFF', 
-    fontWeight: '600' 
+
+  cardSubtext: {
+    fontSize: 11,
+    fontWeight: '500',
   },
-  subtitleContainer: { 
-    marginTop: 4 
+
+  progressContainer: {
+    marginTop: 8,
   },
-  cardSubtext: { 
-    fontSize: 11, 
-    fontWeight: '500' 
+
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  progressContainer: { 
-    marginTop: 8 
+
+  progressText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
   },
-  progressHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 6 
+
+  progressPercentage: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E293B',
   },
-  progressText: { 
-    fontSize: 11, 
-    fontWeight: '500', 
-    color: '#64748B' 
+
+  progressBarContainer: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
   },
-  progressPercentage: { 
-    fontSize: 11, 
-    fontWeight: '600', 
-    color: '#1E293B' 
+
+  progressBarFill: {
+    height: 4,
+    borderRadius: 2,
   },
-  progressBarContainer: { 
-    width: '100%', 
-    height: 4, 
-    backgroundColor: '#E2E8F0', 
-    borderRadius: 2 
+
+  // ────────────────────────────────────────────────
+  // Subscription active view
+  // ────────────────────────────────────────────────
+
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  progressBarFill: { 
-    height: 4, 
-    borderRadius: 2 
+
+  subscriptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  activityCard: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    padding: 16, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0'
+
+  subscriptionIconText: {
+    fontSize: 20,
   },
-  activityItem: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 12 
+
+  subscriptionInfo: {
+    flex: 1,
   },
-  activityLeft: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+
+  subscriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
   },
-  activityIndicator: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 5, 
-    marginRight: 10 
+
+  subscriptionStatus: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '500',
   },
+
+  subscriptionDetails: {
+    marginTop: 8,
+  },
+
+  dateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  dateItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0', // lighter here is intentional
+  },
+
+  dateLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+
+  dateValue: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+
+  daysRemainingContainer: {
+    marginTop: 8,
+  },
+
+  daysRemainingText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+
+  // ────────────────────────────────────────────────
+  // Subscription offer (not subscribed)
+  // ────────────────────────────────────────────────
+
+  offerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  offerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4F46E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  offerIconText: {
+    fontSize: 20,
+  },
+
+  offerContent: {
+    flex: 1,
+  },
+
+  offerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+
+  offerDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+
+  offerPricing: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  priceText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#4F46E5',
+    letterSpacing: -0.5,
+  },
+
+  priceSubtext: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+
+  subscribeButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  subscribeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+
+  benefitsList: {
+    alignItems: 'center',
+  },
+
+  benefitItem: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '500',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+
+  // ────────────────────────────────────────────────
+  // Grid + Activity
+  // ────────────────────────────────────────────────
+
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+
+  activityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  activityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  activityIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+
   activityContent: {},
-  activityTitle: { 
-    fontSize: 13, 
-    fontWeight: '500', 
-    color: '#1E293B' 
+
+  activityTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1E293B',
   },
-  activityTime: { 
-    fontSize: 11, 
-    fontWeight: '400', 
-    color: '#64748B', 
-    marginTop: 2 
+
+  activityTime: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#64748B',
+    marginTop: 2,
   },
-  activityAmount: { 
-    fontSize: 13, 
-    fontWeight: '600' 
+
+  activityAmount: {
+    fontSize: 13,
+    fontWeight: '600',
   },
-})
+});
