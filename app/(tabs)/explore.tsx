@@ -136,6 +136,26 @@ export default function Profile() {
             style={styles.menuItem}
             onPress={() =>
               router.push({
+                pathname: '/Screens/User/PayoutScreen',
+                params: { referralCode: userData?.referralCode },
+              })
+            }
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
+                <Ionicons name="calendar-outline" size={18} color="#1877F2" />
+              </View>
+              <Text style={styles.menuText}>Payout</Text>
+            </View>
+            <View style={styles.chevronBadge}>
+              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
+            </View>
+          </TouchableOpacity>
+
+           <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() =>
+              router.push({
                 pathname: '/Screens/User/Bookings',
                 params: { referralCode: userData?.referralCode },
               })
@@ -151,6 +171,7 @@ export default function Profile() {
               <Ionicons name="chevron-forward" size={14} color="#1877F2" />
             </View>
           </TouchableOpacity>
+
 
           <TouchableOpacity
             style={styles.menuItem}

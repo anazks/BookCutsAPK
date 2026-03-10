@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -21,7 +20,6 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import {
   GoogleSignin,
-  GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
@@ -157,31 +155,25 @@ export default function Login() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <View style={styles.innerContainer}>
-          {/* Full Width Logo at Top */}
-          <View style={styles.logoSection}>
-            <Image 
-              source={Logo} 
-              style={styles.logo} 
-              resizeMode="contain" 
-            />
-          </View>
-
-          <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="always"
-            bounces={false}
-          >
-            {/* Welcome Text */}
-            <View style={styles.welcomeSection}>
+          {/* Header with Logo - Now properly positioned */}
+          <View style={styles.headerContainer}>
+            <View style={styles.logoWrapper}>
+              <Image 
+                source={Logo} 
+                style={styles.logo} 
+                resizeMode="contain" 
+              />
+            </View>
+            <View style={styles.titleContainer}>
               <Text style={styles.welcomeText}>Welcome Back!</Text>
               <Text style={styles.subtitleText}>Sign in to manage your salon</Text>
             </View>
+          </View>
 
+          {/* Main Content - No Scroll */}
+          <View style={styles.contentContainer}>
             {/* Form Section */}
             <View style={styles.formContainer}>
               {/* Email Input */}
@@ -288,23 +280,23 @@ export default function Login() {
               </View>
 
               {/* Google Sign-In Button */}
-              <View style={styles.googleButtonContainer}>
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleSignin}
+                disabled={loading || googleLoading}
+              >
                 {googleLoading ? (
-                  <ActivityIndicator size="large" color="#1877F2" />
+                  <ActivityIndicator size="small" color="#1877F2" />
                 ) : (
-                  <TouchableOpacity
-                    style={styles.googleButton}
-                    onPress={handleGoogleSignin}
-                    disabled={loading || googleLoading}
-                  >
+                  <>
                     <Image 
                       source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
                       style={styles.googleIcon}
                     />
                     <Text style={styles.googleButtonText}>Continue with Google</Text>
-                  </TouchableOpacity>
+                  </>
                 )}
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Footer */}
@@ -339,7 +331,7 @@ export default function Login() {
                 </Text>
               </Text>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -356,35 +348,23 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     flex: 1,
-  },
-  logoSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 10,      // Reduced from 20 to pull the logo up slightly
-    paddingBottom: 0,    // Reduced from 10 to 0 to cut out the gap
-    backgroundColor: '#FFFFFF',
-    width: '100%',
-  },
-  logo: {
-    width: width * 0.9, 
-    height: 160,         // Increased from 100 to let the logo scale up significantly
-  },
-  welcomeSection: {
-    alignItems: 'center',
-    marginTop: 10,       // Controls the exact spacing between the logo and text
-    marginBottom: 30,
     paddingHorizontal: 24,
   },
- 
-
-  scrollContainer: {
-    flex: 1,
+  headerContainer: {
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+    paddingBottom: 20,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 30,
+  logoWrapper: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
-
+  logo: {
+    width: width * 0.6,
+    height: 100,
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
   welcomeText: {
     fontSize: 28,
     fontWeight: '700',
@@ -397,8 +377,12 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '400',
   },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   formContainer: {
-    paddingHorizontal: 24,
+    marginTop: 10,
   },
   inputContainer: {
     marginBottom: 20,
@@ -432,14 +416,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1E293B',
     fontWeight: '400',
-    paddingVertical: 16, // Increased for better touch area
-    margin: 0, // Remove default margin
+    paddingVertical: 16,
+    margin: 0,
   },
   passwordInput: {
     paddingRight: 0,
   },
   visibilityToggle: {
-    padding: 12, // Increased for better touch area
+    padding: 12,
     marginLeft: 4,
   },
   forgotPassword: {
@@ -495,10 +479,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginHorizontal: 16,
   },
-  googleButtonContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -508,7 +488,6 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 16,
     height: 56,
-    paddingHorizontal: 24,
     gap: 12,
     width: '100%',
   },
@@ -523,8 +502,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 16,
   },
   footerRow: {
     flexDirection: 'row',
@@ -542,12 +521,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   policyContainer: {
-    marginTop: 20,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   policyText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,

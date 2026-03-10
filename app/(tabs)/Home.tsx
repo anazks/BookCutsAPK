@@ -457,19 +457,15 @@ const Home = () => {
       <StatusBar barStyle="light-content" backgroundColor="#1877F2" />
 
       {/* ── Header ── */}
-    <View style={{
-  backgroundColor: '#1877F2',          // Facebook blue header
+        <View style={{
+  backgroundColor: '#FFFFFF',
   paddingTop: 48,
-  paddingBottom: 16,
+  paddingBottom: 12,
   paddingHorizontal: 16,
-  borderBottomLeftRadius: 24,
-  borderBottomRightRadius: 24,
-  shadowColor: '#0D4FB5',
-  shadowOffset: { width: 0, height: 5 },
-  shadowOpacity: 0.22,
-  shadowRadius: 10,
-  elevation: 9,
+  borderBottomWidth: 1,
+  borderBottomColor: '#F0F2F5',
 }}>
+  
   <View style={{ 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
@@ -477,84 +473,59 @@ const Home = () => {
     marginBottom: 12
   }}>
 
-    {/* City pill - smaller and more compact */}
+    {/* City selector - super minimal */}
     <TouchableOpacity
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 16,                  // Smaller radius
-        paddingHorizontal: 8,               // Tighter padding
-        paddingVertical: 5,                 // Smaller vertical padding
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.35)',
       }}
       onPress={() => setShowCityDropdown(true)}
     >
-      <Ionicons name="location-sharp" size={13} color="#FFFFFF" />
+      <Ionicons name="location-outline" size={14} color="#1877F2" />
       <Text style={{ 
-        marginLeft: 5,
-        marginRight: 2,
-        fontWeight: '500',                  // Lighter weight for hierarchy
-        color: '#FFFFFF',
-        fontSize: 13                         // Smaller font
+        marginLeft: 4,
+        fontWeight: '500',
+        color: '#1A1F36',
+        fontSize: 14,
       }}>{selectedCity}</Text>
-      <Ionicons name="chevron-down" size={11} color="rgba(255,255,255,0.8)" />
+      <Ionicons name="chevron-down" size={12} color="#94A3B8" style={{ marginLeft: 2 }} />
     </TouchableOpacity>
 
-    {/* Logout - matching smaller size */}
-    <TouchableOpacity
-      style={{
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 16,
-        padding: 5,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.35)',
-      }}
-      onPress={handleLogout}
-    >
-      <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+    {/* Logout - icon only */}
+    <TouchableOpacity onPress={handleLogout}>
+      <Ionicons name="log-out-outline" size={18} color="#64748B" />
     </TouchableOpacity>
   </View>
 
-  {/* Search bar - taller and more prominent */}
+  {/* Search bar - compact */}
   <View style={{
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,                        // Slightly larger radius
+    backgroundColor: '#F8F9FA',
+    borderRadius: 24,
     paddingHorizontal: 14,
-    paddingVertical: 12,                      // Taller than before
-    shadowColor: '#0D4FB5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,                           // Added subtle border
-    borderColor: 'rgba(255,255,255,0.3)',
+    paddingVertical: 8,
   }}>
-    <Ionicons name="search" size={20} color="#1877F2" style={{ marginRight: 8 }} />
+    <Ionicons name="search-outline" size={16} color="#94A3B8" style={{ marginRight: 6 }} />
     <TextInput
       style={{ 
         flex: 1, 
-        fontSize: 15,                          // Slightly larger font
-        color: '#111827',
-        fontWeight: '400',
-        paddingVertical: 2
+        fontSize: 13,
+        color: '#1A1F36',
+        paddingVertical: 0,
       }}
       value={searchQuery}
       onChangeText={setSearchQuery}
-      placeholder="Search for salons, services, or styles..."
-      placeholderTextColor="#9CA3AF"
+      placeholder="Search"
+      placeholderTextColor="#94A3B8"
     />
     {searchQuery.length > 0 && (
       <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
-        <Ionicons name="close-circle" size={20} color="#1877F2" />
+        <Ionicons name="close-circle" size={14} color="#94A3B8" />
       </TouchableOpacity>
     )}
   </View>
 </View>
-
       <BookingReminder />
 
       {/* ── City Modal ── */}

@@ -1,53 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ConfirmBooking() {
   const params = useLocalSearchParams();
   const { bookingId, paymentId, paymentType, amount, verified } = params;
-
-  const [seconds, setSeconds] = useState(10); // Change this number to set countdown duration
-  const [scaleAnim] = useState(new Animated.Value(0));
-
-  useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      tension: 50,
-      friction: 7,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  useEffect(() => {
-    if (seconds <= 0) {
-      router.replace('/(tabs)/Home');
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setSeconds((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [seconds]);
-
-  const handleExploreMore = () => {
-    router.push('/Screens/User/Bookings');
-  };
-
-  const handleViewDetails = () => {
-    router.push({
-      pathname: '/Screens/User/BookingDetails',
-      params: { bookingId },
-    });
-  };
 
   const formatAmount = (amt: string | string[]) => {
     return `₹${parseFloat(amt?.toString() || '0').toLocaleString('en-IN')}`;
@@ -58,165 +22,123 @@ export default function ConfirmBooking() {
     return t === 'advance' ? 'Advance Payment' : 'Full Payment';
   };
 
+  // Mock data for display (replace with real from params or state)
+  const selectedTime = '10:00 – 10:30';
+  const selectedDate = 'Mon, Mar 23 2026';
+  const selectedBarber = 'Albin';
+  const totalAmount = 220;
+  const serviceName = 'Low Tapper';
+  const serviceDuration = '30 min';
+
   return (
     <View style={styles.container}>
-      {/* Corner Countdown */}
-      <View style={styles.countdownCorner}>
-        <View style={styles.countdownBadge}>
-          <Text style={styles.countdownNumber}>{seconds}s</Text>
-        </View>
-      </View>
-
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Success Section */}
-        <Animated.View 
-          style={[
-            styles.successSection,
-            { transform: [{ scale: scaleAnim }] }
-          ]}
-        >
-          <View style={styles.successIconWrapper}>
-            <View style={styles.successIconOuter}>
-              <View style={styles.successIconInner}>
-                <Text style={styles.checkMark}>✓</Text>
-              </View>
-            </View>
+        {/* Success Header */}
+        <View style={styles.successHeader}>
+          <View style={styles.successIcon}>
+            <Ionicons name="checkmark" size={36} color="#FFFFFF" />
           </View>
-          
-          <Text style={styles.successTitle}>Payment Successful!</Text>
+          <Text style={styles.successTitle}>Booking Confirmed</Text>
           <Text style={styles.successSubtitle}>
-            Your booking has been confirmed successfully
+            Your appointment is successfully scheduled
           </Text>
-        </Animated.View>
-
-        {/* Amount Card */}
-        <View style={styles.amountCard}>
-          <View style={styles.amountHeader}>
-            <Text style={styles.amountLabel}>Total Amount Paid</Text>
-            <View style={styles.verifiedBadge}>
-              <View style={styles.verifiedDot} />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
-          </View>
-          <Text style={styles.amountValue}>{formatAmount(amount)}</Text>
         </View>
 
-        {/* Details Card */}
-        <View style={styles.detailsCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Payment Details</Text>
+        {/* Appointment Summary Card */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.cardTitle}>Appointment Summary</Text>
+
+          <View style={styles.summaryRow}>
+            <Ionicons name="cut-outline" size={20} color="#64748B" />
+            <Text style={styles.summaryLabel}>Service</Text>
+            <Text style={styles.summaryValue}>{serviceName}</Text>
           </View>
 
-          <View style={styles.detailsList}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Booking ID</Text>
-              <Text style={styles.detailValue}>
-                {bookingId || 'BK-2024-XXXX'}
-              </Text>
-            </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="person-outline" size={20} color="#64748B" />
+            <Text style={styles.summaryLabel}>Barber</Text>
+            <Text style={styles.summaryValue}>{selectedBarber}</Text>
+          </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Payment ID</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>
-                {paymentId?.toString().slice(0, 20) || 'N/A'}...
-              </Text>
-            </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="calendar-outline" size={20} color="#64748B" />
+            <Text style={styles.summaryLabel}>Date</Text>
+            <Text style={styles.summaryValue}>{selectedDate}</Text>
+          </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Payment Type</Text>
-              <Text style={styles.detailValueBold}>
-                {formatPaymentType(paymentType)}
-              </Text>
-            </View>
+          <View style={styles.summaryRow}>
+            <Ionicons name="time-outline" size={20} color="#64748B" />
+            <Text style={styles.summaryLabel}>Time</Text>
+            <Text style={styles.summaryValue}>{selectedTime}</Text>
+          </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Transaction Date</Text>
-              <Text style={styles.detailValue}>
-                {new Date().toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                })}
-              </Text>
-            </View>
+          <View style={[styles.summaryRow, styles.summaryRowTotal]}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalValue}>{formatAmount(totalAmount)}</Text>
+          </View>
+        </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Transaction Time</Text>
-              <Text style={styles.detailValue}>
-                {new Date().toLocaleTimeString('en-IN', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </Text>
+        {/* Time Slots Timeline (simplified for confirmation) */}
+        <View style={styles.timelineSection}>
+          <Text style={styles.timelineTitle}>Confirmed Time Slot</Text>
+          <View style={styles.timelineItem}>
+            <View style={styles.timelineDot}>
+              <Ionicons name="checkmark-circle" size={28} color="#10B981" />
             </View>
-
-            <View style={[styles.detailRow, styles.detailRowLast]}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Completed</Text>
-              </View>
+            <View style={styles.timelineContent}>
+              <Text style={styles.timelineTime}>{selectedTime}</Text>
+              <Text style={styles.timelineService}>{serviceName} • {serviceDuration}</Text>
             </View>
           </View>
         </View>
 
-        {/* Payment Type Info */}
-        {paymentType?.toString() === 'advance' && (
-          <View style={styles.infoCard}>
-            <View style={styles.infoIconWrapper}>
-              <Text style={styles.infoIcon}>ℹ</Text>
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Advance Payment Made</Text>
-              <Text style={styles.infoText}>
-                The remaining balance will be collected at the time of service delivery.
-              </Text>
-            </View>
+        {/* Payment Info */}
+        <View style={styles.paymentInfo}>
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Payment Type</Text>
+            <Text style={styles.paymentValue}>{formatPaymentType(paymentType)}</Text>
           </View>
-        )}
 
-        {paymentType?.toString() === 'full' && (
-          <View style={[styles.infoCard, styles.infoCardSuccess]}>
-            <View style={[styles.infoIconWrapper, styles.infoIconSuccess]}>
-              <Text style={styles.infoIcon}>✓</Text>
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Full Payment Completed</Text>
-              <Text style={styles.infoText}>
-                Your booking is fully paid. No additional charges will be applied.
-              </Text>
-            </View>
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Booking ID</Text>
+            <Text style={styles.paymentValue}>{bookingId || '—'}</Text>
           </View>
-        )}
+
+          {paymentType?.toString() === 'advance' && (
+            <Text style={styles.advanceNote}>
+              Remaining balance will be collected at the salon
+            </Text>
+          )}
+        </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonGroup}>
-          <TouchableOpacity 
-            style={styles.primaryButton} 
-            onPress={handleExploreMore}
-            activeOpacity={0.8}
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(tabs)/Home')}
           >
-            <Text style={styles.primaryButtonText}>View All Bookings</Text>
+            <Text style={styles.secondaryButtonText}>Back to Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={handleViewDetails}
-            activeOpacity={0.7}
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push({
+              pathname: '/Screens/User/BookingDetails',
+              params: { bookingId },
+            })}
           >
-            <Text style={styles.secondaryButtonText}>View Booking Details</Text>
+            <Text style={styles.primaryButtonText}>View Booking Details</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            A confirmation email has been sent to your registered email address
-          </Text>
-        </View>
+        {/* Footer Note */}
+        <Text style={styles.footerNote}>
+          A confirmation has been sent to your email
+        </Text>
       </ScrollView>
     </View>
   );
@@ -225,297 +147,234 @@ export default function ConfirmBooking() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f8fc',
-  },
-  
-  // Corner Countdown
-  countdownCorner: {
-    position: 'absolute',
-    top: 50,
-    right: 16,
-    zIndex: 10,
-  },
-  countdownBadge: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#3b82f6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  countdownNumber: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#3b82f6',
+    backgroundColor: '#F8FAFC',
   },
 
   scrollView: {
     flex: 1,
   },
+
   scrollContent: {
-    paddingTop: 70,
-    paddingHorizontal: 20,
+    padding: 20,
     paddingBottom: 40,
   },
 
-  // Success Section
-  successSection: {
+  // Success Header
+  successHeader: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 32,
   },
-  successIconWrapper: {
-    marginBottom: 20,
-  },
-  successIconOuter: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    backgroundColor: '#e0f2fe',
+
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 4,
+    marginBottom: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  successIconInner: {
-    width: 82,
-    height: 82,
-    borderRadius: 6,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkMark: {
-    fontSize: 42,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
+
   successTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#1E293B',
     marginBottom: 8,
   },
+
   successSubtitle: {
     fontSize: 15,
-    color: '#64748b',
+    color: '#64748B',
     textAlign: 'center',
-    maxWidth: '80%',
   },
 
-  // Amount Card
-  amountCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  amountHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  verifiedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#16a34a',
-    marginRight: 6,
-  },
-  verifiedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#16a34a',
-  },
-  amountValue: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#1e293b',
-  },
-
-  // Details Card
-  detailsCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
+  // Summary Card
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 16,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: '#E2E8F0',
   },
-  cardHeader: {
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
+
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#1E293B',
+    marginBottom: 16,
   },
-  detailsList: {
-    gap: 2,
-  },
-  detailRow: {
+
+  summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8fafc',
-  },
-  detailRowLast: {
-    borderBottomWidth: 0,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    maxWidth: '55%',
-    textAlign: 'right',
-  },
-  detailValueBold: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  statusBadge: {
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#16a34a',
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
   },
 
-  // Info Card
-  infoCard: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-    flexDirection: 'row',
+  summaryRowTotal: {
+    borderBottomWidth: 0,
+    paddingTop: 16,
+  },
+
+  summaryLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#64748B',
+  },
+
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'right',
+  },
+
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+
+  totalValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+
+  // Timeline Section
+  timelineSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#E2E8F0',
   },
-  infoCardSuccess: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#dcfce7',
+
+  timelineTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 16,
   },
-  infoIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 7,
-    backgroundColor: '#3b82f6',
+
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+
+  timelineDot: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  infoIconSuccess: {
-    backgroundColor: '#16a34a',
-  },
-  infoIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  infoContent: {
+
+  timelineContent: {
     flex: 1,
-    paddingTop: 2,
   },
-  infoTitle: {
-    fontSize: 15,
+
+  timelineTime: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 4,
+    color: '#2563EB',
   },
-  infoText: {
+
+  timelineService: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+  },
+
+  // Payment Info
+  paymentInfo: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+
+  paymentLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+
+  paymentValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+
+  advanceNote: {
     fontSize: 13,
-    color: '#64748b',
-    lineHeight: 18,
+    color: '#2563EB',
+    marginTop: 12,
+    textAlign: 'center',
   },
 
   // Buttons
   buttonGroup: {
+    flexDirection: 'row',
     gap: 12,
-    marginBottom: 28,
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  secondaryButton: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#3b82f6',
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3b82f6',
+    marginBottom: 32,
   },
 
-  // Footer
-  footer: {
-    alignItems: 'center',
+  primaryButton: {
+    flex: 1,
+    backgroundColor: '#2563EB',
     paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  footerText: {
+
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+
+  secondaryButtonText: {
+    color: '#475569',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Footer Note
+  footerNote: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 19,
+    lineHeight: 20,
   },
 });
