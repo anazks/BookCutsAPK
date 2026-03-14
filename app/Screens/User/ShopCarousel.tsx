@@ -1,14 +1,18 @@
-import React, { useRef, useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import React, { useCallback, useRef } from 'react';
 import {
+  ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+
+const { width } = Dimensions.get('window');
 
 interface ShopItem {
   id: string;
@@ -21,6 +25,10 @@ interface ShopItem {
   website?: string;
   image: string;
   rating?: number;
+  priceRange?: string;
+  isOpen?: boolean;
+  discount?: string;
+  cuisine?: string[];
 }
 
 interface ShopCarouselProps {
@@ -41,7 +49,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   hasMore = true,
 }) => {
   const flatListRef = useRef<FlatList>(null);
-  const onEndReachedCalled = useRef(false); // simple guard against spam calls
+  const onEndReachedCalled = useRef(false);
 
   const handleShopPress = (shop: ShopItem) => {
     router.push({
@@ -51,118 +59,210 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   };
 
   const handleLoadMore = useCallback(() => {
-    // Extra safety: only call once per "session" until reset
     if (!hasMore || isLoadingMore || onEndReachedCalled.current) return;
-
     onEndReachedCalled.current = true;
     onEndReached?.();
-
-    // Reset flag after a short delay (helps if parent fetch is slow)
     setTimeout(() => {
       onEndReachedCalled.current = false;
     }, 800);
   }, [hasMore, isLoadingMore, onEndReached]);
 
-  const renderShopItem = ({ item, index }: { item: ShopItem; index: number }) => (
-    <TouchableOpacity
-      style={{
-        width: 160,
-        marginRight: 16, // consistent margin (last item also has margin)
-        backgroundColor: 'white',
-        borderRadius: 16,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
-      }}
-      onPress={() => handleShopPress(item)}
-      activeOpacity={0.9}
-    >
-      {/* ... same image + rating badge ... */}
-      <View style={{ position: 'relative' }}>
-        <Image
-          source={{ uri: item.image }}
-          style={{ width: '100%', height: 100 }}
-          resizeMode="cover"
-        />
-        <View
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 20,
-          }}
-        >
-          <Ionicons name="star" size={10} color="#F59E0B" />
-          <Text style={{ fontSize: 10, fontWeight: '700', color: '#111827', marginLeft: 2 }}>
-            {item.rating?.toFixed(1) || '4.5'}
-          </Text>
-        </View>
-      </View>
+  const getRatingColor = (rating: number) => {
+    if (rating >= 4.5) return '#3B82F6';
+    if (rating >= 4.0) return '#10B981';
+    if (rating >= 3.5) return '#F59E0B';
+    return '#EF4444';
+  };
 
-      <View style={{ padding: 12 }}>
-        <View style={{ marginBottom: 8 }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 }} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="location-outline" size={12} color="#6B7280" />
-            <Text style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }} numberOfLines={1}>
-              {item.location}
+  const renderShopItem = ({ item, index }: { item: ShopItem; index: number }) => {
+    const rating = item.rating || 4.5;
+    const ratingColor = getRatingColor(rating);
+
+    return (
+      <TouchableOpacity
+        style={{
+          width: 200,
+          marginRight: 16,
+          backgroundColor: 'white',
+          borderRadius: 16,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: '#F0F0F0',
+        }}
+        onPress={() => handleShopPress(item)}
+        activeOpacity={0.7}
+      >
+        {/* Image Container with Gradient Overlay */}
+        <View style={{ position: 'relative', height: 130 }}>
+          <Image
+            source={{ uri: item.image }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+          
+          {/* Gradient Overlay for better text readability */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.4)']}
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 50,
+            }}
+          />
+
+          {/* Discount Badge */}
+          {item.discount && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                backgroundColor: '#2563EB',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 4,
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>
+                {item.discount}
+              </Text>
+            </View>
+          )}
+
+          {/* Rating Badge */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              backgroundColor: ratingColor,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Ionicons name="star" size={10} color="white" />
+            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>
+              {rating.toFixed(1)}
             </Text>
           </View>
         </View>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-            alignItems: 'flex-end',
-            borderTopWidth: 1,
-            borderTopColor: '#F3F4F6',
-            paddingTop: 8,
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: '#ECFDF5',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Ionicons name="chevron-forward" size={16} color="#10B981" />
-          </TouchableOpacity>
+        {/* Content Container */}
+        <View style={{ padding: 12 }}>
+          {/* Shop Name and Verified Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 }} numberOfLines={1}>
+              {item.name}
+            </Text>
+            {rating >= 4.0 && (
+              <View style={{ marginLeft: 4 }}>
+                <Ionicons name="checkmark-circle" size={14} color="#2563EB" />
+              </View>
+            )}
+          </View>
+
+          {/* Cuisine/Categories */}
+          {item.cuisine && (
+            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }} numberOfLines={1}>
+              {item.cuisine.join(' • ')}
+            </Text>
+          )}
+
+          {/* Location and Distance Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <Ionicons name="location-outline" size={11} color="#9CA3AF" />
+            <Text style={{ fontSize: 11, color: '#6B7280', marginLeft: 4, flex: 1 }} numberOfLines={1}>
+              {item.location}
+            </Text>
+            {item.distance && (
+              <>
+                <Text style={{ fontSize: 11, color: '#9CA3AF', marginHorizontal: 4 }}>•</Text>
+                <Text style={{ fontSize: 11, color: '#2563EB', fontWeight: '500' }}>
+                  {item.distance}
+                </Text>
+              </>
+            )}
+          </View>
+
+          {/* Timing and Price Range Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="time-outline" size={11} color="#9CA3AF" />
+              <Text style={{ fontSize: 11, color: '#6B7280', marginLeft: 4 }}>
+                {item.timing || '9am - 8pm'}
+              </Text>
+            </View>
+            
+            {item.priceRange && (
+              <View style={{ flexDirection: 'row' }}>
+                {[1, 2, 3].map((price) => (
+                  <Text
+                    key={price}
+                    style={{
+                      fontSize: 11,
+                      color: parseInt(item.priceRange || '2') >= price ? '#2563EB' : '#E5E7EB',
+                      fontWeight: '500',
+                      marginLeft: 2,
+                    }}
+                  >
+                    ₹
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Action Buttons Row */}
+          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#2563EB',
+                paddingVertical: 8,
+                borderRadius: 6,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+              onPress={() => handleShopPress(item)}
+            >
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>Book</Text>
+              <Ionicons name="arrow-forward" size={10} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
 
     return (
-      <View style={{ width: 160, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: 200, justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
         <View
           style={{
-            width: 160,
-            height: 188, // fixed height matching card → prevents layout jump
+            width: 200,
+            height: 280,
             backgroundColor: 'white',
             borderRadius: 16,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 1,
-            borderColor: '#F3F4F6',
+            borderColor: '#F0F0F0',
           }}
         >
-          <ActivityIndicator size="small" color="#10B981" />
-          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>Loading more...</Text>
+          <ActivityIndicator size="small" color="#2563EB" />
+          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280', fontWeight: '400' }}>
+            Loading more...
+          </Text>
         </View>
       </View>
     );
@@ -171,26 +271,50 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   if (shops.length === 0 && !isLoadingMore) return null;
 
   return (
-    <View style={{ marginVertical: 20 }}>
+    <View style={{ marginVertical: 16 }}>
+      {/* Header */}
       <View
         style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
           paddingHorizontal: 16,
-          marginBottom: 12,
+          marginBottom: 16,
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#111827', letterSpacing: -0.5 }}>
-          {title}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 3,
+              height: 20,
+              backgroundColor: '#2563EB',
+              borderRadius: 1.5,
+              marginRight: 8,
+            }}
+          />
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>
+            {title}
+          </Text>
+        </View>
 
         {onViewAll && (
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={onViewAll}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#10B981', marginRight: 4 }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#F9FAFB',
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 4,
+              borderWidth: 1,
+              borderColor: '#F0F0F0',
+            }}
+            onPress={onViewAll}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '500', color: '#4B5563', marginRight: 4 }}>
               View All
             </Text>
-            <Ionicons name="arrow-forward" size={16} color="#10B981" />
+            <Ionicons name="arrow-forward" size={12} color="#4B5563" />
           </TouchableOpacity>
         )}
       </View>
@@ -204,24 +328,27 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
         contentContainerStyle={{ paddingHorizontal: 16 }}
         renderItem={renderShopItem}
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.35}           // ← lowered + tuned for horizontal
+        onEndReachedThreshold={0.35}
         ListFooterComponent={renderFooter}
-        ListFooterComponentStyle={{           // ← very important
-          marginRight: 16,                     // consistent spacing
+        ListFooterComponentStyle={{
+          marginRight: 0,
           alignSelf: 'center',
         }}
-        bounces={false}                        // ← helps a lot on iOS (prevents double calls)
-        initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={7}                         // slightly higher for horizontal
+        bounces={false}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
         getItemLayout={(data, index) => ({
-          length: 176, // card width 160 + marginRight 16
-          offset: 176 * index,
+          length: 216,
+          offset: 216 * index,
           index,
         })}
+        decelerationRate="fast"
+        snapToInterval={216}
+        snapToAlignment="start"
       />
     </View>
   );
 };
 
-export default ShopCarousel;  
+export default ShopCarousel;

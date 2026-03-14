@@ -1,41 +1,37 @@
-import React, { useState,useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
-  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 // Correct SafeArea imports
-import { SafeAreaView as SafeAreaViewContext, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Navigation & icons
-import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 // Your custom components (adjust paths if needed)
-import {BarberSelector} from './BookingComponent/BarberSelector';
+import { BarberSelector } from './BookingComponent/BarberSelector';
 
 
 import { BookingConfirmationModal } from './BookingComponent/BookingconfirmationModal';
 import { BookingFooter } from './BookingComponent/BookingFooter';
 import { DateSelector } from './BookingComponent/DateSelector';
+import { DiscountBanner } from './BookingComponent/DiscountBanner';
+import ManualCalendar from './BookingComponent/ManualCalender';
 import { ProgressSteps } from './BookingComponent/ProgressSteps';
-import { SelectedServicesSummary } from './BookingComponent/SelectedServiceSummary';
 import { ServicesSelector } from './BookingComponent/ServiceSelector';
 import { ShopHeader } from './BookingComponent/ShopHeader';
-import { useBookingFlow } from './BookingComponent/useBookingFlow';
 import { TimeSlotsSection } from './BookingComponent/TimeSlotSection';
-import { DiscountBanner } from './BookingComponent/DiscountBanner'
-import  ManualCalendar  from './BookingComponent/ManualCalender'
+import { useBookingFlow } from './BookingComponent/useBookingFlow';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
