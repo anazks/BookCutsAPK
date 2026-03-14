@@ -10,8 +10,7 @@ import {
   View,
 } from 'react-native';
 
-// Assume this helper is imported from your utils file
-import { addMinutesToTime } from '../BookingComponent/dateTimeHelpers'; // adjust path as needed
+import { addMinutesToTime } from '../BookingComponent/dateTimeHelpers';
 
 type BookingConfirmationModalProps = {
   visible: boolean;
@@ -39,7 +38,6 @@ export const BookingConfirmationModal = ({
   selectedBarber,
   selectedStartTime,
   totalDuration,
-  baseTotal,
   finalTotal,
   discountAmount,
   hasDiscount,
@@ -50,98 +48,94 @@ export const BookingConfirmationModal = ({
     ? addMinutesToTime(selectedStartTime, totalDuration)
     : '';
 
+  const servicesText = selectedServices.map(s => s.name).join(', ') || '—';
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          {/* Header */}
+          {/* Header – minimal & professional */}
           <View style={styles.header}>
-            <View style={styles.successIcon}>
-              <Ionicons name="checkmark" size={36} color="#FFFFFF" />
-            </View>
-            <Text style={styles.title}>Booking Confirmed</Text>
-            <Text style={styles.subtitle}>
-              Your appointment is successfully scheduled
-            </Text>
+            <Text style={styles.title}> Appointment Details</Text>
           </View>
 
-          {/* Summary Card */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.cardTitle}>Appointment Summary</Text>
-
+          {/* Summary – compact */}
+          <View style={styles.summaryContainer}>
             <View style={styles.summaryRow}>
-              <Ionicons name="cut-outline" size={20} color="#64748B" />
-              <Text style={styles.summaryLabel}>Services</Text>
-              <Text style={styles.summaryValue}>
-                {selectedServices.map(s => s.name).join(', ') || '—'}
+              <Ionicons name="cut-outline" size={18} color="#4B5563" />
+              <Text style={styles.label}>Services</Text>
+              <Text style={styles.value} numberOfLines={2}>
+                {servicesText}
               </Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.summaryLabel}>Date</Text>
-              <Text style={styles.summaryValue}>
-                {selectedDate?.toLocaleDateString('en-IN', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }) || '—'}
+              <Ionicons name="calendar-outline" size={18} color="#4B5563" />
+              <Text style={styles.label}>Date</Text>
+              <Text style={styles.value}>
+                {selectedDate
+                  ? selectedDate.toLocaleDateString('en-IN', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—'}
               </Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Ionicons name="person-outline" size={20} color="#64748B" />
-              <Text style={styles.summaryLabel}>Barber</Text>
-              <Text style={styles.summaryValue}>
+              <Ionicons name="person-outline" size={18} color="#4B5563" />
+              <Text style={styles.label}>Barber</Text>
+              <Text style={styles.value}>
                 {selectedBarber?.name || 'Any Available'}
               </Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Ionicons name="time-outline" size={20} color="#64748B" />
-              <Text style={styles.summaryLabel}>Time</Text>
-              <Text style={styles.summaryValue}>
+              <Ionicons name="time-outline" size={18} color="#4B5563" />
+              <Text style={styles.label}>Time</Text>
+              <Text style={styles.value}>
                 {selectedStartTime ? `${selectedStartTime} – ${endTime}` : '—'}
               </Text>
             </View>
 
-            {/* Total */}
-            <View style={styles.totalSection}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>₹{finalTotal.toLocaleString('en-IN')}</Text>
-              {hasDiscount && (
-                <Text style={styles.discountText}>
-                  (Saved ₹{discountAmount.toLocaleString('en-IN')})
-                </Text>
-              )}
+            {/* Total – compact but clear */}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <View style={styles.totalRight}>
+                <Text style={styles.totalValue}>₹{finalTotal.toLocaleString('en-IN')}</Text>
+                {hasDiscount && (
+                  <Text style={styles.discountText}>
+                    –₹{discountAmount.toLocaleString('en-IN')}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
 
-          {/* Buttons */}
-          <View style={styles.buttonGroup}>
+          {/* Buttons – professional & compact */}
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={styles.secondaryButton}
               onPress={onClose}
               disabled={isBooking}
             >
-              <Text style={styles.cancelButtonText}>Edit Details</Text>
+              <Text style={styles.secondaryButtonText}>Back</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.confirmButton, isBooking && styles.confirmDisabled]}
+              style={[styles.primaryButton, isBooking && styles.primaryDisabled]}
               onPress={onConfirm}
               disabled={isBooking}
             >
               {isBooking ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.loadingText}>Preparing...</Text>
+                </View>
               ) : (
-                <Text style={styles.confirmButtonText}>Confirm & Pay</Text>
+                <Text style={styles.primaryButtonText}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -154,148 +148,157 @@ export const BookingConfirmationModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.60)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
   },
 
   modalContainer: {
     width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
   },
 
   header: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
     alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    backgroundColor: '#EFF6FF',
-  },
-
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#2563EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
   },
 
-  subtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-
-  summaryCard: {
-    padding: 24,
-  },
-
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 20,
+  summaryContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
 
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 16,
+    paddingVertical: 10,
+    gap: 12,
   },
 
-  summaryLabel: {
-    flex: 1,
+  label: {
+    width: 80,
     fontSize: 14,
-    color: '#64748B',
+    color: '#6B7280',
+    fontWeight: '500',
   },
 
-  summaryValue: {
+  value: {
+    flex: 1,
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
+    color: '#111827',
+    fontWeight: '500',
     textAlign: 'right',
   },
 
-  totalSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
 
   totalLabel: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+
+  totalRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 
   totalValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#2563EB',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1D4ED8',
   },
 
   discountText: {
-    fontSize: 13,
-    color: '#10B981',
-    marginTop: 4,
+    fontSize: 14,
+    color: '#15803D',
+    fontWeight: '500',
   },
 
-  buttonGroup: {
+  buttonContainer: {
     flexDirection: 'row',
-    padding: 20,
+    padding: 16,
+    paddingTop: 12,
     gap: 12,
-    backgroundColor: '#F8FAFC',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
   },
 
-  confirmButton: {
+  primaryButton: {
     flex: 1,
-    backgroundColor: '#2563EB',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#1D4ED8',
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
   },
 
-  confirmDisabled: {
+  primaryDisabled: {
     backgroundColor: '#93C5FD',
   },
 
-  confirmButtonText: {
-    color: '#FFFFFF',
+  primaryButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
-  cancelButton: {
+  secondaryButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
     alignItems: 'center',
+    minHeight: 50,
+    justifyContent: 'center',
   },
 
-  cancelButtonText: {
-    color: '#475569',
+  secondaryButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  loadingText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

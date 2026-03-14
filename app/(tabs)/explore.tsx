@@ -1,4 +1,4 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   GoogleSignin
@@ -96,10 +96,8 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-
-      {/* ── Hero Header ── */}
+      {/* Hero Header */}
       <View style={styles.heroHeader}>
-        {/* Avatar + name inside hero */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarRing}>
             <View style={styles.avatar}>
@@ -127,32 +125,11 @@ export default function Profile() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-              
-        {/* ── Menu Section ── */}
+        {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
-
-           <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() =>
-              router.push({
-                pathname: '/Screens/User/PayoutScreen',
-                params: { referralCode: userData?.referralCode },
-              })
-            }
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="calendar-outline" size={18} color="#1877F2" />
-              </View>
-              <Text style={styles.menuText}>Payout</Text>
-            </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
-          </TouchableOpacity>
-
-           <TouchableOpacity
+          
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() =>
               router.push({
@@ -162,16 +139,13 @@ export default function Profile() {
             }
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="calendar-outline" size={18} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
+                <Ionicons name="calendar-outline" size={20} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Bookings</Text>
             </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </TouchableOpacity>
-
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -183,14 +157,12 @@ export default function Profile() {
             }
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="gift-outline" size={18} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
+                <Ionicons name="gift-outline" size={20} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Refer & Reward</Text>
             </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -198,31 +170,25 @@ export default function Profile() {
             onPress={() => router.push('/Screens/User/Payment')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="wallet-outline" size={18} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
+                <Ionicons name="wallet-outline" size={20} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Payment Methods</Text>
             </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </TouchableOpacity>
-
-         
 
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Privacy & Policy</Text>
             </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -230,18 +196,16 @@ export default function Profile() {
             onPress={() => router.push('/Screens/User/Support')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#EEF4FF' }]}>
-                <Ionicons name="help-circle-outline" size={18} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
+                <Ionicons name="help-circle-outline" size={20} color="#1877F2" />
               </View>
               <Text style={styles.menuText}>Help & Support</Text>
             </View>
-            <View style={styles.chevronBadge}>
-              <Ionicons name="chevron-forward" size={14} color="#1877F2" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
           </TouchableOpacity>
         </View>
 
-        {/* ── Logout ── */}
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
@@ -254,209 +218,136 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#F8F9FA',
   },
 
-  /* ── Hero Header ── */
+  /* Hero Header */
   heroHeader: {
     backgroundColor: '#1877F2',
-    paddingTop: 56,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    overflow: 'hidden',
-    shadowColor: '#0D4FB5',
-    shadowOffset: { width: 0, height: 8 },
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '400',
+    shadowRadius: 12,
+    elevation: 8,
   },
   avatarSection: {
     alignItems: 'center',
   },
   avatarRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '500',
     color: '#FFFFFF',
-    letterSpacing: 1,
   },
   onlineIndicator: {
     position: 'absolute',
-    right: '34%',
+    right: '32%',
     top: 68,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#22C55E',
-    borderWidth: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    borderWidth: 3,
     borderColor: '#1877F2',
   },
   heroName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   heroEmail: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 10,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.95)',
+    marginBottom: 12,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   locationPillText: {
-    fontSize: 12,
-    color: '#1877F2',
-    fontWeight: '600',
-  },
-
-  scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 120 },
-
-  /* ── Stats ── */
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    marginTop: 20,
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 8,
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1877F2',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 13,
+    color: '#FFFFFF',
     fontWeight: '500',
   },
-  statDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: '#DBEAFE',
-    alignSelf: 'center',
+
+  scrollView: { 
+    flex: 1 
+  },
+  scrollContent: { 
+    paddingBottom: 100
   },
 
-  /* ── Quick Actions ── */
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 24,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  actionButton: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  actionIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1877F2',
-  },
-
-  /* ── Menu ── */
+  /* Menu Section */
   menuSection: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    marginTop: 20,
+    marginHorizontal: 20,
+    marginTop: 24,
     borderRadius: 20,
-    padding: 20,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 3,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1877F2',
-    marginBottom: 16,
-    letterSpacing: 0.3,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEF4FF',
+    borderBottomColor: '#F0F0F0',
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -464,90 +355,78 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+    marginRight: 16,
   },
   menuText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#1C1C1E',
     flex: 1,
   },
-  chevronBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#EEF4FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
 
-  /* ── Logout ── */
+  /* Logout */
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    marginHorizontal: 24,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
     marginTop: 24,
-    marginBottom: 40,
+    marginBottom: 30,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    gap: 8,
-    shadowColor: '#EF4444',
+    borderColor: '#F0F0F0',
+    gap: 10,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logoutText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#DC2626',
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#EF4444',
   },
 
-  /* ── Loading / Error ── */
+  /* Loading / Error */
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#F8F9FA',
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 15,
+    fontSize: 16,
     color: '#1877F2',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#F8F9FA',
   },
   errorText: {
     fontSize: 16,
-    color: '#1877F2',
+    color: '#1C1C1E',
     textAlign: 'center',
     marginVertical: 20,
   },
   retryButton: {
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     backgroundColor: '#1877F2',
     borderRadius: 14,
-    shadowColor: '#0D4FB5',
+    shadowColor: '#1877F2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -555,7 +434,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

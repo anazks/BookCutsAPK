@@ -16,7 +16,7 @@ type BookingFooterProps = {
   finalTotal: number;
   hasDiscount: boolean;
   discountAmount: number;
-  isValid: boolean;           // whether all required fields are filled
+  isValid: boolean;
   isBooking: boolean;
   onBookPress: () => void;
 };
@@ -41,13 +41,10 @@ export const BookingFooter = ({
         <View style={styles.bookingPreview}>
           <View style={styles.previewHeader}>
             <Text style={styles.previewTitle}>Appointment Summary</Text>
-
             <View style={styles.priceContainer}>
               {hasDiscount && (
                 <View style={styles.previewDiscountBadge}>
-                  <Text style={styles.previewDiscountText}>
-                    -₹{discountAmount}
-                  </Text>
+                  <Text style={styles.previewDiscountText}>-₹{discountAmount}</Text>
                 </View>
               )}
               <Text style={styles.previewPrice}>₹{finalTotal}</Text>
@@ -63,7 +60,6 @@ export const BookingFooter = ({
                 </Text>
               </View>
             )}
-
             {selectedDate && (
               <View style={styles.previewChip}>
                 <Ionicons name="calendar" size={14} color="#3B82F6" />
@@ -76,48 +72,42 @@ export const BookingFooter = ({
                 </Text>
               </View>
             )}
-
             {selectedBarber && (
               <View style={styles.previewChip}>
                 <Ionicons name="person" size={14} color="#8B5CF6" />
-                <Text style={styles.previewText}>
-                  {selectedBarber.name}
-                </Text>
+                <Text style={styles.previewText}>{selectedBarber.name}</Text>
               </View>
             )}
-
             {selectedStartTime && (
               <View style={styles.previewChip}>
                 <Ionicons name="time" size={14} color="#3B82F6" />
-                <Text style={styles.previewText}>
-                  {selectedStartTime}
-                </Text>
+                <Text style={styles.previewText}>{selectedStartTime}</Text>
               </View>
             )}
           </View>
         </View>
       )}
 
+      {/* Normal Book Button */}
       <TouchableOpacity
         style={[
           styles.bookButton,
-          !isValid && styles.disabledButton,
+          !isValid && styles.bookButtonDisabled,
+          isBooking && styles.bookButtonLoading,
         ]}
         onPress={onBookPress}
         disabled={!isValid || isBooking}
-        activeOpacity={0.85}
+        activeOpacity={0.78}
       >
-        <View style={styles.bookButtonContent}>
-          <Ionicons name="calendar" size={22} color="#FFFFFF" />
-          <Text style={styles.bookButtonText}>
-            {isBooking ? 'Processing...' : 'Book Appointment'}
-          </Text>
-        </View>
-
-        {finalTotal > 0 && (
-          <View style={styles.priceBadge}>
-            <Text style={styles.priceBadgeText}>₹{finalTotal}</Text>
+        {isBooking ? (
+          <Text style={styles.bookButtonText}>Processing...</Text>
+        ) : isValid ? (
+          <View style={styles.bookButtonContent}>
+            <Text style={styles.bookButtonText}>Book Appointment</Text>
+            <Ionicons name="chevron-forward" size={20} color="#fff" />
           </View>
+        ) : (
+          <Text style={styles.bookButtonText}>Complete details to book</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -129,7 +119,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 28,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     shadowColor: '#000',
@@ -138,6 +128,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
   },
+
+  // ── Preview styles (unchanged) ──
   bookingPreview: {
     marginBottom: 16,
     paddingBottom: 12,
@@ -195,44 +187,36 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontWeight: '500',
   },
+
+  // ── New normal button styles ──
   bookButton: {
+    height: 56,
     backgroundColor: '#2563EB',
-    borderRadius: 16,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 28,
     justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.38,
     shadowRadius: 10,
     elevation: 6,
   },
-  disabledButton: {
+  bookButtonDisabled: {
     backgroundColor: '#93C5FD',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
+  },
+  bookButtonLoading: {
+    backgroundColor: '#60A5FA',
   },
   bookButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   bookButtonText: {
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
-  },
-  priceBadge: {
-    position: 'absolute',
-    right: 24,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  priceBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

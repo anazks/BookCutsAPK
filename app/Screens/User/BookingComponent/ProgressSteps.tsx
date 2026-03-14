@@ -14,74 +14,70 @@ export const ProgressSteps = ({ completed, total = 3 }: ProgressStepsProps) => {
     { label: 'Time', number: 3 },
   ];
 
-  const progressPercentage = Math.min((completed / total) * 100, 100);
-
   return (
-    <View style={styles.progressSection}>
-      {/* Step circles with connecting line */}
-      <View style={styles.stepsRow}>
+    <View style={styles.container}>
+      {/* Simple step indicators */}
+      <View style={styles.stepsContainer}>
         {steps.map((step, index) => {
           const isCompleted = step.number <= completed;
-          const isCurrent = step.number === completed + 1;
+          const isActive = step.number === completed + 1;
+          const isUpcoming = step.number > completed + 1;
 
           return (
             <React.Fragment key={step.number}>
-              <View style={styles.stepWrapper}>
+              {/* Step indicator */}
+              <View style={styles.stepItem}>
                 <View
                   style={[
-                    styles.stepCircle,
-                    isCompleted && styles.stepCompleted,
-                    isCurrent && styles.stepCurrent,
+                    styles.stepDot,
+                    isCompleted && styles.stepDotCompleted,
+                    isActive && styles.stepDotActive,
+                    isUpcoming && styles.stepDotUpcoming,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.stepNumber,
-                      isCompleted && styles.stepNumberCompleted,
-                      isCurrent && styles.stepNumberCurrent,
-                    ]}
-                  >
-                    {step.number}
-                  </Text>
+                  {isCompleted ? (
+                    <Text style={styles.stepDotText}>✓</Text>
+                  ) : (
+                    <Text style={[
+                      styles.stepDotText,
+                      isActive && styles.stepDotTextActive,
+                    ]}>
+                      {step.number}
+                    </Text>
+                  )}
                 </View>
-
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    isCompleted && styles.stepLabelCompleted,
-                    isCurrent && styles.stepLabelCurrent,
-                  ]}
-                >
+                <Text style={[
+                  styles.stepLabel,
+                  isCompleted && styles.stepLabelCompleted,
+                  isActive && styles.stepLabelActive,
+                ]}>
                   {step.label}
                 </Text>
               </View>
 
-              {/* Connecting line - only between steps */}
+              {/* Connector line between steps */}
               {index < steps.length - 1 && (
-                <View style={styles.connectorContainer}>
-                  <View style={styles.connectorBackground} />
-                  <View
-                    style={[
-                      styles.connectorFill,
-                      step.number < completed && styles.connectorFull,
-                      step.number === completed && styles.connectorPartial,
-                    ]}
-                  />
-                </View>
+                <View style={[
+                  styles.connector,
+                  step.number < completed && styles.connectorCompleted
+                ]} />
               )}
             </React.Fragment>
           );
         })}
       </View>
 
-      {/* Optional progress bar (can remove if connectors are enough) */}
-      <View style={styles.progressBarContainer}>
-        <View style={styles.progressBarBackground}>
-          <View
+      {/* Progress text indicator */}
+      <View style={styles.progressInfo}>
+        <Text style={styles.progressText}>
+          Step {completed + 1} of {total}: {steps[completed]?.label || 'Complete'}
+        </Text>
+        <View style={styles.progressBar}>
+          <View 
             style={[
-              styles.progressBarFill,
-              { width: `${progressPercentage}%` },
-            ]}
+              styles.progressFill, 
+              { width: `${((completed + 1) / total) * 100}%` }
+            ]} 
           />
         </View>
       </View>
@@ -90,139 +86,103 @@ export const ProgressSteps = ({ completed, total = 3 }: ProgressStepsProps) => {
 };
 
 const styles = StyleSheet.create({
-  progressSection: {
+  container: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingVertical: 12,           // ← reduced vertical padding (was 20)
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F0F0F0',
   },
 
-  stepsRow: {
+  stepsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,              // ← reduced from 16–20
+    marginBottom: 16,
   },
 
-  stepWrapper: {
+  stepItem: {
     flex: 1,
     alignItems: 'center',
-    position: 'relative',
   },
 
-  stepCircle: {
-    width: 40,                     // ← smaller circle (was 48)
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E2E8F0',
+  stepDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 3,
+    marginBottom: 6,
   },
 
-  stepCompleted: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+  stepDotCompleted: {
+    backgroundColor: '#34C759', // Green for completed
   },
 
-  stepCurrent: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#3B82F6',
-    borderWidth: 5,
-    shadowColor: '#3B82F6',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-    transform: [{ scale: 1.08 }],
+  stepDotActive: {
+    backgroundColor: '#007AFF', // Blue for active
   },
 
-  stepNumber: {
-    fontSize: 16,                  // ← slightly smaller number
-    fontWeight: '700',
-    color: '#64748B',
+  stepDotUpcoming: {
+    backgroundColor: '#E5E5EA', // Light gray for upcoming
   },
 
-  stepNumberCompleted: {
+  stepDotText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 
-  stepNumberCurrent: {
-    color: '#3B82F6',
-    fontWeight: '800',
+  stepDotTextActive: {
+    color: '#FFFFFF',
   },
 
   stepLabel: {
-    marginTop: 6,                  // ← tighter spacing
     fontSize: 12,
     fontWeight: '500',
-    color: '#94A3B8',
-    letterSpacing: 0.2,
+    color: '#8E8E93',
   },
 
   stepLabelCompleted: {
-    color: '#2563EB',
+    color: '#34C759',
+  },
+
+  stepLabelActive: {
+    color: '#007AFF',
     fontWeight: '600',
   },
 
-  stepLabelCurrent: {
-    color: '#3B82F6',
-    fontWeight: '700',
+  connector: {
+    height: 2,
+    flex: 0.8,
+    backgroundColor: '#E5E5EA',
+    marginBottom: 24, // Align with dots
   },
 
-  // Connector line between steps
-  connectorContainer: {
-    position: 'absolute',
-    top: 20,                       // ← aligned to smaller circle center
-    left: '50%',
-    right: -1,
-    height: 3,
-    zIndex: -1,
+  connectorCompleted: {
+    backgroundColor: '#34C759',
   },
 
-  connectorBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#E2E8F0',
+  progressInfo: {
+    marginTop: 4,
+  },
+
+  progressText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginBottom: 6,
+  },
+
+  progressBar: {
+    height: 4,
+    backgroundColor: '#E5E5EA',
     borderRadius: 2,
-  },
-
-  connectorFill: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#3B82F6',
-    borderRadius: 2,
-    width: 0,
-  },
-
-  connectorFull: {
-    width: '100%',
-  },
-
-  connectorPartial: {
-    width: '50%', // half-filled when current step
-  },
-
-  // Progress bar (optional – can remove)
-  progressBarContainer: {
-    paddingHorizontal: 8,
-    marginTop: 8,
-  },
-
-  progressBarBackground: {
-    height: 6,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 3,
     overflow: 'hidden',
   },
 
-  progressBarFill: {
+  progressFill: {
     height: '100%',
-    backgroundColor: '#3B82F6',
-    borderRadius: 3,
+    backgroundColor: '#007AFF',
+    borderRadius: 2,
   },
 });

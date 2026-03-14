@@ -13,21 +13,36 @@ type DateSelectorProps = {
   onPress: () => void;
 };
 
+const normalizeDate = (date: Date) => {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
+const formatDate = (date: Date) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const day = days[date.getDay()];
+  const month = months[date.getMonth()];
+  const dateNum = date.getDate();
+  const year = date.getFullYear();
+
+  return `${day}, ${dateNum} ${month} ${year}`;
+};
+
 export const DateSelector = ({ selectedDate, onPress }: DateSelectorProps) => {
+
   const formattedDate = selectedDate
-    ? selectedDate.toLocaleDateString('en-IN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+    ? formatDate(normalizeDate(selectedDate))
     : null;
 
   return (
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>Select Date</Text>
-        <Text style={styles.subtitle}>Choose your preferred appointment date</Text>
+        <Text style={styles.subtitle}>
+          Choose your preferred appointment date
+        </Text>
       </View>
 
       <TouchableOpacity
@@ -39,10 +54,13 @@ export const DateSelector = ({ selectedDate, onPress }: DateSelectorProps) => {
         activeOpacity={0.7}
       >
         <View style={styles.cardContent}>
-          <View style={[
-            styles.iconContainer,
-            selectedDate && styles.selectedIconContainer,
-          ]}>
+
+          <View
+            style={[
+              styles.iconContainer,
+              selectedDate && styles.selectedIconContainer,
+            ]}
+          >
             <Ionicons
               name="calendar-outline"
               size={26}
@@ -51,17 +69,23 @@ export const DateSelector = ({ selectedDate, onPress }: DateSelectorProps) => {
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={[
-              styles.label,
-              selectedDate && styles.selectedLabel,
-            ]}>
+            <Text
+              style={[
+                styles.label,
+                selectedDate && styles.selectedLabel,
+              ]}
+            >
               {selectedDate ? 'Selected Date' : 'Tap to select date'}
             </Text>
 
-            <Text style={[
-              styles.value,
-              selectedDate ? styles.selectedValue : styles.placeholderValue,
-            ]}>
+            <Text
+              style={[
+                styles.value,
+                selectedDate
+                  ? styles.selectedValue
+                  : styles.placeholderValue,
+              ]}
+            >
               {formattedDate || 'Choose appointment date'}
             </Text>
           </View>
@@ -71,6 +95,7 @@ export const DateSelector = ({ selectedDate, onPress }: DateSelectorProps) => {
             size={20}
             color={selectedDate ? '#2563EB' : '#9CA3AF'}
           />
+
         </View>
       </TouchableOpacity>
     </View>
@@ -80,7 +105,7 @@ export const DateSelector = ({ selectedDate, onPress }: DateSelectorProps) => {
 const styles = StyleSheet.create({
   section: {
     marginHorizontal: 20,
-    marginTop: 20,         // ← added top padding for breathing room
+    marginTop: 20,
     marginBottom: 16,
   },
 
@@ -118,7 +143,6 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
 
   iconContainer: {
@@ -166,4 +190,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontWeight: '500',
   },
-});  
+});
+
+export default DateSelector;

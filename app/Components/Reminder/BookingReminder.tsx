@@ -1,4 +1,6 @@
+import { fetchUpcomingBooking } from '@/app/api/Service/User';
 import { Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -12,8 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { fetchUpcomingBooking } from '@/app/api/Service/User';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
