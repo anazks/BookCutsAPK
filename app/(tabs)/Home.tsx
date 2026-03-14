@@ -1,34 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRef } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
+  Dimensions,
   FlatList,
-  Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  BackHandler,
-  RefreshControl,
+  View
 } from 'react-native';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { findNearestShops, search, filterShopsByService } from '../api/Service/Shop';
+import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile, getNearbyCitiesFallback } from '../api/Service/User';
-import AdvancedFilter from '../Components/Filters/AdvancedFilter';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
+
+const { width } = Dimensions.get('window');
 
 const Home = () => {
   const isFetchingMoreRef = useRef(false);
@@ -452,80 +453,220 @@ const Home = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EEF4FF' }}>
-      {/* ← very light blue tint for the page background */}
-      <StatusBar barStyle="light-content" backgroundColor="#1877F2" />
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* ── Header ── */}
+      {/* Zomato-style layered header with creative background */}
+      <View style={{
+        height: 260,
+        position: 'relative',
+        overflow: 'hidden',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+      }}>
+        {/* Background Pattern - Wave Layer */}
         <View style={{
-  backgroundColor: '#FFFFFF',
-  paddingTop: 48,
-  paddingBottom: 12,
-  paddingHorizontal: 16,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F0F2F5',
-}}>
-  
-  <View style={{ 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 12
-  }}>
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#1877F2',
+        }}>
+          <View style={{
+            position: 'absolute',
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            top: -50,
+            right: -50,
+          }} />
+          <View style={{
+            position: 'absolute',
+            width: 300,
+            height: 300,
+            borderRadius: 150,
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            bottom: -100,
+            left: -100,
+          }} />
+          <View style={{
+            position: 'absolute',
+            width: 150,
+            height: 150,
+            borderRadius: 75,
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            top: 40,
+            left: 30,
+          }} />
+        </View>
 
-    {/* City selector - super minimal */}
-    <TouchableOpacity
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-      onPress={() => setShowCityDropdown(true)}
-    >
-      <Ionicons name="location-outline" size={14} color="#1877F2" />
-      <Text style={{ 
-        marginLeft: 4,
-        fontWeight: '500',
-        color: '#1A1F36',
-        fontSize: 14,
-      }}>{selectedCity}</Text>
-      <Ionicons name="chevron-down" size={12} color="#94A3B8" style={{ marginLeft: 2 }} />
-    </TouchableOpacity>
+        {/* Gradient Overlay */}
+        <LinearGradient
+          colors={['rgba(24, 119, 242, 0.95)', 'rgba(24, 119, 242, 0.85)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+        />
 
-    {/* Logout - icon only */}
-    <TouchableOpacity onPress={handleLogout}>
-      <Ionicons name="log-out-outline" size={18} color="#64748B" />
-    </TouchableOpacity>
-  </View>
+        {/* Header Content */}
+        <View style={{
+          flex: 1,
+          paddingTop: 48,
+          paddingHorizontal: 20,
+        }}>
+          {/* Top Bar */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}>
+            {/* City selector with Zomato-style pill */}
+            <TouchableOpacity
+              style={{
+                borderRadius: 25,
+                overflow: 'hidden',
+              }}
+              onPress={() => setShowCityDropdown(true)}
+            >
+              <BlurView intensity={20} tint="light" style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                gap: 6,
+              }}>
+                <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 14,
+                  fontWeight: '600',
+                }}>{selectedCity}</Text>
+                <Ionicons name="chevron-down" size={14} color="#FFFFFF" />
+              </BlurView>
+            </TouchableOpacity>
 
-  {/* Search bar - compact */}
-  <View style={{
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  }}>
-    <Ionicons name="search-outline" size={16} color="#94A3B8" style={{ marginRight: 6 }} />
-    <TextInput
-      style={{ 
-        flex: 1, 
-        fontSize: 13,
-        color: '#1A1F36',
-        paddingVertical: 0,
-      }}
-      value={searchQuery}
-      onChangeText={setSearchQuery}
-      placeholder="Search"
-      placeholderTextColor="#94A3B8"
-    />
-    {searchQuery.length > 0 && (
-      <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
-        <Ionicons name="close-circle" size={14} color="#94A3B8" />
-      </TouchableOpacity>
-    )}
-  </View>
-</View>
+            {/* Right icons with glassmorphism */}
+            <View style={{
+              flexDirection: 'row',
+              gap: 8,
+            }}>
+              <TouchableOpacity style={{
+                borderRadius: 20,
+                overflow: 'hidden',
+              }}>
+                <BlurView intensity={20} tint="light" style={{
+                  padding: 8,
+                  borderRadius: 20,
+                }}>
+                  <Ionicons name="notifications-outline" size={18} color="#FFFFFF" />
+                </BlurView>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={{
+                borderRadius: 20,
+                overflow: 'hidden',
+              }}>
+                <BlurView intensity={20} tint="light" style={{
+                  padding: 8,
+                  borderRadius: 20,
+                }}>
+                  <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+                </BlurView>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Welcome Text */}
+          <View style={{
+            marginBottom: 20,
+          }}>
+            <Text style={{
+              fontSize: 24,
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontWeight: '400',
+            }}>Find your perfect</Text>
+            <Text style={{
+              fontSize: 32,
+              color: '#FFFFFF',
+              fontWeight: '700',
+              marginTop: -4,
+            }}>style match</Text>
+          </View>
+
+          {/* Zomato-style Search Bar with depth effect */}
+          <View style={{
+            position: 'relative',
+            marginTop: 4,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 30,
+              paddingHorizontal: 16,
+              paddingVertical: 4,
+              height: 52,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              position: 'relative',
+              zIndex: 2,
+            }}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F8FAFC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: 30,
+                }}
+              />
+              <Ionicons name="search-outline" size={18} color="#1877F2" style={{ marginRight: 10, zIndex: 3 }} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: '#1A1F36',
+                  paddingVertical: 12,
+                  zIndex: 3,
+                }}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search for salons, services..."
+                placeholderTextColor="#94A3B8"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={() => { setSearchQuery(''); setSearchData([]); }}
+                  style={{ padding: 4, zIndex: 3 }}
+                >
+                  <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Decorative search bar shadow layer */}
+            <View style={{
+              position: 'absolute',
+              bottom: -6,
+              left: 10,
+              right: 10,
+              height: 20,
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              borderRadius: 30,
+              zIndex: 1,
+            }} />
+          </View>
+        </View>
+      </View>
+
       <BookingReminder />
 
       {/* ── City Modal ── */}
@@ -550,7 +691,7 @@ const Home = () => {
               justifyContent: 'space-between',
               padding: 16,
               borderBottomWidth: 1,
-              borderBottomColor: '#DBEAFE',        // blue-tinted divider
+              borderBottomColor: '#DBEAFE',
               backgroundColor: '#EEF4FF',
             }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#1877F2' }}>Select Your Location</Text>
@@ -633,21 +774,6 @@ const Home = () => {
           </>
         ) : (
           <>
-            {/* {error && (
-              <View style={{
-                flexDirection: 'row',
-                backgroundColor: '#DBEAFE',         // light blue error band
-                margin: 16,
-                padding: 12,
-                borderRadius: 10,
-                borderLeftWidth: 4,
-                borderLeftColor: '#1877F2',
-              }}>
-                <Ionicons name="alert-circle-outline" size={20} color="#1877F2" />
-                <Text style={{ flex: 1, marginLeft: 8, color: '#1D4ED8' }}>{error}</Text>
-              </View>
-            )} */}
-
             {/* Services section */}
             <View style={{ marginVertical: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1877F2' }}>
@@ -677,45 +803,6 @@ const Home = () => {
                 {/* <AdvancedFilter /> */}
               </>
             )}
-
-            {/* Trending Styles */}
-            {/* <View style={{ marginVertical: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1877F2' }}>Trending Styles</Text>
-              </View>
-              <FlatList
-                horizontal
-                data={trendingDesigns}
-                keyExtractor={(item) => item.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
-                renderItem={({ item }) => (
-                  <View style={{
-                    width: 140,
-                    marginRight: 12,
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 14,
-                    padding: 8,
-                    shadowColor: '#1877F2',          // blue shadow for cards
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 6,
-                    elevation: 3,
-                    borderWidth: 1,
-                    borderColor: '#DBEAFE',           // subtle blue border
-                  }}>
-                    <Image
-                      source={{ uri: item.image }}
-                      style={{ width: '100%', height: 140, borderRadius: 8, marginBottom: 8 }}
-                    />
-                    <Text style={{ marginTop: 4, textAlign: 'center', fontWeight: '600', color: '#111827' }}>{item.name}</Text>
-                    <Text style={{ marginTop: 2, textAlign: 'center', fontSize: 12, color: '#1877F2', fontWeight: '600' }}>
-                      {item.popularity} popular
-                    </Text>
-                  </View>
-                )}
-              />
-            </View> */}
           </>
         )}
       </ScrollView>

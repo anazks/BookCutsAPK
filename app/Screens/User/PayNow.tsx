@@ -1,3 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -10,20 +14,20 @@ import {
   View,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
-import { createOrder, verifyPayment } from '../../api/Service/Booking';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
-import { Ionicons } from '@expo/vector-icons';
+import { createOrder, verifyPayment } from '../../api/Service/Booking';
 
-const DetailRow = ({ label, value }) => (
+const DetailRow = ({ label, value, icon }) => (
   <View style={styles.detailRow}>
-    <Text style={styles.detailLabel}>{label}</Text>
+    <View style={styles.detailLabelContainer}>
+      {icon && <Ionicons name={icon} size={16} color="#64748B" />}
+      <Text style={styles.detailLabel}>{label}</Text>
+    </View>
     <Text style={styles.detailValue}>{value}</Text>
   </View>
 );
 
-const PaymentOption = ({ title, amount, isSelected, onPress, note }) => (
+const PaymentOption = ({ title, amount, isSelected, onPress, note, savings }) => (
   <TouchableOpacity
     style={[styles.paymentOption, isSelected && styles.selectedOption]}
     onPress={onPress}
@@ -34,14 +38,31 @@ const PaymentOption = ({ title, amount, isSelected, onPress, note }) => (
         {isSelected && <View style={styles.radioFill} />}
       </View>
     </View>
+    
     <View style={styles.optionContent}>
-      <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>{title}</Text>
-      <Text style={[styles.optionAmount, isSelected && styles.optionAmountSelected]}>₹{amount}</Text>
-      {note && <Text style={styles.optionNote}>{note}</Text>}
+      <View style={styles.optionHeader}>
+        <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>{title}</Text>
+        <Text style={[styles.optionAmount, isSelected && styles.optionAmountSelected]}>₹{amount}</Text>
+      </View>
+      
+      {note && (
+        <View style={styles.optionNoteContainer}>
+          <Ionicons name="information-circle-outline" size={14} color="#64748B" />
+          <Text style={styles.optionNote}>{note}</Text>
+        </View>
+      )}
+      
+      {savings && (
+        <View style={styles.savingsBadge}>
+          <Ionicons name="leaf-outline" size={12} color="#10B981" />
+          <Text style={styles.savingsText}>Save ₹{savings} with advance</Text>
+        </View>
+      )}
     </View>
+
     {isSelected && (
-      <View style={styles.selectedBadge}>
-        <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+      <View style={styles.selectedCheckmark}>
+        <Ionicons name="checkmark-circle" size={22} color="#1877F2" />
       </View>
     )}
   </TouchableOpacity>
@@ -262,124 +283,235 @@ export default function PayNow() {
   if (isLoading || !bookingData) {
     return (
       <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={['#EEF4FF', '#FFFFFF']}
+          style={StyleSheet.absoluteFill}
+        />
         <ActivityIndicator size="large" color="#1877F2" />
-        <Text style={styles.loadingText}>Loading booking details...</Text>
+        <Text style={styles.loadingText}>Getting your booking ready...</Text>
       </View>
     );
   }
 
   const remainingAmount = (parseFloat(totalPrice) - parseFloat(advanceAmount)).toFixed(2);
+  const savingsAmount = (parseFloat(advanceAmount) * 0.05).toFixed(2); // Example: 5% savings
   const buttonText =
     paymentType === 'advance' ? `Pay ₹${advanceAmount} Now` : `Pay ₹${totalPrice} Now`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#EEF4FF' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <LinearGradient
+        colors={['#EEF4FF', '#FFFFFF']}
+        style={styles.backgroundGradient}
+      />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Checkout</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Page Title ── */}
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Checkout</Text>
-          <Text style={styles.pageSubtitle}>Review & complete your booking</Text>
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressStep}>
+            <View style={[styles.progressDot, styles.progressDotCompleted]}>
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
+            <Text style={styles.progressText}>Details</Text>
+          </View>
+          <View style={[styles.progressLine, styles.progressLineActive]} />
+          <View style={styles.progressStep}>
+            <View style={[styles.progressDot, styles.progressDotActive]}>
+              <Text style={styles.progressDotText}>2</Text>
+            </View>
+            <Text style={[styles.progressText, styles.progressTextActive]}>Payment</Text>
+          </View>
+          <View style={styles.progressLine} />
+          <View style={styles.progressStep}>
+            <View style={styles.progressDot}>
+              <Text style={styles.progressDotText}>3</Text>
+            </View>
+            <Text style={styles.progressText}>Confirm</Text>
+          </View>
         </View>
 
-        {/* ── Booking Summary Card ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderIcon}>
-              <Ionicons name="calendar-outline" size={18} color="#1877F2" />
-            </View>
-            <Text style={styles.cardTitle}>Booking Details</Text>
+        {/* Booking Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Ionicons name="receipt-outline" size={20} color="#1877F2" />
+            <Text style={styles.summaryTitle}>Booking Summary</Text>
           </View>
 
-          <View style={styles.detailsContainer}>
-            <DetailRow label="Barber" value={barberName} />
-            <DetailRow label="Date" value={bookingDate} />
-            <DetailRow label="Time Slot" value={timeSlot} />
-            <DetailRow
-              label="Services"
-              value={bookingData.services.map((s) => s.name).join(', ')}
-            />
-            <DetailRow label="Duration" value={`${bookingData.totalDuration} minutes`} />
+          <View style={styles.salonInfo}>
+            <View style={styles.salonIconContainer}>
+              <Ionicons name="cut" size={24} color="#1877F2" />
+            </View>
+            <View style={styles.salonDetails}>
+              <Text style={styles.barberName}>{barberName}</Text>
+              <Text style={styles.bookingDateTime}>{bookingDate} • {timeSlot}</Text>
+            </View>
+          </View>
 
-            {/* Total row */}
-            <View style={styles.totalAmountRow}>
-              <Text style={styles.totalAmountLabel}>Total Amount</Text>
-              <View style={styles.totalAmountBadge}>
-                <Text style={styles.totalAmountValue}>₹{totalPrice}</Text>
+          <View style={styles.servicesContainer}>
+            {bookingData.services.map((service, index) => (
+              <View key={index} style={styles.serviceRow}>
+                <Text style={styles.serviceName}>{service.name}</Text>
+                <Text style={styles.servicePrice}>₹{service.price}</Text>
               </View>
+            ))}
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.durationRow}>
+            <Ionicons name="time-outline" size={16} color="#64748B" />
+            <Text style={styles.durationText}>Total Duration: {bookingData.totalDuration} mins</Text>
+          </View>
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <View style={styles.totalAmountContainer}>
+              <Text style={styles.totalAmount}>₹{totalPrice}</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Payment Options Card ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderIcon}>
-              <Ionicons name="wallet-outline" size={18} color="#1877F2" />
-            </View>
-            <Text style={styles.cardTitle}>Payment Options</Text>
+        {/* Payment Options Card */}
+        <View style={styles.paymentCard}>
+          <View style={styles.paymentHeader}>
+            <Ionicons name="wallet-outline" size={20} color="#1877F2" />
+            <Text style={styles.paymentTitle}>Select Payment Method</Text>
           </View>
 
-          <View style={styles.optionsContainer}>
+          <View style={styles.paymentOptions}>
             <PaymentOption
               title="Pay Full Amount"
               amount={totalPrice}
               isSelected={paymentType === 'full'}
               onPress={() => setPaymentType('full')}
+              note="One-time payment"
             />
+            
             <PaymentOption
-              title="Pay Advance Booking Fee"
+              title="Pay Advance"
               amount={advanceAmount}
               isSelected={paymentType === 'advance'}
               onPress={() => setPaymentType('advance')}
-              note={`Remaining ₹${remainingAmount} to be paid at salon`}
+              note={`Pay ₹${remainingAmount} at salon`}
+              savings={savingsAmount}
             />
+          </View>
+
+          <View style={styles.paymentFeatures}>
+            <View style={styles.featureItem}>
+              <Ionicons name="shield-checkmark-outline" size={16} color="#10B981" />
+              <Text style={styles.featureText}>Secure Payment</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="lock-closed-outline" size={16} color="#10B981" />
+              <Text style={styles.featureText}>Encrypted Transaction</Text>
+            </View>
           </View>
         </View>
 
-        {/* ── Pay Button ── */}
+        {/* Coupon Section */}
+        <TouchableOpacity style={styles.couponSection}>
+          <View style={styles.couponLeft}>
+            <Ionicons name="pricetag-outline" size={20} color="#1877F2" />
+            <Text style={styles.couponText}>Apply Coupon</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+        </TouchableOpacity>
+
+        {/* Price Breakdown */}
+        <View style={styles.priceBreakdownCard}>
+          <Text style={styles.breakdownTitle}>Price Details</Text>
+          
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Subtotal</Text>
+            <Text style={styles.breakdownValue}>₹{totalPrice}</Text>
+          </View>
+          
+          {paymentType === 'advance' && (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Pay at Salon</Text>
+              <Text style={styles.breakdownValue}>₹{remainingAmount}</Text>
+            </View>
+          )}
+          
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>GST</Text>
+            <Text style={styles.breakdownValue}>Included</Text>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.breakdownTotalRow}>
+            <Text style={styles.breakdownTotalLabel}>Amount to Pay</Text>
+            <Text style={styles.breakdownTotalValue}>
+              ₹{paymentType === 'advance' ? advanceAmount : totalPrice}
+            </Text>
+          </View>
+        </View>
+
+        {/* Pay Button */}
         <TouchableOpacity
           style={[styles.payButton, isProcessing && styles.disabledButton]}
           onPress={handlePayment}
           disabled={isProcessing}
-          activeOpacity={0.85}
+          activeOpacity={0.9}
         >
-          {isProcessing ? (
-            <View style={styles.buttonLoadingContainer}>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.processingText}>Processing...</Text>
-            </View>
-          ) : (
-            <View style={styles.payButtonInner}>
-              <Text style={styles.payButtonText}>{buttonText}</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-            </View>
-          )}
+          <LinearGradient
+            colors={isProcessing ? ['#93C5FD', '#1877F2'] : ['#1877F2', '#0D4FB5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.payButtonGradient}
+          >
+            {isProcessing ? (
+              <View style={styles.buttonLoadingContainer}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.processingText}>Processing...</Text>
+              </View>
+            ) : (
+              <View style={styles.payButtonInner}>
+                <Text style={styles.payButtonText}>{buttonText}</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              </View>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
-        <Text style={styles.secureNote}>
-          <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" /> Secured by Razorpay
-        </Text>
+        {/* Secure Payment Note */}
+        <View style={styles.secureNoteContainer}>
+          <Ionicons name="lock-closed" size={12} color="#94A3B8" />
+          <Text style={styles.secureNoteText}>Secured by Razorpay</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#EEF4FF',
-    paddingBottom: 40,
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
@@ -387,143 +519,231 @@ const styles = StyleSheet.create({
     color: '#1877F2',
     fontWeight: '500',
   },
-
-  /* ── Page Header ── */
-  pageHeader: {
-    marginBottom: 20,
-    paddingTop: 4,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  pageTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1877F2',
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  container: {
+    flexGrow: 1,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  progressStep: {
+    alignItems: 'center',
+  },
+  progressDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
   },
-  pageSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '400',
+  progressDotActive: {
+    backgroundColor: '#1877F2',
   },
-
-  /* ── Card ── */
-  card: {
+  progressDotCompleted: {
+    backgroundColor: '#10B981',
+  },
+  progressDotText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  progressText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  progressTextActive: {
+    color: '#1877F2',
+  },
+  progressLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 8,
+  },
+  progressLineActive: {
+    backgroundColor: '#1877F2',
+  },
+  summaryCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#DBEAFE',
     shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardHeader: {
+  summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF4FF',
-    backgroundColor: '#F8FBFF',
-    gap: 10,
+    marginBottom: 16,
   },
-  cardHeaderIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  salonInfo: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  salonIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#EEF4FF',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
     borderWidth: 1,
     borderColor: '#BFDBFE',
   },
-  cardTitle: {
+  salonDetails: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  barberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  bookingDateTime: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  servicesContainer: {
+    marginBottom: 12,
+  },
+  serviceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  serviceName: {
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  servicePrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  durationText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginLeft: 8,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  totalAmountContainer: {
+    backgroundColor: '#EEF4FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  totalAmount: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1877F2',
   },
-
-  /* ── Details ── */
-  detailsContainer: {
-    padding: 20,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-    textAlign: 'right',
-    flexShrink: 1,
-    marginLeft: 8,
-    maxWidth: '60%',
-  },
-  totalAmountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#DBEAFE',
-  },
-  totalAmountLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  totalAmountBadge: {
-    backgroundColor: '#1877F2',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+  paymentCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-  },
-  totalAmountValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-
-  /* ── Payment Options ── */
-  optionsContainer: {
     padding: 16,
-    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  paymentTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  paymentOptions: {
+    gap: 12,
+    marginBottom: 16,
   },
   paymentOption: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
+    alignItems: 'flex-start',
+    borderWidth: 1,
     borderColor: '#DBEAFE',
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
     backgroundColor: '#F8FBFF',
-    gap: 12,
   },
   selectedOption: {
     borderColor: '#1877F2',
     backgroundColor: '#EEF4FF',
   },
   optionLeft: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: 12,
+    paddingTop: 2,
   },
   radioRing: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: '#BFDBFE',
     alignItems: 'center',
@@ -533,90 +753,201 @@ const styles = StyleSheet.create({
     borderColor: '#1877F2',
   },
   radioFill: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#1877F2',
   },
   optionContent: {
     flex: 1,
   },
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   optionText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#64748B',
-    marginBottom: 2,
   },
   optionTextSelected: {
     color: '#1877F2',
+    fontWeight: '600',
   },
   optionAmount: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#94A3B8',
-    marginBottom: 2,
   },
   optionAmountSelected: {
     color: '#1877F2',
   },
+  optionNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   optionNote: {
     fontSize: 12,
-    color: '#94A3B8',
-    fontStyle: 'italic',
-    marginTop: 2,
+    color: '#64748B',
+    marginLeft: 4,
   },
-  selectedBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#1877F2',
+  savingsBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
   },
-
-  /* ── Pay Button ── */
-  payButton: {
-    backgroundColor: '#1877F2',
-    paddingVertical: 18,
+  savingsText: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  selectedCheckmark: {
+    marginLeft: 8,
+  },
+  paymentFeatures: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  featureText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  couponSection: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  couponLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  couponText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  priceBreakdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  breakdownTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  breakdownLabel: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  breakdownValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  breakdownTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  breakdownTotalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  breakdownTotalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1877F2',
+  },
+  payButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  payButtonGradient: {
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: '#0D4FB5',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
   disabledButton: {
-    backgroundColor: '#93C5FD',
-    shadowOpacity: 0.1,
+    opacity: 0.7,
   },
   payButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   payButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 16,
+    fontWeight: '600',
   },
   buttonLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   processingText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  secureNote: {
-    textAlign: 'center',
-    marginTop: 14,
-    fontSize: 12,
+  secureNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  secureNoteText: {
+    fontSize: 11,
     color: '#94A3B8',
     fontWeight: '500',
   },

@@ -1,3 +1,4 @@
+import { fetchUniqueServices } from '@/app/api/Service/User';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
@@ -7,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { fetchUniqueServices } from '@/app/api/Service/User';
 
 type ServiceItem = {
   id: string;

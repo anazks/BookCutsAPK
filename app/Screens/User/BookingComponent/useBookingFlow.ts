@@ -1,12 +1,12 @@
 // hooks/useBookingFlow.ts
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 import {
   fetchAllAvailableTimeSlots,
   getBarberFreeTime,
-  SlotBooking,
   getdiscount,
+  SlotBooking,
 } from '../../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../../api/Service/Shop';
 
@@ -238,7 +238,7 @@ export const useBookingFlow = () => {
         const endTimeStr = addMinutesToTime(selectedStartTime!, totalDuration);
 
         Alert.alert(
-          '🎉 Booking Confirmed!',
+          '🎉 Booking Confirmation!',
           `Your appointment with ${selectedBarber?.name || 'Any Barber'} is confirmed for ${selectedDate?.toDateString()} at ${selectedStartTime} - ${endTimeStr}`,
           [
             {
