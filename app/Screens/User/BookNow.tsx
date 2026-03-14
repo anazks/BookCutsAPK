@@ -121,8 +121,8 @@ export default function BookNow() {
         <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={styles.loadingText}>Loading shop details...</Text>
-          <Text style={styles.loadingSubtext}>Preparing your booking experience</Text>
+          {/* <Text style={styles.loadingText}>Loading shop details...</Text>
+          <Text style={styles.loadingSubtext}>Preparing your booking experience</Text> */}
         </View>
       </SafeAreaView>
     );

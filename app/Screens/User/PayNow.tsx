@@ -129,6 +129,8 @@ export default function PayNow() {
 
         const verificationResponse = await verifyPayment(verificationData);
 
+        console.log(verificationResponse,"RESPONSE OF VERIFY PAYMENT")
+
         if (verificationResponse.success) {
           await Notifications.scheduleNotificationAsync({
             content: {

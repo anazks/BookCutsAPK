@@ -146,3 +146,13 @@ export  const  getdiscount = async () => {
         console.log(error)
     }
 }
+
+export const getEarnings = async () => {
+    try {
+        const response = await Axios.get('/shop/payout/earnings');
+        return response.data;
+    } catch (error) {
+        console.error("❌ Error fetching earnings:", error?.response?.data || error.message);
+        return null; 
+    }
+}

@@ -593,6 +593,23 @@ const ProfileScreen = () => {
             <DetailRow icon="globe-outline" label="Website" value={shopData.website} />
           )}
 
+
+           <TouchableOpacity
+            style={styles.detailRow}
+            onPress={() => router.push('/Screens/User/PayoutScreen')}
+          >
+            <View style={styles.detailIconBox}>
+              <Ionicons name="card-outline" size={18} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.detailLabel}>earnings</Text>
+              <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                {shopData?.bankDetails ? 'View / Edit' : 'payout'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.detailRow}
             onPress={() => router.push('/Screens/Shop/BankDetailsComponent')}

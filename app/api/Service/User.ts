@@ -97,7 +97,7 @@ export const userGoogleSignin = async (data) => {
 
 export const getNearbyCitiesFallback = async (lat: number, lon: number) => {
   try {
-    const response = await Axios.get('/api/cities/nearby', {   // ← better endpoint name
+    const response = await Axios.get('/cities/nearby', {   // ← better endpoint name
       params: { lat, lon },
     });
 
