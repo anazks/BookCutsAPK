@@ -339,3 +339,12 @@ export const ownerToBarber = async (shopId) => {
     console.log("error in ownerToBarber",error)
   }
 }
+
+export const confirmArrival = async (userId: string) => {
+  try {
+    const response = await Axios.post(`/auth/confirm-arrival/${userId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to confirm arrival" };
+  }
+};

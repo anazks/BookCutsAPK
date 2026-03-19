@@ -10,7 +10,7 @@ export const getAllBookings = async () => {
   }
 };
 
-export const getMyProfile = async (shopId: string) => {
+export const getMyProfile = async () => {
     try {
         const response = await Axios.get(`/shop/getMyProfile`);
         console.log("Response from getMyProfile:", response);

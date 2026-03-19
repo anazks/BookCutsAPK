@@ -19,10 +19,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Image
 } from 'react-native';
 import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
-import { getmyProfile, getNearbyCitiesFallback } from '../api/Service/User';
+import { getmyProfile, getNearbyCitiesFallback, getCustomization } from '../api/Service/User';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
@@ -58,6 +59,30 @@ const Home = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalShops, setTotalShops] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Customization state
+  const [customization, setCustomization] = useState({
+    backgroundColor: '#1877F2',
+    backgroundImage: '',
+    textColor: '#FFFFFF',
+    subTextColor: 'rgba(255, 255, 255, 0.9)',
+  });
+
+  const fetchCustomization = async () => {
+    try {
+      const res = await getCustomization();
+      if (res?.success && res?.customization) {
+        setCustomization({
+          backgroundColor: res.customization.backgroundColor || '#1877F2',
+          backgroundImage: res.customization.backgroundImage || '',
+          textColor: res.customization.textColor || '#FFFFFF',
+          subTextColor: res.customization.subTextColor || 'rgba(255, 255, 255, 0.9)',
+        });
+      }
+    } catch (err) {
+      console.log('Failed to fetch customization', err);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -161,144 +186,144 @@ const Home = () => {
     }
   };
 
-   const findNearestShopApi = async (
-  page: number = 1,
-  isLoadMore: boolean = false,
-  isRefresh: boolean = false
-) => {
-  // Early return if we don't have coordinates yet
-  if (coordinates.latitude === 0 && coordinates.longitude === 0) {
-    console.warn('findNearestShopApi called without valid coordinates');
-    return;
-  }
-
-  // ─── Set appropriate loading states ───
-  if (isRefresh) {
-    setIsRefreshing(true);
-    setCurrentPage(1);           // reset pagination on pull-to-refresh
-    setShops([]);                // clear old data on full refresh (optional but recommended)
-    setHasMoreShops(true);       // optimistic reset
-  } else if (isLoadMore) {
-    setLoadingMore(true);
-  } else {
-    setLoading(true);
-    setError(null);              // clear previous errors on fresh load
-  }
-
-  try {
-    const payload = {
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      page,
-      limit: 10,
-    };
-
-    console.log('Fetching shops →', payload);
-
-    const result = await findNearestShops(payload);
-
-    console.log('API Response:', result);
-
-    if (!result?.success) {
-      // Handle backend saying "no shops" or other failure
-      if (result?.message?.includes('No nearby shops found')) {
-        setError('No salons found nearby.');
-      } else {
-        setError(result?.message || 'Failed to fetch nearby salons.');
-      }
-
-      // Important: stop pagination if explicit "no shops" message
-      if (page === 1 || result?.shops?.length === 0) {
-        setHasMoreShops(false);
-      }
-
+  const findNearestShopApi = async (
+    page: number = 1,
+    isLoadMore: boolean = false,
+    isRefresh: boolean = false
+  ) => {
+    // Early return if we don't have coordinates yet
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) {
+      console.warn('findNearestShopApi called without valid coordinates');
       return;
     }
 
-    const newShops = result.shops || [];
-
-    // ─── Update shops list ───
-    if (isLoadMore) {
-      // Append for infinite scroll
-      setShops((prev) => [...prev, ...newShops]);
-    } else {
-      // Replace on initial load or refresh
-      setShops(newShops);
-    }
-
-    // ─── Update pagination state ───
-    const receivedCount = newShops.length;
-    const pageSize = 10;
-
-    // Most reliable way: if we got fewer items than requested → end reached
-    const hasMore = receivedCount === pageSize;
-
-    setHasMoreShops(hasMore);
-
-    // Bonus: if backend sends total count, use it for even better UX
-    if (result.total !== undefined && result.total !== null) {
-      setTotalShops(result.total);
-      // More precise hasMore calculation
-      setHasMoreShops(page * pageSize < result.total);
-    }
-
-    setError(null);
-  } catch (err: any) {
-    console.log('Error fetching shops:', err);
-
-    let errorMessage = 'Failed to load salons. Please check your connection.';
-
-    if (err?.response?.status === 404) {
-      errorMessage = 'No salons found in this area.';
-      setHasMoreShops(false);
-    } else if (err?.message?.includes('timeout')) {
-      errorMessage = 'Request timed out. Try again later.';
-    } else if (err?.message?.includes('network')) {
-      errorMessage = 'Network error. Please check your internet.';
-    }
-
-    setError(errorMessage);
-
-    // Stop trying to load more on error
-    if (isLoadMore) {
-      setHasMoreShops(false);
-    }
-  } finally {
-    // ─── Always clean up loading states ───
+    // ─── Set appropriate loading states ───
     if (isRefresh) {
-      setIsRefreshing(false);
+      setIsRefreshing(true);
+      setCurrentPage(1);           // reset pagination on pull-to-refresh
+      setShops([]);                // clear old data on full refresh (optional but recommended)
+      setHasMoreShops(true);       // optimistic reset
     } else if (isLoadMore) {
-      setLoadingMore(false);
+      setLoadingMore(true);
     } else {
-      setLoading(false);
+      setLoading(true);
+      setError(null);              // clear previous errors on fresh load
     }
-  }
-};
-    const handleRefresh = () => {
-      if (!isRefreshing) {
-        findNearestShopApi(1, false, true);
+
+    try {
+      const payload = {
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        page,
+        limit: 10,
+      };
+
+      console.log('Fetching shops →', payload);
+
+      const result = await findNearestShops(payload);
+
+      console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++API Response:', result);
+
+      if (!result?.success) {
+        // Handle backend saying "no shops" or other failure
+        if (result?.message?.includes('No nearby shops found')) {
+          setError('No salons found nearby.');
+        } else {
+          setError(result?.message || 'Failed to fetch nearby salons.');
+        }
+
+        // Important: stop pagination if explicit "no shops" message
+        if (page === 1 || result?.shops?.length === 0) {
+          setHasMoreShops(false);
+        }
+
+        return;
       }
-    };
 
-   const loadMoreShops = useCallback(() => {
-  // ─── The three most important guards ───
-  if (isFetchingMoreRef.current) return;
-  if (loadingMore) return;
-  if (!hasMoreShops) return;
+      const newShops = result.shops || [];
 
-  isFetchingMoreRef.current = true;
-  setLoadingMore(true);
+      // ─── Update shops list ───
+      if (isLoadMore) {
+        // Append for infinite scroll
+        setShops((prev) => [...prev, ...newShops]);
+      } else {
+        // Replace on initial load or refresh
+        setShops(newShops);
+      }
 
-  const nextPage = currentPage + 1;
-  setCurrentPage(nextPage);
+      // ─── Update pagination state ───
+      const receivedCount = newShops.length;
+      const pageSize = 10;
 
-  findNearestShopApi(nextPage, true, false)
-    .finally(() => {
-      isFetchingMoreRef.current = false;
-      setLoadingMore(false);
-    });
+      // Most reliable way: if we got fewer items than requested → end reached
+      const hasMore = receivedCount === pageSize;
 
-}, [currentPage, hasMoreShops, loadingMore]);
+      setHasMoreShops(hasMore);
+
+      // Bonus: if backend sends total count, use it for even better UX
+      if (result.total !== undefined && result.total !== null) {
+        setTotalShops(result.total);
+        // More precise hasMore calculation
+        setHasMoreShops(page * pageSize < result.total);
+      }
+
+      setError(null);
+    } catch (err: any) {
+      console.log('Error fetching shops:', err);
+
+      let errorMessage = 'Failed to load salons. Please check your connection.';
+
+      if (err?.response?.status === 404) {
+        errorMessage = 'No salons found in this area.';
+        setHasMoreShops(false);
+      } else if (err?.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Try again later.';
+      } else if (err?.message?.includes('network')) {
+        errorMessage = 'Network error. Please check your internet.';
+      }
+
+      setError(errorMessage);
+
+      // Stop trying to load more on error
+      if (isLoadMore) {
+        setHasMoreShops(false);
+      }
+    } finally {
+      // ─── Always clean up loading states ───
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else if (isLoadMore) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
+    }
+  };
+  const handleRefresh = () => {
+    if (!isRefreshing) {
+      findNearestShopApi(1, false, true);
+    }
+  };
+
+  const loadMoreShops = useCallback(() => {
+    // ─── The three most important guards ───
+    if (isFetchingMoreRef.current) return;
+    if (loadingMore) return;
+    if (!hasMoreShops) return;
+
+    isFetchingMoreRef.current = true;
+    setLoadingMore(true);
+
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+
+    findNearestShopApi(nextPage, true, false)
+      .finally(() => {
+        isFetchingMoreRef.current = false;
+        setLoadingMore(false);
+      });
+
+  }, [currentPage, hasMoreShops, loadingMore]);
 
 
 
@@ -333,11 +358,11 @@ const Home = () => {
               }
             }
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-            router.replace('/Screens/User/Login');
+            router.replace('/');
           } catch (error) {
             console.error('Logout Error:', error);
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-            router.replace('/Screens/User/Login');
+            router.replace('/');
           }
         },
       },
@@ -376,7 +401,10 @@ const Home = () => {
     }
   };
 
-  useEffect(() => { getLocation(); }, []);
+  useEffect(() => {
+    getLocation();
+    fetchCustomization();
+  }, []);
 
   useEffect(() => {
     if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
@@ -465,52 +493,64 @@ const Home = () => {
         borderBottomRightRadius: 30,
       }}>
         {/* Background Pattern - Wave Layer */}
-        <View style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          backgroundColor: '#1877F2',
-        }}>
+        {customization.backgroundImage ? (
+          <Image
+            source={{ uri: customization.backgroundImage }}
+            style={{ position: 'absolute', width: '100%', height: '100%', resizeMode: 'cover' }}
+          />
+        ) : (
           <View style={{
-            position: 'absolute',
-            width: 200,
-            height: 200,
-            borderRadius: 100,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            top: -50,
-            right: -50,
-          }} />
-          <View style={{
-            position: 'absolute',
-            width: 300,
-            height: 300,
-            borderRadius: 150,
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            bottom: -100,
-            left: -100,
-          }} />
-          <View style={{
-            position: 'absolute',
-            width: 150,
-            height: 150,
-            borderRadius: 75,
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            top: 40,
-            left: 30,
-          }} />
-        </View>
-
-        {/* Gradient Overlay */}
-        <LinearGradient
-          colors={['rgba(24, 119, 242, 0.95)', 'rgba(24, 119, 242, 0.85)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
             position: 'absolute',
             width: '100%',
             height: '100%',
-          }}
-        />
+            backgroundColor: customization.backgroundColor,
+          }}>
+            <View style={{
+              position: 'absolute',
+              width: 200,
+              height: 200,
+              borderRadius: 100,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              top: -50,
+              right: -50,
+            }} />
+            <View style={{
+              position: 'absolute',
+              width: 300,
+              height: 300,
+              borderRadius: 150,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              bottom: -100,
+              left: -100,
+            }} />
+            <View style={{
+              position: 'absolute',
+              width: 150,
+              height: 150,
+              borderRadius: 75,
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              top: 40,
+              left: 30,
+            }} />
+          </View>
+        )}
+
+        {/* Gradient Overlay - Hidden if Background Image present */}
+        {!customization.backgroundImage && (
+          <LinearGradient
+            colors={[
+              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.95)' : `${customization.backgroundColor}F2`,
+              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.85)' : `${customization.backgroundColor}D9`
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+            }}
+          />
+        )}
 
         {/* Header Content */}
         <View style={{
@@ -540,13 +580,13 @@ const Home = () => {
                 paddingVertical: 8,
                 gap: 6,
               }}>
-                <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                <Ionicons name="location-outline" size={16} color={customization.textColor} />
                 <Text style={{
-                  color: '#FFFFFF',
+                  color: customization.textColor,
                   fontSize: 14,
                   fontWeight: '600',
                 }}>{selectedCity}</Text>
-                <Ionicons name="chevron-down" size={14} color="#FFFFFF" />
+                <Ionicons name="chevron-down" size={14} color={customization.textColor} />
               </BlurView>
             </TouchableOpacity>
 
@@ -555,7 +595,7 @@ const Home = () => {
               flexDirection: 'row',
               gap: 8,
             }}>
-              <TouchableOpacity style={{
+              <TouchableOpacity onPress={() => router.push('/Screens/User/Notifications')} style={{
                 borderRadius: 20,
                 overflow: 'hidden',
               }}>
@@ -563,9 +603,10 @@ const Home = () => {
                   padding: 8,
                   borderRadius: 20,
                 }}>
-                  <Ionicons name="notifications-outline" size={18} color="#FFFFFF" />
+                  <Ionicons name="notifications-outline" size={18} color={customization.textColor} />
                 </BlurView>
               </TouchableOpacity>
+
               <TouchableOpacity onPress={handleLogout} style={{
                 borderRadius: 20,
                 overflow: 'hidden',
@@ -574,7 +615,7 @@ const Home = () => {
                   padding: 8,
                   borderRadius: 20,
                 }}>
-                  <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+                  <Ionicons name="log-out-outline" size={18} color={customization.textColor} />
                 </BlurView>
               </TouchableOpacity>
             </View>
@@ -586,12 +627,12 @@ const Home = () => {
           }}>
             <Text style={{
               fontSize: 24,
-              color: 'rgba(255, 255, 255, 0.9)',
+              color: customization.subTextColor,
               fontWeight: '400',
             }}>Find your perfect</Text>
             <Text style={{
               fontSize: 32,
-              color: '#FFFFFF',
+              color: customization.textColor,
               fontWeight: '700',
               marginTop: -4,
             }}>style match</Text>
@@ -643,7 +684,7 @@ const Home = () => {
                 placeholderTextColor="#94A3B8"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => { setSearchQuery(''); setSearchData([]); }}
                   style={{ padding: 4, zIndex: 3 }}
                 >
@@ -651,7 +692,7 @@ const Home = () => {
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {/* Decorative search bar shadow layer */}
             <View style={{
               position: 'absolute',

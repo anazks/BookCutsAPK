@@ -379,14 +379,14 @@ const ProfileScreen = () => {
     await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
 
     // 4. Navigate back to Login
-    router.replace('/Screens/User/Login');
+    router.replace('/');
 
   } catch (error) {
     console.error('Logout Error:', error);
     
     // Fallback: Ensure everything is wiped even if the try block fails, then navigate
     await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-    router.replace('/Home'); 
+    router.replace('/'); 
   }
 }
       },

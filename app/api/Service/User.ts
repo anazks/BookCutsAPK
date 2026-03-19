@@ -113,3 +113,41 @@ export const getNearbyCitiesFallback = async (lat: number, lon: number) => {
   }
 };
 
+export const savePushToken = async (pushToken) => {
+  try {
+
+    // 👉 THE FIX: Notice the backticks (`) and ${pushToken} in the URL
+    const response = await Axios.post(
+      `/auth/register-push-token/${pushToken}`, 
+    );
+
+    console.log('✅ Push token successfully saved:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error(
+      '❌ Failed to save push token:', 
+      error.response?.data || error.message
+    );
+  }
+};
+
+export const getNotifications = async () => {
+  try {
+    const response = await Axios.get('/auth/notification');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error);
+    return null;
+  }
+};
+
+export const getCustomization = async () => {
+  try {
+    const response = await Axios.get('/auth/customization');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching customization:', error);
+    return null;
+  }
+};

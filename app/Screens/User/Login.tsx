@@ -1,4 +1,4 @@
-import { userLogin, userGoogleSignin } from '@/app/api/Service/User';
+import { userLogin, userGoogleSignin, savePushToken } from '@/app/api/Service/User';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -72,12 +72,35 @@ export default function Login() {
 
       console.log('GOOGLE LOGIN RESPONSE:', response);
 
-      if (response.success && response.token) {
+
+    if (response.success && response.token) {
+        console.log('🟢 BREADCRUMB 1: Login success block reached!');
+
         await AsyncStorage.setItem('accessToken', response.token);
         await AsyncStorage.setItem('authProvider', 'google');
 
         if (response.user?.id) {
           await AsyncStorage.setItem('userId', response.user.id);
+        }
+
+        try {
+          console.log('🟢 BREADCRUMB 2: Checking storage for push token...');
+          const pushToken = await AsyncStorage.getItem('expoPushToken');
+          
+          console.log('🟢 BREADCRUMB 3: Retrieved pushToken ->', pushToken);
+          
+          if (pushToken) {
+            console.log('🟢 BREADCRUMB 4: Token exists! Calling API...');
+            
+            // Note: Make sure savePushToken is imported at the top of this file!
+            await savePushToken(pushToken); 
+            
+            console.log('🟢 BREADCRUMB 5: API function completed.');
+          } else {
+            console.log('🔴 STOP: pushToken is null. The API was skipped.');
+          }
+        } catch (tokenError) {
+          console.error('🔴 ERROR IN PUSH TOKEN BLOCK:', tokenError);
         }
 
         Alert.alert('Success', 'Login successful!', [
@@ -131,15 +154,40 @@ export default function Login() {
       console.log('LOGIN RESPONSE 👉', response);
 
       if (response.success && response.token) {
+        console.log('🟢 BREADCRUMB 1: Login success block reached!');
+
         await AsyncStorage.setItem('accessToken', response.token);
-        await AsyncStorage.setItem('authProvider', 'local');
+        await AsyncStorage.setItem('authProvider', 'google');
 
         if (response.user?.id) {
           await AsyncStorage.setItem('userId', response.user.id);
         }
 
+        try {
+          console.log('🟢 BREADCRUMB 2: Checking storage for push token...');
+          const pushToken = await AsyncStorage.getItem('expoPushToken');
+          
+          console.log('🟢 BREADCRUMB 3: Retrieved pushToken ->', pushToken);
+          
+          if (pushToken) {
+            console.log('🟢 BREADCRUMB 4: Token exists! Calling API...');
+            
+            // Note: Make sure savePushToken is imported at the top of this file!
+            await savePushToken(pushToken); 
+            
+            console.log('🟢 BREADCRUMB 5: API function completed.');
+          } else {
+            console.log('🔴 STOP: pushToken is null. The API was skipped.');
+          }
+        } catch (tokenError) {
+          console.error('🔴 ERROR IN PUSH TOKEN BLOCK:', tokenError);
+        }
+
         Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)/Home') },
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/Home'),
+          },
         ]);
       } else {
         Alert.alert('Login Error', response.message || 'Login failed. Please try again.');

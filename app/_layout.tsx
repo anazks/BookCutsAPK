@@ -4,20 +4,22 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { Platform, Alert } from 'react-native';
+import { savePushToken } from './api/Service/User';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 // ─── Notification Handler ────────────────────────────────────────────────
-// This runs when a notification arrives while app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,     // show banner/alert
-    shouldPlaySound: true,     // play sound
-    shouldSetBadge: false,     // don't change app badge count
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
   }),
 });
 
@@ -30,60 +32,91 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  // ─── Notification Setup (permissions + channel + listener) ───────────────
-  useEffect(() => {
-    // 1. Android channel (must be done before any notification can appear)
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
+  // ─── Get & Log Expo Push Token ───────────────────────────────────────────
+ // Don't forget to import your API function at the top of the file!
+// import { savePushToken } from '../path-to-your-api-file';
 
-    // 2. Request permissions (only once — system remembers choice)
-    const requestPermissions = async () => {
+ useEffect(() => {
+    const registerForPushNotifications = async () => {
+      // 1. Only run on physical devices
+      if (!Device.isDevice) {
+        console.log('Must use physical device for push notifications');
+        Alert.alert('Development', 'Push notifications only work on real devices');
+        return;
+      }
+
+      // 2. Android channel setup
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      // 3. Permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.warn('Notification permission not granted');
+        return;
+      }
+
+      // 4. Get Expo Push Token
       try {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
+        const projectId = 
+          Constants?.expoConfig?.extra?.eas?.projectId ?? 
+          Constants?.easConfig?.projectId;
 
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
+        if (!projectId) {
+          console.error('EAS projectId not found in app config');
+          return;
         }
 
-        if (finalStatus !== 'granted') {
-          console.warn('Notification permissions not granted');
-          // You can show an alert or settings link here later
-        }
-      } catch (err) {
-        console.error('Permission request failed', err);
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+
+        const expoPushToken = tokenData.data;
+
+        // Log to terminal
+        console.log('\n====================================');
+        console.log('Expo Push Token:', expoPushToken);
+        console.log('====================================\n');
+
+        // ✅ Save locally to AsyncStorage (API call removed)
+        await AsyncStorage.setItem('expoPushToken', expoPushToken);
+        console.log('Token successfully saved to AsyncStorage.');
+
+      } catch (error) {
+        console.error('Failed to get push token:', error);
       }
     };
 
-    requestPermissions();
+    // Run the function
+    registerForPushNotifications();
 
-    // 3. Optional: Listen for notification tap (when app is opened / brought to foreground)
+    // ─── Listen for Notification Taps ─────────────────────────────
     const notificationListener = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const data = response.notification.request.content.data;
         console.log('Notification tapped!', data);
-
-        // Example: navigate based on custom data
-        // if (data?.screen) {
-        //   router.push(data.screen);
-        // }
       }
     );
 
-    // Cleanup
     return () => {
       notificationListener.remove();
     };
   }, []);
 
-  // ─── Your existing token loading logic ───────────────────────────────────
+  // ─── Your existing access token loading ───────────────────────────────────
   useEffect(() => {
     const loadToken = async () => {
       try {
@@ -99,7 +132,7 @@ export default function RootLayout() {
   }, []);
 
   if (!loaded || isLoading) {
-    return null; // or <SplashScreen /> if you use expo-splash-screen
+    return null;
   }
 
   return (

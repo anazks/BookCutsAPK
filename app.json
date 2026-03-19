@@ -17,12 +17,18 @@
         "foregroundImage": "./assets/images/scissors_icon.png",
         "backgroundColor": "#1877F2"
       },
+      "splash": {
+        "image": "./assets/images/scissors_icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1877F2"
+      },
       "edgeToEdgeEnabled": true,
       "package": "com.anazk.bookmycuts",
       "googleServicesFile": "./google-services.json",
       "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "RECORD_AUDIO",
+      "android.permission.RECEIVE_BOOT_COMPLETED"
+    ]
     },
     "web": {
       "bundler": "metro",
@@ -53,13 +59,11 @@
           "sounds": [
             "./assets/notification/scissorscuts.wav"
           ],
-          "icon": "./assets/images/bookmycuts-new-wordmark.png",
+          "icon": "./assets/images/bookmycut-new-wordmark.png",
           "color": "#00aaff",
           "defaultChannel": "payment"
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
