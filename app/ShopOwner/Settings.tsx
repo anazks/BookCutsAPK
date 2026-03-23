@@ -37,7 +37,7 @@ const performLogout = async (navigation: any) => {
       const authProvider = await AsyncStorage.getItem('authProvider');
             if (authProvider === 'google') {
               try {
-                const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
                 if (isGoogleSignedIn) {
                   await GoogleSignin.revokeAccess();
                   await GoogleSignin.signOut();
@@ -47,7 +47,12 @@ const performLogout = async (navigation: any) => {
               }
             }
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-    navigation.replace('Home');
+    
+    // Reset navigation stack to Home to prevent back-swipe
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
   } catch (error) {
     console.error('Logout failed:', error);
     Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -1008,7 +1013,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 380,
     borderWidth: 1,
-    borderColor: '#cbd5e1',     // subtle modern border
+    borderColor: '#e2e8f0',     // subtle minimalist border
   },
   noShopTitle: {
     fontSize: 24,
@@ -1062,11 +1067,11 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#f1f5f9',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1081,13 +1086,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#eef2ff',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1112,10 +1117,10 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4f46e5',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    backgroundColor: '#0f172a', // Darker, more premium feel
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   addBtnText: {
     color: 'white',
@@ -1238,11 +1243,11 @@ const styles = StyleSheet.create({
   workingHoursBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#f1f5f9',
   },
   workingHoursText: {
     flex: 1,

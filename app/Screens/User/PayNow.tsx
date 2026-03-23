@@ -38,20 +38,20 @@ const PaymentOption = ({ title, amount, isSelected, onPress, note, savings }) =>
         {isSelected && <View style={styles.radioFill} />}
       </View>
     </View>
-    
+
     <View style={styles.optionContent}>
       <View style={styles.optionHeader}>
         <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>{title}</Text>
         <Text style={[styles.optionAmount, isSelected && styles.optionAmountSelected]}>₹{amount}</Text>
       </View>
-      
+
       {note && (
         <View style={styles.optionNoteContainer}>
           <Ionicons name="information-circle-outline" size={14} color="#64748B" />
           <Text style={styles.optionNote}>{note}</Text>
         </View>
       )}
-      
+
       {savings && (
         <View style={styles.savingsBadge}>
           <Ionicons name="leaf-outline" size={12} color="#10B981" />
@@ -150,7 +150,7 @@ export default function PayNow() {
 
         const verificationResponse = await verifyPayment(verificationData);
 
-        console.log(verificationResponse,"RESPONSE OF VERIFY PAYMENT")
+        console.log(verificationResponse, "RESPONSE OF VERIFY PAYMENT")
 
         if (verificationResponse.success) {
           await Notifications.scheduleNotificationAsync({
@@ -226,8 +226,11 @@ export default function PayNow() {
 
       console.log('Creating order with booking ID:', finalBookingId);
 
+      // Multiply amount by 100 to send in paise, in case backend expects paise
+      const amountInPaise = Math.round(amount * 100);
+
       const orderResponse = await createOrder({
-        amount,
+        amount: amountInPaise,
         currency: 'INR',
         bookingId: finalBookingId,
         paymentType,
@@ -243,7 +246,7 @@ export default function PayNow() {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: 'rzp_test_fccR1aGiSJLS1e',
+        key: 'rzp_live_SUY56QCdYmPx1Q',
         amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: { name: customerName, email: customerEmail, contact: customerPhone },
@@ -304,7 +307,7 @@ export default function PayNow() {
         colors={['#EEF4FF', '#FFFFFF']}
         style={styles.backgroundGradient}
       />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -399,7 +402,7 @@ export default function PayNow() {
               onPress={() => setPaymentType('full')}
               note="One-time payment"
             />
-            
+
             <PaymentOption
               title="Pay Advance"
               amount={advanceAmount}
@@ -434,26 +437,26 @@ export default function PayNow() {
         {/* Price Breakdown */}
         <View style={styles.priceBreakdownCard}>
           <Text style={styles.breakdownTitle}>Price Details</Text>
-          
+
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Subtotal</Text>
             <Text style={styles.breakdownValue}>₹{totalPrice}</Text>
           </View>
-          
+
           {paymentType === 'advance' && (
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Pay at Salon</Text>
               <Text style={styles.breakdownValue}>₹{remainingAmount}</Text>
             </View>
           )}
-          
+
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>GST</Text>
             <Text style={styles.breakdownValue}>Included</Text>
           </View>
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.breakdownTotalRow}>
             <Text style={styles.breakdownTotalLabel}>Amount to Pay</Text>
             <Text style={styles.breakdownTotalValue}>

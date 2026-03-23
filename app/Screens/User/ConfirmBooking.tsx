@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import RewardScratchCard from '../../Components/ScratchCard/RewardScratchCard';
 import {
   ScrollView,
   StyleSheet,
@@ -11,7 +12,21 @@ import {
 
 export default function ConfirmBooking() {
   const params = useLocalSearchParams();
-  const { bookingId, paymentId, paymentType, amount, verified } = params;
+  const { bookingId, paymentId, paymentType, amount, verified, barberName, bookingDate, timeSlot } = params;
+
+  const [scratchVisible, setScratchVisible] = useState(false);
+  const [rewardMessage, setRewardMessage] = useState('');
+
+  // Simulate API fetch for Scratch Card reward immediately after successful payment
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Dummy API response payload
+      setRewardMessage('Better luck next time!');
+      setScratchVisible(true);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const formatAmount = (amt: string | string[]) => {
     return `₹${parseFloat(amt?.toString() || '0').toLocaleString('en-IN')}`;
@@ -22,13 +37,13 @@ export default function ConfirmBooking() {
     return t === 'advance' ? 'Advance Payment' : 'Full Payment';
   };
 
-  // Mock data for display (replace with real from params or state)
-  const selectedTime = '10:00 – 10:30';
-  const selectedDate = 'Mon, Mar 23 2026';
-  const selectedBarber = 'Albin';
-  const totalAmount = 220;
-  const serviceName = 'Low Tapper';
-  const serviceDuration = '30 min';
+  // Maps to dynamic data from the params
+  const selectedTime = timeSlot ? timeSlot.toString() : 'N/A';
+  const selectedDate = bookingDate ? bookingDate.toString() : 'N/A';
+  const selectedBarber = barberName ? barberName.toString() : 'Any Barber';
+  const totalAmount = amount || 0;
+  const serviceName = 'Booked Service'; // Can be expanded dynamically later
+  const serviceDuration = 'Duration Varies';
 
   return (
     <View style={styles.container}>
@@ -78,7 +93,7 @@ export default function ConfirmBooking() {
 
           <View style={[styles.summaryRow, styles.summaryRowTotal]}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{formatAmount(totalAmount)}</Text>
+            <Text style={styles.totalValue}>{formatAmount(totalAmount.toString())}</Text>
           </View>
         </View>
 
@@ -127,7 +142,7 @@ export default function ConfirmBooking() {
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => router.push({
-              pathname: '/Screens/User/BookingDetails',
+              pathname: '/Screens/User/Bookings',
               params: { bookingId },
             })}
           >
@@ -140,6 +155,13 @@ export default function ConfirmBooking() {
           A confirmation has been sent to your email
         </Text>
       </ScrollView>
+
+      {/* Render the Scratch Card Overlay dynamically */}
+      <RewardScratchCard
+        visible={scratchVisible}
+        rewardText={rewardMessage}
+        onClose={() => setScratchVisible(false)}
+      />
     </View>
   );
 }

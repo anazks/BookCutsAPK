@@ -1,234 +1,238 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Easing,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Tabs, useNavigation } from 'expo-router';
+import React, { useEffect, useMemo } from 'react';
+import { Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import { TabBarContext } from '../context/TabBarContext';
 
-const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    height: Platform.OS === 'ios' ? 85 : 75,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 15,
-    paddingTop: Platform.OS === 'ios' ? 12 : 8,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    borderTopWidth: 0.5,
-    borderTopColor: '#f1f5f9',
-  },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingVertical: 6,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 44,
-    height: 32,
-    borderRadius: 12,
-  },
-  activeIconContainer: {
-    backgroundColor: '#eff6ff',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  activeLabel: {
-    color: '#2563eb',
-  },
-  inactiveLabel: {
-    color: '#64748b',
-  },
-});
+const { width } = Dimensions.get('window');
+const TAB_BAR_WIDTH = width * 0.92;
+const TAB_COUNT = 5;
+const TAB_WIDTH = TAB_BAR_WIDTH / TAB_COUNT;
+const BAR_HEIGHT = 64;
 
-// Tab configuration - Updated to match your actual file structure
-const tabConfig = {
-  Home: {
-    iconName: 'home',
-    label: 'Home',
-    IconComponent: Ionicons,
-  },
-  BookNow: {
-    iconName: 'calendar',
-    label: 'Book Now',
-    IconComponent: Ionicons,
-  },
-  explore: {
-    iconName: 'compass',
-    label: 'Explore',
-    IconComponent: Ionicons,
-  },
-  Settings: {
-    iconName: 'person',
-    label: 'Profile',
-    IconComponent: Ionicons,
-  },
-  Profile: {
-    iconName: 'settings',
-    label: 'Settings',
-    IconComponent: Ionicons,
-  },
+const COLORS = {
+  primary: '#4F46E5',
+  inactive: '#94A3B8',
 };
 
-interface AnimatedTabIconProps {
-  focused: boolean;
-  iconName: string;
-  label: string;
-  IconComponent: any;
-}
+const tabConfig: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
+  Home: { icon: 'home', label: 'Home' },
+  BookNow: { icon: 'calendar', label: 'Book' },
+  Settings: { icon: 'person', label: 'Profile' },
+  explore: { icon: 'person-circle', label: 'Explore' }, // Using profile icon as requested
+  Profile: { icon: 'settings', label: 'Settings' }
+};
 
-const AnimatedTabIcon = ({ focused, iconName, label, IconComponent }: AnimatedTabIconProps) => {
-  const fadeAnim = useRef(new Animated.Value(focused ? 1 : 0.6)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+/* ─── Tab icon ───────────────────────────────────────────────────── */
+const TabIcon = ({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) => {
+  const scale = useSharedValue(focused ? 1.2 : 1);
+  const translateY = useSharedValue(focused ? -3 : 0);
 
   useEffect(() => {
-    // Simple fade animation
-    Animated.timing(fadeAnim, {
-      toValue: focused ? 1 : 0.6,
-      duration: 200,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
+    scale.value = withSpring(focused ? 1.2 : 1, { damping: 14, stiffness: 200 });
+    translateY.value = withSpring(focused ? -3 : 0, { damping: 14, stiffness: 200 });
+  }, [focused]);
 
-    // Subtle scale animation on focus
-    Animated.timing(scaleAnim, {
-      toValue: focused ? 1.05 : 1,
-      duration: 150,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  }, [focused, fadeAnim, scaleAnim]);
-
-  const getIconName = () => {
-    if (!focused && IconComponent === Ionicons) {
-      return `${iconName}-outline`;
-    }
-    return iconName;
-  };
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
 
   return (
-    <Animated.View 
-      style={[
-        styles.tabItem,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        }
-      ]}
-    >
-      <View 
-        style={[
-          styles.iconContainer,
-          focused && styles.activeIconContainer,
-        ]}
-      >
-        <IconComponent
-          name={getIconName()}
-          size={focused ? 22 : 20}
-          color={focused ? '#2563eb' : '#64748b'}
-        />
-      </View>
-      
-      <Text
-        style={[
-          styles.label,
-          focused ? styles.activeLabel : styles.inactiveLabel,
-        ]}
-      >
-        {label}
-      </Text>
+    <Animated.View style={animatedStyle}>
+      <Ionicons
+        name={name}
+        size={focused ? 24 : 22}
+        color={focused ? COLORS.primary : COLORS.inactive}
+      />
     </Animated.View>
   );
 };
 
-export default function TabLayout() {
-  return (
-    <Tabs
-      screenOptions={({ route }) => {
-        const config = tabConfig[route.name as keyof typeof tabConfig];
-        
-        if (!config) {
-          return {
-            headerShown: false,
-            tabBarStyle: { display: 'none' },
-          };
-        }
+/* ─── Animated label ─────────────────────────────────────────────── */
+const AnimatedLabel = ({ children, focused }: { children: string; focused: boolean }) => {
+  const opacity = useSharedValue(focused ? 1 : 0);
+  const translateY = useSharedValue(focused ? 0 : 5);
 
-        return {
-          headerShown: false,
-          headerShadowVisible: false,
-          tabBarHideOnKeyboard: true,
-          tabBarShowLabel: false,
-          tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: '#2563eb',
-          tabBarInactiveTintColor: '#64748b',
-          tabBarIcon: ({ focused }) => (
-            <AnimatedTabIcon
-              focused={focused}
-              iconName={config.iconName}
-              label={config.label}
-              IconComponent={config.IconComponent}
-            />
-          ),
-        };
-      }}
-    >
-      <Tabs.Screen 
-        name="Home" 
-        options={{ 
-          title: 'Home',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="BookNow" 
-        options={{ 
-          title: 'Book Now',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="explore" 
-        options={{ 
-          title: 'Explore',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="Settings" 
-        options={{ 
-          title: 'Profile',
-          headerShown: false,
-        }} 
-      />
-      <Tabs.Screen 
-        name="Profile" 
-        options={{ 
-          title: 'Settings',
-          headerShown: false,
-        }} 
-      />
-    </Tabs>
+  useEffect(() => {
+    opacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
+    translateY.value = withSpring(focused ? 0 : 5, { damping: 16, stiffness: 200 });
+  }, [focused]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  if (!focused) return null;
+
+  return (
+    <Animated.Text style={[styles.tabLabel, animatedStyle]}>
+      {children}
+    </Animated.Text>
+  );
+};
+
+/* ─── Custom Tab Bar ─── */
+const CustomTabBar = ({ state, navigation, tabBarOffset }: any) => {
+  const routes = useMemo(() => state.routes.slice(0, TAB_COUNT), [state.routes]);
+  const currentIndex = state.index < TAB_COUNT ? state.index : 0;
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: tabBarOffset.value }],
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.tabBarContainer, animatedStyle]}>
+      <BlurView intensity={90} tint="light" style={styles.blurContainer}>
+        <View style={styles.tabBarItems}>
+          {routes.map((route: any, index: number) => {
+            const isFocused = currentIndex === index;
+            const config = tabConfig[route.name] ?? { icon: 'help-circle' as any, label: route.name };
+            const iconName = isFocused ? config.icon : (`${config.icon}-outline` as any);
+
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                style={styles.tabItem}
+                activeOpacity={0.7}
+              >
+                <TabIcon name={iconName} focused={isFocused} />
+                <AnimatedLabel focused={isFocused}>{config.label}</AnimatedLabel>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </BlurView>
+    </Animated.View>
+  );
+};
+
+/* ─── Root Layout ─── */
+export default function TabLayout() {
+  const navigation = useNavigation();
+  const tabBarOffset = useSharedValue(0);
+
+  const handleSwipe = (direction: 'left' | 'right') => {
+    const navState = navigation.getState() as any;
+    if (!navState) return;
+    const { index: currentIndex, routes } = navState;
+
+    if (direction === 'left' && currentIndex < routes.length - 1) {
+      // @ts-ignore
+      navigation.navigate(routes[currentIndex + 1].name);
+    } else if (direction === 'right' && currentIndex > 0) {
+      // @ts-ignore
+      navigation.navigate(routes[currentIndex - 1].name);
+    }
+  };
+
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-30, 30])
+    .onEnd((event) => {
+      'worklet';
+      const { translationX, velocityX } = event;
+      
+      if (Math.abs(translationX) > 80 || Math.abs(velocityX) > 800) {
+        if (translationX > 0) {
+          runOnJS(handleSwipe)('right');
+        } else {
+          runOnJS(handleSwipe)('left');
+        }
+      }
+    });
+
+  return (
+    <TabBarContext.Provider value={{ tabBarOffset }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureDetector gesture={swipeGesture}>
+          <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+            <Tabs
+              tabBar={(props) => <CustomTabBar tabBarOffset={tabBarOffset} {...props} />}
+            screenOptions={{
+              headerShown: false,
+              tabBarHideOnKeyboard: true,
+              tabBarStyle: {
+                position: 'absolute',
+                backgroundColor: 'transparent',
+                elevation: 0,
+                borderTopWidth: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 0,
+              },
+            }}
+          >
+            <Tabs.Screen name="Home" />
+            <Tabs.Screen name="BookNow" />
+            <Tabs.Screen name="Settings" />
+            <Tabs.Screen name="explore" />
+            <Tabs.Screen name="Profile" />
+          </Tabs>
+        </View>
+      </GestureDetector>
+    </GestureHandlerRootView>
+    </TabBarContext.Provider>
   );
 }
+
+/* ─── Styles ─────────────────────────────────────────────────────── */
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 30 : 20,
+    left: (width - TAB_BAR_WIDTH) / 2,
+    width: TAB_BAR_WIDTH,
+    height: BAR_HEIGHT,
+    borderRadius: BAR_HEIGHT / 2,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9', // Minimalist border instead of shadow
+    overflow: 'hidden',
+  },
+  blurContainer: {
+    flex: 1,
+    borderRadius: BAR_HEIGHT / 2,
+  },
+  tabBarItems: {
+    flexDirection: 'row',
+    height: '100%',
+    alignItems: 'center',
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    gap: 3,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    letterSpacing: 0.2,
+  },
+});

@@ -67,17 +67,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
     }, 800);
   }, [hasMore, isLoadingMore, onEndReached]);
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.5) return '#3B82F6';
-    if (rating >= 4.0) return '#10B981';
-    if (rating >= 3.5) return '#F59E0B';
-    return '#EF4444';
-  };
-
   const renderShopItem = ({ item, index }: { item: ShopItem; index: number }) => {
-    const rating = item.rating || 4.5;
-    const ratingColor = getRatingColor(rating);
-
     return (
       <TouchableOpacity
         style={{
@@ -130,41 +120,14 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
               </Text>
             </View>
           )}
-
-          {/* Rating Badge */}
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 12,
-              right: 12,
-              backgroundColor: ratingColor,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 4,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Ionicons name="star" size={10} color="white" />
-            <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>
-              {rating.toFixed(1)}
-            </Text>
-          </View>
         </View>
 
-        {/* Content Container */}
-        <View style={{ padding: 12 }}>
-          {/* Shop Name and Verified Badge */}
+        <View style={{ padding: 14 }}>
+          {/* Shop Name */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
             <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 }} numberOfLines={1}>
               {item.name}
             </Text>
-            {rating >= 4.0 && (
-              <View style={{ marginLeft: 4 }}>
-                <Ionicons name="checkmark-circle" size={14} color="#2563EB" />
-              </View>
-            )}
           </View>
 
           {/* Cuisine/Categories */}
@@ -223,9 +186,9 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
             <TouchableOpacity
               style={{
                 flex: 1,
-                backgroundColor: '#2563EB',
-                paddingVertical: 8,
-                borderRadius: 6,
+                backgroundColor: '#1877F2',
+                paddingVertical: 9,
+                borderRadius: 8,
                 alignItems: 'center',
                 flexDirection: 'row',
                 justifyContent: 'center',

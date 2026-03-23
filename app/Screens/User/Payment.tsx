@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 
 export default function Payment({ route }) {
-  const { amount = 0, bookingId = '' } =  {};
+  const { amount = 0, bookingId = '' } = {};
   const [selectedMethod, setSelectedMethod] = useState('razorpay');
   const [loading, setLoading] = useState(false);
 
@@ -42,14 +42,14 @@ export default function Payment({ route }) {
 
   const initiateRazorpayPayment = () => {
     setLoading(true);
-    
+
     const options = {
       description: 'Booking Payment',
       image: 'https://your-app-logo-url.com/logo.png', // Replace with your app logo
       currency: 'INR',
-      key: 'rzp_test_YOUR_API_KEY', // Replace with your Razorpay API Key
+      key: 'rzp_live_SUY56QCdYmPx1Q', // Replace with your Razorpay API Key
       amount: amount * 100, // Convert to paise
-      name: 'Your App Name',
+      name: 'Bookmycuts',
       prefill: {
         email: 'user@example.com',
         contact: '9999999999',
@@ -80,7 +80,7 @@ export default function Payment({ route }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Payment</Text>
@@ -90,19 +90,19 @@ export default function Payment({ route }) {
         {/* Payment Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Payment Summary</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Booking ID:</Text>
             <Text style={styles.summaryValue}>{bookingId || 'N/A'}</Text>
           </View>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Amount to Pay:</Text>
             <Text style={[styles.summaryValue, styles.amountText]}>₹{amount.toFixed(2)}</Text>
           </View>
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Amount:</Text>
             <Text style={[styles.summaryValue, styles.totalAmount]}>₹{amount.toFixed(2)}</Text>
@@ -112,9 +112,9 @@ export default function Payment({ route }) {
         {/* Payment Methods */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose Payment Method</Text>
-          
+
           {paymentMethods.map((method) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={method.id}
               style={[
                 styles.methodCard,
@@ -124,13 +124,13 @@ export default function Payment({ route }) {
               onPress={() => !method.disabled && setSelectedMethod(method.id)}
               disabled={method.disabled}
             >
-              <Image 
-                source={{ uri: method.icon }} 
-                style={styles.methodIcon} 
+              <Image
+                source={{ uri: method.icon }}
+                style={styles.methodIcon}
                 resizeMode="contain"
                 onError={() => console.log('Error loading image')}
               />
-              
+
               <View style={styles.methodInfo}>
                 <Text style={[
                   styles.methodName,
@@ -143,7 +143,7 @@ export default function Payment({ route }) {
                   {method.description}
                 </Text>
               </View>
-              
+
               <View style={[
                 styles.radioOuter,
                 selectedMethod === method.id && styles.radioOuterSelected,
@@ -159,9 +159,9 @@ export default function Payment({ route }) {
 
         {/* Payment Security Info */}
         <View style={styles.securityInfo}>
-          <Image 
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2889/2889676.png' }} 
-            style={styles.securityIcon} 
+          <Image
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2889/2889676.png' }}
+            style={styles.securityIcon}
             resizeMode="contain"
           />
           <Text style={styles.securityText}>

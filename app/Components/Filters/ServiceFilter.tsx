@@ -8,14 +8,22 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 type ServiceItem = {
   id: string;
   name: string;
   icon: string;
 };
-  export default function ServiceFilter({ onServiceChange }) {
-  console.log("ServiceFilter rendered !!!!!!!!!!!!");
+
+const iconMap: Record<string, string> = {
+  Haircut: 'cut',
+  Spa: 'leaf',
+  CarWash: 'car',
+  Repair: 'construct',
+};
+
+export default function ServiceFilter({ onServiceChange }) {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [selectedService, setSelectedService] = useState('all');
 
@@ -26,19 +34,14 @@ type ServiceItem = {
   const fetchService = async () => {
     try {
       const response = await fetchUniqueServices();
-      console.log(response, 'UNIQUE SERVICE');
 
       if (response?.success && response?.service) {
         const formattedServices: ServiceItem[] = [
-          {
-            id: 'all',
-            name: 'All',
-            icon: 'apps',
-          },
+          { id: 'all', name: 'All', icon: 'apps' },
           ...response.service.map((name: string, index: number) => ({
             id: index.toString(),
             name,
-            icon: 'cut-outline', // default icon
+            icon: iconMap[name] || 'grid-outline',
           })),
         ];
 
@@ -49,9 +52,9 @@ type ServiceItem = {
     }
   };
 
-  const handleServicePress = (serviceName: string) => {
-    setSelectedService(serviceName);
-    onServiceChange?.(serviceName)
+  const handleServicePress = (service: ServiceItem) => {
+    setSelectedService(service.id);
+    onServiceChange?.(service.name);
   };
 
   return (
@@ -61,88 +64,96 @@ type ServiceItem = {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {services.map((service) => {
-          const isSelected = selectedService === service.id;
-
-          return (
-            <TouchableOpacity
-              key={service.id}
-              style={[
-                styles.filterBox,
-                isSelected && styles.filterBoxSelected,
-              ]}
-              onPress={() => handleServicePress(service.name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={service.icon as any}
-                size={20}
-                color={isSelected ? '#FFFFFF' : '#6B7280'}
-              />
-              <Text
-                style={[
-                  styles.filterText,
-                  isSelected && styles.filterTextSelected,
-                ]}
-              >
-                {service.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {services.map((service) => (
+          <FilterItem
+            key={service.id}
+            service={service}
+            selected={selectedService === service.id}
+            onPress={() => handleServicePress(service)}
+          />
+        ))}
       </ScrollView>
     </View>
   );
 }
 
+/* ─── Animated Filter Item ───────────────────────── */
+const FilterItem = ({ service, selected, onPress }) => {
+  const scale = useSharedValue(1);
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.92);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+  };
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        style={[
+          styles.filterBox,
+          selected && styles.filterBoxSelected,
+        ]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+      >
+        <Ionicons
+          name={service.icon as any}
+          size={18}
+          color={selected ? '#4F46E5' : '#6B7280'}
+        />
+        <Text
+          style={[
+            styles.filterText,
+            selected && styles.filterTextSelected,
+          ]}
+        >
+          {service.name}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+/* ─── Styles ─────────────────────────────────────── */
 const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 10,
   },
   filterBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     gap: 6,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   filterBoxSelected: {
-    backgroundColor: '#1877F2',
-    borderColor: '#1877F2',
-    borderWidth: 1,
-    shadowColor: '#1877F2',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+    borderColor: '#4F46E5',
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#6B7280',
   },
   filterTextSelected: {
-    color: '#FFFFFF',
+    color: '#4F46E5',
     fontWeight: '600',
   },
 });
