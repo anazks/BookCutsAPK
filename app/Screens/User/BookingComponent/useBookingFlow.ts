@@ -9,6 +9,7 @@ import {
   SlotBooking,
 } from '../../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../../api/Service/Shop';
+import { getmyProfile } from '../../../api/Service/User';
 
 // ── Types (expand as needed) ──
 type Service = {
@@ -93,6 +94,21 @@ export const useBookingFlow = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null);
+  const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await getmyProfile();
+        if (response?.success && response?.user?._id) {
+          setLoggedInUserId(response.user._id);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user profile for booking:', err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
@@ -158,8 +174,9 @@ export const useBookingFlow = () => {
     if (!selectedDate) return 'Please select a date';
     if (!selectedBarber) return 'Please select a barber';
     if (!selectedStartTime) return 'Please select a time slot';
+    if (!loggedInUserId) return 'Checking user session, please wait...';
     return null;
-  }, [selectedServices, selectedDate, selectedBarber, selectedStartTime]);
+  }, [selectedServices, selectedDate, selectedBarber, selectedStartTime, loggedInUserId]);
 
   const handleBookNow = useCallback(() => {
     const validationError = validateBooking();
@@ -187,7 +204,7 @@ export const useBookingFlow = () => {
 
     return {
       barberId: selectedBarber?.id || null,
-      userId: '69315678fca89f6d95026e4a', // ← hardcoded – consider moving to auth context later
+      userId: loggedInUserId,
       shopId: shopDetails?.id || null,
       serviceIds: serviceIds.length > 0 ? serviceIds : null,
       services: selectedServices.map((s) => ({
@@ -221,6 +238,7 @@ export const useBookingFlow = () => {
     selectedServices,
     baseTotal,
     discountAmount,
+    loggedInUserId,
   ]);
 
   const confirmBooking = useCallback(async () => {

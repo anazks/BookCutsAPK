@@ -100,7 +100,7 @@ export const AddBarber = async (data: any) => {
   }
 }
 
-export const viewMyBarbers = async (shopId: string) => {
+export const viewMyBarbers = async (shopId?: string) => {
   try {
     const response = await Axios.get(`/shop/viewMyBarbers/`);
     return response.data;

@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getShopById } from '../../api/Service/Shop';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -201,47 +202,67 @@ const BarberShopFeed = () => {
     </View>
   );
 
-  // Render header section
+  // Render header section (Modern Hero Image layout)
   const renderHeader = () => (
-    <View style={styles.headerSection}>
-      <View style={styles.profileImageContainer}>
-        {shopData?.ProfileImage ? (
-          <Image
-            source={{ uri: shopData.ProfileImage }}
-            style={styles.profileImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.profileImagePlaceholder}>
-            <Text style={styles.placeholderText}>
-              {shopData?.ShopName?.charAt(0) || 'S'}
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.shopDetails}>
-        <Text style={styles.shopName}>{shopData?.ShopName || 'Shop Name'}</Text>
-        <View style={styles.shopMetaRow}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.ratingText}>4.5</Text>
-          </View>
-          <View style={styles.statusBadge}>
-            <View style={styles.openDot} />
-            <Text style={styles.openText}>Open</Text>
+    <View style={styles.headerHeroSection}>
+      {shopData?.ProfileImage ? (
+        <Image source={{ uri: shopData.ProfileImage }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+      ) : (
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#1877F2' }]} />
+      )}
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFillObject} />
+
+      <TouchableOpacity style={styles.heroBackButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color="#FFF" />
+      </TouchableOpacity>
+
+      <View style={styles.heroContentContainer}>
+        <Text style={styles.shopNameHero}>{shopData?.ShopName || 'Shop Name'}</Text>
+        <View style={styles.shopMetaRowHero}>
+          <View style={styles.statusBadgeHero}>
+            <View style={styles.openDotHero} />
+            <Text style={styles.openTextHero}>Open Now</Text>
           </View>
         </View>
-        <View style={styles.shopDetailsRow}>
-          <Text style={styles.locationText} numberOfLines={1}>
-            <Ionicons name="location-outline" size={14} color="#888" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
+        <View style={styles.shopDetailsRowHero}>
+          <Text style={styles.locationTextHero} numberOfLines={2}>
+            <Ionicons name="location" size={14} color="#FFF" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
           </Text>
           {shopData?.Timing && (
-            <Text style={styles.timingText}>
-              <Ionicons name="time-outline" size={14} color="#888" /> {shopData.Timing}
+            <Text style={styles.timingTextHero}>
+              <Ionicons name="time" size={14} color="#FFF" /> {shopData.Timing}
             </Text>
           )}
         </View>
       </View>
+    </View>
+  );
+
+  // Render Top Trends Section (Static mock for now since media api is unstructured)
+  const shopTrends = [
+    { id: 't1', name: 'Buzz Cut', image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&q=80' },
+    { id: 't2', name: 'Classic Taper', image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=500&q=80' },
+    { id: 't3', name: 'Skin Fade', image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=500&q=80' },
+  ];
+
+  const renderTrends = () => (
+    <View style={styles.trendsContainer}>
+      <Text style={styles.offersBannerTitle}>Top Trends</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={shopTrends}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingLeft: 20 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.trendCard} activeOpacity={0.8}>
+            <Image source={{ uri: item.image }} style={styles.trendImage} resizeMode="cover" />
+            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.trendGradient}>
+              <Text style={styles.trendName} numberOfLines={1}>{item.name}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 
@@ -304,6 +325,7 @@ const BarberShopFeed = () => {
   const listData = [
     { type: 'header', id: 'header' },
     { type: 'offers', id: 'offers' },
+    { type: 'trends', id: 'trends' },
     ...((shopData.media || []).map(item => ({ ...item, type: 'media' })))
   ];
 
@@ -313,6 +335,8 @@ const BarberShopFeed = () => {
         return renderHeader();
       case 'offers':
         return renderOffers();
+      case 'trends':
+        return renderTrends();
       case 'media':
         return renderFeedItem(item);
       default:
@@ -443,116 +467,109 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Header Section with Profile on Left and Details on Right
-  headerSection: {
-    flexDirection: 'row',
-    backgroundColor: '#1877F2',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
-  },
-  profileImageContainer: {
-    width: 80,
-    height: 80,
-    marginRight: 16,
+  // Hero Header Styles
+  headerHeroSection: {
+    width: '100%',
+    height: 380,
+    backgroundColor: '#000',
     position: 'relative',
+    justifyContent: 'flex-end',
   },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#FFF',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  profileImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-    backgroundColor: '#FFF',
+  heroBackButton: {
+    position: 'absolute',
+    top: 54,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFF',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
+    zIndex: 10,
   },
-  placeholderText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1877F2',
+  heroContentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    zIndex: 2,
   },
-  shopDetails: {
-    flex: 1,
-    marginTop: 8,
-  },
-  shopName: {
-    fontSize: 24,
+  shopNameHero: {
+    fontSize: 28,
     fontWeight: '800',
     color: '#FFF',
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  shopMetaRow: {
+  shopMetaRowHero: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  ratingContainer: {
+  statusBadgeHero: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
-    paddingRight: 15,
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.3)',
-  },
-  ratingText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginRight: 15,
+    backgroundColor: 'rgba(24, 119, 242, 0.9)',
   },
-  openDot: {
+  openDotHero: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 4,
+    marginRight: 6,
     backgroundColor: '#FFF',
   },
-  openText: {
+  openTextHero: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
     color: '#FFF',
+    textTransform: 'uppercase',
   },
-  shopDetailsRow: {
+  shopDetailsRowHero: {
     flexDirection: 'column',
-    gap: 4,
+    gap: 6,
   },
-  locationText: {
-    color: 'rgba(255,255,255,0.9)',
+  locationTextHero: {
+    color: 'rgba(255,255,255,0.95)',
     fontSize: 14,
+    fontWeight: '500',
     flexShrink: 1,
   },
-  timingText: {
-    color: 'rgba(255,255,255,0.9)',
+  timingTextHero: {
+    color: 'rgba(255,255,255,0.95)',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  // Sub Section Styles (Trends)
+  trendsContainer: {
+    paddingVertical: 16,
+    backgroundColor: '#FFF',
+  },
+  trendCard: {
+    width: 140,
+    height: 180,
+    marginRight: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  trendImage: {
+    width: '100%',
+    height: '100%',
+  },
+  trendGradient: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    height: 60,
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  trendName: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   // Offers Banner Styles
   offersBannerContainer: {

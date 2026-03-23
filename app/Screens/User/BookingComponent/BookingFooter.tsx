@@ -19,6 +19,9 @@ type BookingFooterProps = {
   isValid: boolean;
   isBooking: boolean;
   onBookPress: () => void;
+  currentStep?: number;
+  onNext?: () => void;
+  onBack?: () => void;
 };
 
 export const BookingFooter = ({
@@ -32,8 +35,17 @@ export const BookingFooter = ({
   isValid,
   isBooking,
   onBookPress,
+  currentStep = 4,
+  onNext,
+  onBack,
 }: BookingFooterProps) => {
-  const showPreview = servicesCount > 0 || selectedDate || selectedBarber;
+  // Only show preview on step 4 to keep it clean, or keep it always? 
+  // Let's hide the complex preview if we are keeping a step-by-step
+  // Actually, keeping the preview is nice, but maybe only show it on step 4.
+  const showPreview = currentStep === 4 && (servicesCount > 0 || selectedDate || selectedBarber);
+
+  const primaryAction = currentStep < 4 && onNext ? onNext : onBookPress;
+  const primaryText = currentStep < 4 ? 'Next' : 'Book Appointment';
 
   return (
     <View style={styles.footer}>
@@ -88,28 +100,41 @@ export const BookingFooter = ({
         </View>
       )}
 
-      {/* Normal Book Button */}
-      <TouchableOpacity
-        style={[
-          styles.bookButton,
-          !isValid && styles.bookButtonDisabled,
-          isBooking && styles.bookButtonLoading,
-        ]}
-        onPress={onBookPress}
-        disabled={!isValid || isBooking}
-        activeOpacity={0.78}
-      >
-        {isBooking ? (
-          <Text style={styles.bookButtonText}>Processing...</Text>
-        ) : isValid ? (
-          <View style={styles.bookButtonContent}>
-            <Text style={styles.bookButtonText}>Book Appointment</Text>
-            <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </View>
-        ) : (
-          <Text style={styles.bookButtonText}>Complete details to book</Text>
+      {/* Button Row */}
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        {currentStep > 1 && onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={isBooking}
+          >
+            <Ionicons name="chevron-back" size={24} color="#475569" />
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.bookButton,
+            { flex: 1 },
+            !isValid && styles.bookButtonDisabled,
+            isBooking && styles.bookButtonLoading,
+          ]}
+          onPress={primaryAction}
+          disabled={!isValid || isBooking}
+          activeOpacity={0.78}
+        >
+          {isBooking ? (
+            <Text style={styles.bookButtonText}>Processing...</Text>
+          ) : isValid ? (
+            <View style={styles.bookButtonContent}>
+              <Text style={styles.bookButtonText}>{primaryText}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </View>
+          ) : (
+            <Text style={styles.bookButtonText}>{currentStep < 4 ? 'Complete step to continue' : 'Complete details to book'}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -218,5 +243,15 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  backButton: {
+    width: 56,
+    height: 56,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
 });

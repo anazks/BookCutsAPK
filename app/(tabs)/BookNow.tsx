@@ -17,8 +17,11 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Reanimated, { FadeInDown, FadeInRight, useAnimatedScrollHandler, useSharedValue, withTiming, withRepeat, useAnimatedStyle, withSequence } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import { getAllShops } from '../api/Service/Shop';
+import { useTabBar } from '../context/TabBarContext';
 
 // Updated color palette - flat, clean design
 const colors = {
@@ -69,7 +72,7 @@ const getRatingColor = (rating: number) => {
 };
 
 // Animated Card Component
-const AnimatedShopCard = ({ item, onPress, onBook }) => {
+const AnimatedShopCard = ({ item, index = 0, onPress, onBook }) => {
   const scaleAnim = new Animated.Value(1);
 
   const handlePressIn = () => {
@@ -91,22 +94,25 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
   const ratingColor = getRatingColor(item.rating);
 
   return (
-    <View style={styles.cardWrapper}>
+    <Reanimated.View
+      entering={FadeInDown.delay(index * 100).springify().damping(12)}
+      style={styles.cardWrapper}
+    >
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <TouchableOpacity 
-          style={styles.shopCard} 
+        <TouchableOpacity
+          style={styles.shopCard}
           activeOpacity={1}
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
           <View style={styles.shopImageContainer}>
-            <Image 
-              source={{ uri: item.image }} 
-              style={styles.shopImage} 
-              resizeMode="cover" 
+            <Image
+              source={{ uri: item.image }}
+              style={styles.shopImage}
+              resizeMode="cover"
             />
-            
+
             {/* Rating Badge - Always show */}
             <View style={[styles.ratingBadge, { backgroundColor: ratingColor }]}>
               <Ionicons name="star" size={10} color="#FFFFFF" />
@@ -124,7 +130,7 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
 
           <View style={styles.shopInfo}>
             <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
-            
+
             {/* Location with icon */}
             <View style={styles.infoRow}>
               <Ionicons name="location-outline" size={12} color={colors.text.light} />
@@ -146,8 +152,8 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
             {/* Price and Book Button */}
             <View style={styles.priceBookRow}>
               <Text style={styles.priceText}>{item.price}</Text>
-              <TouchableOpacity 
-                style={styles.bookButton} 
+              <TouchableOpacity
+                style={styles.bookButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   onBook(item);
@@ -160,13 +166,93 @@ const AnimatedShopCard = ({ item, onPress, onBook }) => {
           </View>
         </TouchableOpacity>
       </Animated.View>
+    </Reanimated.View>
+  );
+};
+
+const MOCK_CATEGORIES = [
+  { id: '1', name: 'Haircut', image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=150&q=80' },
+  { id: '2', name: 'Hair Wash', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=150&q=80' },
+  { id: '3', name: 'Hair Color', image: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=150&q=80' },
+  { id: '4', name: 'Hair Spa', image: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=150&q=80' },
+  { id: '5', name: 'Styling', image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=150&q=80' },
+];
+
+const KM_RANGES = ['All', '<5 km', '5-10 km', '10-20 km', '20+ km'];
+
+// Animated Banner Item for scaling effect
+const AnimatedBannerItem = ({ item }) => {
+  const scale = useSharedValue(1);
+  
+  useEffect(() => {
+    if (item.type === 'animated-image') {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.08, { duration: 4000 }),
+          withTiming(1, { duration: 4000 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [item.type]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  return (
+    <View style={styles.bannerContainer}>
+      {item.type === 'animated-image' ? (
+        <Reanimated.Image 
+          source={{ uri: item.url }} 
+          style={[styles.bannerImage, animatedStyle]} 
+          resizeMode="cover" 
+        />
+      ) : (
+        <Image source={{ uri: item.url }} style={styles.bannerImage} resizeMode="cover" />
+      )}
+      {item.type === 'video' && (
+        <View style={styles.videoBadge}>
+          <Ionicons name="play-circle" size={14} color="white" />
+          <Text style={styles.videoBadgeText}>Ad</Text>
+        </View>
+      )}
     </View>
   );
 };
 
+const PROMO_BANNERS = [
+  { id: 'b1', type: 'animated-image', url: 'https://images.template.net/374070/Salon-Product-Showcase-Banner-Template-edit-online-1.jpg' },
+  { id: 'b2', type: 'image', url: 'https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?auto=format&fit=crop&w=600&q=80' },
+  { id: 'b3', type: 'image', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80' },
+];
+
 const BookNow = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+
+  const { tabBarOffset } = useTabBar();
+  const lastScrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const currentScrollY = event.contentOffset.y;
+
+      if (currentScrollY <= 0) {
+        tabBarOffset.value = withTiming(0, { duration: 200 });
+      } else if (currentScrollY > lastScrollY.value + 5) {
+        tabBarOffset.value = withTiming(100, { duration: 200 }); // hide
+      } else if (currentScrollY < lastScrollY.value - 5) {
+        tabBarOffset.value = withTiming(0, { duration: 200 }); // show
+      }
+
+      lastScrollY.value = currentScrollY;
+    },
+  });
+
   const [selectedCity, setSelectedCity] = useState('All');
+  const [selectedKmRange, setSelectedKmRange] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('name');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -192,7 +278,7 @@ const BookNow = ({ navigation }) => {
       params: { shop_id: shop.id }
     });
   };
-  
+
   const transformShopData = (apiData) => {
     return apiData.map((shop, index) => {
       const shopName = shop.ShopName || `${shop.firstName} ${shop.lastName}` || 'Unknown Shop';
@@ -200,7 +286,7 @@ const BookNow = ({ navigation }) => {
       const mobile = shop.Mobile || shop.mobileNo || 'N/A';
       const timing = shop.Timing || '9:00 AM - 8:00 PM';
       const website = shop.website || '';
-      
+
       return {
         id: shop._id,
         name: shopName,
@@ -214,7 +300,7 @@ const BookNow = ({ navigation }) => {
         coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
         image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
         isOpen: Math.random() > 0.3,
-        serviceType: 'Barber Shop',
+        serviceType: ['Haircut', 'Beard Trim', 'Facial', 'Massage', 'Hair Color'][Math.floor(Math.random() * 5)],
       };
     });
   };
@@ -228,7 +314,7 @@ const BookNow = ({ navigation }) => {
       }
       setError(null);
       const result = await getAllShops();
-      
+
       if (result && result.success) {
         const transformedData = result.data ? transformShopData(result.data) : [];
         setAllShops(transformedData);
@@ -275,7 +361,7 @@ const BookNow = ({ navigation }) => {
     });
     return Array.from(cityMap.values()).sort();
   }, [allShops]);
-  
+
   const cities = useMemo(() => ['All', ...getUniqueCities], [getUniqueCities]);
 
   const shopsWithDistance = useMemo(() => {
@@ -310,7 +396,7 @@ const BookNow = ({ navigation }) => {
       };
     });
   }, [userLocation, allShops]);
-  
+
   const sortOptions = [
     { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
     { key: 'distance', label: 'Nearest First', icon: 'location-outline' },
@@ -320,10 +406,24 @@ const BookNow = ({ navigation }) => {
   const filteredAndSortedShops = useMemo(() => {
     let filtered = shopsWithDistance.filter(shop => {
       const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
-      const searchMatch = !searchQuery || 
-        shop.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const searchMatch = !searchQuery ||
+        shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         shop.city.toLowerCase().includes(searchQuery.toLowerCase());
-      return cityMatch && searchMatch;
+
+      let kmMatch = true;
+      if (selectedKmRange !== 'All' && shop.distanceKm !== Infinity) {
+        if (selectedKmRange === '<5 km') kmMatch = shop.distanceKm <= 5;
+        else if (selectedKmRange === '5-10 km') kmMatch = shop.distanceKm > 5 && shop.distanceKm <= 10;
+        else if (selectedKmRange === '10-20 km') kmMatch = shop.distanceKm > 10 && shop.distanceKm <= 20;
+        else if (selectedKmRange === '20+ km') kmMatch = shop.distanceKm > 20;
+      }
+
+      let categoryMatch = true;
+      if (selectedCategory !== 'All') {
+        categoryMatch = shop.serviceType === selectedCategory;
+      }
+
+      return cityMatch && searchMatch && kmMatch && categoryMatch;
     });
 
     filtered.sort((a, b) => {
@@ -351,7 +451,7 @@ const BookNow = ({ navigation }) => {
       <Text style={styles.emptyText}>
         Try adjusting your filters or search criteria
       </Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.emptyButton}
         onPress={() => {
           setSelectedCity('All');
@@ -370,17 +470,17 @@ const BookNow = ({ navigation }) => {
       animationType="slide"
       onRequestClose={() => setShowFilters(false)}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={() => setShowFilters(false)}
       >
         <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHandle} />
-          
+
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filter by City</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowFilters(false)}
               style={styles.closeButton}
             >
@@ -388,7 +488,7 @@ const BookNow = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
+          <ScrollView
             style={styles.modalScroll}
             showsVerticalScrollIndicator={false}
           >
@@ -405,10 +505,10 @@ const BookNow = ({ navigation }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons 
-                  name={city === 'All' ? 'apps-outline' : 'location-outline'} 
-                  size={18} 
-                  color={selectedCity === city ? colors.primary : colors.text.secondary} 
+                <Ionicons
+                  name={city === 'All' ? 'apps-outline' : 'location-outline'}
+                  size={18}
+                  color={selectedCity === city ? colors.primary : colors.text.secondary}
                 />
                 <Text style={[
                   styles.filterOptionText,
@@ -434,17 +534,17 @@ const BookNow = ({ navigation }) => {
       animationType="slide"
       onRequestClose={() => setShowSortModal(false)}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={() => setShowSortModal(false)}
       >
         <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHandle} />
-          
+
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Sort By</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowSortModal(false)}
               style={styles.closeButton}
             >
@@ -466,10 +566,10 @@ const BookNow = ({ navigation }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons 
-                  name={option.icon} 
-                  size={18} 
-                  color={sortBy === option.key ? colors.primary : colors.text.secondary} 
+                <Ionicons
+                  name={option.icon}
+                  size={18}
+                  color={sortBy === option.key ? colors.primary : colors.text.secondary}
                 />
                 <Text style={[
                   styles.filterOptionText,
@@ -519,87 +619,143 @@ const BookNow = ({ navigation }) => {
   const activeFiltersCount = (selectedCity !== 'All' ? 1 : 0);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
-      
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={18} color={colors.text.light} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search shops or locations..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={colors.text.light}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
-              <Ionicons name="close-circle" size={16} color={colors.text.light} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Filter and Sort Buttons */}
-        <View style={styles.filterSortRow}>
-          <TouchableOpacity 
-            style={[
-              styles.filterSortButton, 
-              selectedCity !== 'All' && styles.filterSortButtonActive
-            ]}
-            onPress={() => setShowFilters(true)}
-          >
-            <Ionicons 
-              name="options-outline" 
-              size={16} 
-              color={selectedCity !== 'All' ? colors.primary : colors.text.secondary} 
-            />
-            <Text style={[
-              styles.filterSortButtonText,
-              selectedCity !== 'All' && styles.filterSortButtonTextActive
-            ]}>
-              Filter
-            </Text>
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.filterSortButton}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Ionicons name="swap-vertical-outline" size={16} color={colors.text.secondary} />
-            <Text style={styles.filterSortButtonText}>Sort</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Active Filters Section */}
-      {selectedCity !== 'All' && (
-        <View style={styles.activeFiltersSection}>
-          <View style={styles.activeFilterChip}>
-            <Ionicons name="location-outline" size={12} color={colors.primary} />
-            <Text style={styles.activeFilterText}>{selectedCity}</Text>
-            <TouchableOpacity 
-              onPress={() => setSelectedCity('All')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close-circle" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} translucent={false} />
 
       {/* Shop List */}
-      <FlatList
+      <Reanimated.FlatList
+        ListHeaderComponent={
+          <View style={styles.listHeaderContainer}>
+            {/* Video / Marketing Banners */}
+            <FlatList
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              data={PROMO_BANNERS}
+              keyExtractor={item => item.id}
+              snapToAlignment="center"
+              decelerationRate="fast"
+              renderItem={({ item }) => (
+                <AnimatedBannerItem item={item} />
+              )}
+            />
+
+            {/* Header (Search & Filter) */}
+            <View style={[styles.header, { paddingTop: 16, paddingBottom: 8, paddingHorizontal: 16 }]}>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search-outline" size={18} color={colors.text.light} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search shops or locations..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={colors.text.light}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+                    <Ionicons name="close-circle" size={16} color={colors.text.light} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Filter and Sort Buttons */}
+              <View style={styles.filterSortRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterSortButton,
+                    selectedCity !== 'All' && styles.filterSortButtonActive
+                  ]}
+                  onPress={() => setShowFilters(true)}
+                >
+                  <Ionicons
+                    name="options-outline"
+                    size={16}
+                    color={selectedCity !== 'All' ? colors.primary : colors.text.secondary}
+                  />
+                  <Text style={[
+                    styles.filterSortButtonText,
+                    selectedCity !== 'All' && styles.filterSortButtonTextActive
+                  ]}>
+                    Filter
+                  </Text>
+                  {activeFiltersCount > 0 && (
+                    <View style={styles.filterBadge}>
+                      <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.filterSortButton}
+                  onPress={() => setShowSortModal(true)}
+                >
+                  <Ionicons name="swap-vertical-outline" size={16} color={colors.text.secondary} />
+                  <Text style={styles.filterSortButtonText}>Sort</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Active Filters Section */}
+            {selectedCity !== 'All' && (
+              <View style={styles.activeFiltersSection}>
+                <View style={styles.activeFilterChip}>
+                  <Ionicons name="location-outline" size={12} color={colors.primary} />
+                  <Text style={styles.activeFilterText}>{selectedCity}</Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedCity('All')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close-circle" size={14} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* What's on your mind? */}
+            <View style={styles.whatsOnMindSection}>
+              <Text style={styles.sectionTitle}>What's on your mind?</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+                {MOCK_CATEGORIES.map((cat, index) => (
+                  <Reanimated.View key={cat.id} entering={FadeInRight.delay(index * 100).springify()}>
+                    <TouchableOpacity
+                      style={styles.categoryBadge}
+                      onPress={() => setSelectedCategory(selectedCategory === cat.name ? 'All' : cat.name)}
+                    >
+                      <View style={[styles.categoryImageContainer, selectedCategory === cat.name && styles.categoryImageSelected]}>
+                        <Image source={{ uri: cat.image }} style={styles.categoryImage} />
+                      </View>
+                      <Text style={[styles.categoryName, selectedCategory === cat.name && styles.categoryNameSelected]}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  </Reanimated.View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* KM Radius Filters */}
+            <View style={styles.kmFilterSection}>
+              <Text style={styles.sectionTitle}>Distance Range</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kmScroll}>
+                {KM_RANGES.map((range) => (
+                  <TouchableOpacity
+                    key={range}
+                    style={[styles.kmPill, selectedKmRange === range && styles.kmPillActive]}
+                    onPress={() => setSelectedKmRange(range)}
+                  >
+                    <Text style={[styles.kmPillText, selectedKmRange === range && styles.kmPillTextActive]}>{range}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        }
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         data={filteredAndSortedShops}
-        renderItem={({ item }) => (
-          <AnimatedShopCard 
-            item={item} 
+        renderItem={({ item, index }) => (
+          <AnimatedShopCard
+            item={item}
+            index={index}
             onPress={() => handleCardPress(item)}
             onBook={handleBooking}
           />
@@ -984,6 +1140,112 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
+  // SWIGGY NEW STYLES
+  listHeaderContainer: {
+    paddingBottom: 20,
+  },
+  bannerContainer: {
+    width: screenWidth,
+    height: 200,
+    marginTop: 0,
+    borderRadius: 0,
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4
+  },
+  videoBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700'
+  },
+  whatsOnMindSection: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text.primary,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  categoryScroll: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  categoryBadge: {
+    alignItems: 'center',
+    width: 72,
+  },
+  categoryImageContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    overflow: 'hidden',
+    marginBottom: 8,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  categoryImageSelected: {
+    borderColor: colors.primary,
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    textAlign: 'center'
+  },
+  categoryNameSelected: {
+    color: colors.primary,
+    fontWeight: '800'
+  },
+  kmFilterSection: {
+    marginTop: 20,
+    marginBottom: 10
+  },
+  kmScroll: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  kmPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  kmPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  kmPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  kmPillTextActive: {
+    color: '#FFFFFF',
+  }
 });
 
 export default BookNow;

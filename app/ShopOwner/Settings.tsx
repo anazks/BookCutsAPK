@@ -37,7 +37,7 @@ const performLogout = async (navigation: any) => {
       const authProvider = await AsyncStorage.getItem('authProvider');
             if (authProvider === 'google') {
               try {
-                const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
                 if (isGoogleSignedIn) {
                   await GoogleSignin.revokeAccess();
                   await GoogleSignin.signOut();
@@ -47,7 +47,12 @@ const performLogout = async (navigation: any) => {
               }
             }
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-    navigation.replace('Home');
+    
+    // Reset navigation stack to Home to prevent back-swipe
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
   } catch (error) {
     console.error('Logout failed:', error);
     Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -458,7 +463,7 @@ const becomeBarber = async () => {
     <View style={[styles.listItem, index === barbers.length - 1 && styles.lastItem]}>
       <View style={styles.itemLeft}>
         <View style={styles.itemIcon}>
-          <MaterialIcons name="person" size={20} color="#4F46E5" />
+          <MaterialIcons name="person" size={20} color="#000000" />
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item.BarberName}</Text>
@@ -466,16 +471,16 @@ const becomeBarber = async () => {
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => {
+        <TouchableOpacity style={styles.iconButton} onPress={() => {
           setEditingBarber(item);
           setEditBarberName(item.BarberName);
           setEditFrom(item.From);
           setShowEditBarberModal(true);
         }}>
-          <Ionicons name="create-outline" size={18} color="#10B981" />
+          <Ionicons name="create-outline" size={20} color="#94A3B8" />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteBarber(item._id)}>
-          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        <TouchableOpacity style={[styles.iconButton, { marginLeft: 8 }]} onPress={() => deleteBarber(item._id)}>
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>
@@ -485,25 +490,25 @@ const becomeBarber = async () => {
     <View style={[styles.listItem, index === services.length - 1 && styles.lastItem]}>
       <View style={styles.itemLeft}>
         <View style={styles.itemIcon}>
-          <MaterialIcons name="content-cut" size={20} color="#4F46E5" />
+          <MaterialIcons name="content-cut" size={18} color="#000000" />
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item.ServiceName}</Text>
-          <Text style={styles.itemDetail}>₹{item.Rate} • {item.duration}</Text>
+          <Text style={styles.itemDetail}>₹{item.Rate} • {item.Duration || item.duration}</Text>
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => {
+        <TouchableOpacity style={styles.iconButton} onPress={() => {
           setEditingService(item);
           setEditServiceName(item.ServiceName);
           setEditServicePrice(item.Rate.toString());
-          setEditServiceDuration(item.duration.toString());
+          setEditServiceDuration((item.Duration || item.duration || '').toString());
           setShowEditServiceModal(true);
         }}>
-          <Ionicons name="create-outline" size={18} color="#10B981" />
+          <Ionicons name="create-outline" size={20} color="#94A3B8" />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteService(item._id)}>
-          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        <TouchableOpacity style={[styles.iconButton, { marginLeft: 8 }]} onPress={() => deleteService(item._id)}>
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </View>
@@ -550,128 +555,58 @@ const becomeBarber = async () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Shop Info */}
+        {/* Profile / Shop Header */}
         {shopData && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={styles.sectionIcon}>
-                  <MaterialIcons name="store" size={20} color="#4F46E5" />
-                </View>
-                <Text style={styles.sectionTitle}>Shop Information</Text>
-              </View>
+          <View style={styles.profileHeader}>
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileAvatarText}>
+                {shopData.ShopName ? shopData.ShopName.charAt(0).toUpperCase() : 'S'}
+              </Text>
             </View>
-
-            <View style={styles.shopInfoContainer}>
-              <View style={styles.shopRow}>
-                <View style={styles.shopItem}>
-                  <Text style={styles.label}>Shop Name</Text>
-                  <Text style={styles.value}>{shopData.ShopName}</Text>
-                </View>
-                <View style={styles.shopItem}>
-                  <Text style={styles.label}>City</Text>
-                  <Text style={styles.value}>{shopData.City}</Text>
-                </View>
-              </View>
-
-              <View style={styles.shopRow}>
-                <View style={styles.shopItem}>
-                  <Text style={styles.label}>Mobile</Text>
-                  <Text style={styles.value}>{shopData.Mobile}</Text>
-                </View>
-                <View style={styles.shopItem}>
-                  <Text style={styles.label}>Timing</Text>
-                  <Text style={styles.value}>{shopData.Timing}</Text>
-                </View>
-              </View>
-
-              {shopData.website && (
-                <View style={styles.shopRow}>
-                  <View style={styles.shopItemFull}>
-                    <Text style={styles.label}>Website</Text>
-                    <Text style={styles.value}>{shopData.website}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
+            <Text style={styles.profileName}>{shopData.ShopName}</Text>
+            <Text style={styles.profileSub}>{shopData.City} • {shopData.Mobile}</Text>
+            <Text style={styles.profileTiming}>{shopData.Timing}</Text>
+            {shopData.website ? <Text style={styles.profileLink}>{shopData.website}</Text> : null}
           </View>
         )}
 
-        {/* Barbers Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionIcon}>
-                <MaterialIcons name="people" size={20} color="#4F46E5" />
-              </View>
-              <Text style={styles.sectionTitle}>Team Members</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{barbers.length}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setShowBarberModal(true)}>
-              <MaterialIcons name="person-add" size={16} color="white" />
-              <Text style={styles.addBtnText}>Add</Text>
+        <View style={styles.settingsGroup}>
+          <View style={styles.groupHeader}>
+            <Text style={styles.groupTitle}>TEAM MEMBERS</Text>
+            <TouchableOpacity onPress={() => setShowBarberModal(true)}>
+              <Text style={styles.groupAddText}>Add</Text>
             </TouchableOpacity>
           </View>
-
-       <View style={styles.listWrapper}>
-  {barbers.length === 0 ? (
-    <View style={styles.empty}>
-      <MaterialIcons name="person-add" size={48} color="#CBD5E1" />
-      <Text style={styles.emptyTitle}>No barbers yet</Text>
-      <Text style={styles.emptyText}>Add your first team member</Text>
-      
-      <View style={styles.activationNotice}>
-        <MaterialIcons name="info-outline" size={20} color="#F59E0B" />
-        <Text style={styles.activationText}>
-          Your shop is not activated. To activate, add at least one barber or you can be a barber in your shop.
-        </Text>
-      </View>
-      
-      <TouchableOpacity 
-        style={styles.becomeBarberButton}
-        onPress={becomeBarber}
-      >
-        <MaterialIcons name="person" size={20} color="#FFFFFF" />
-        <Text style={styles.becomeBarberButtonText}>Become a Barber</Text>
-      </TouchableOpacity>
-    </View>
-  ) : (
-    <FlatList
-      data={barbers}
-      renderItem={renderBarber}
-      keyExtractor={(item) => item._id}
-      scrollEnabled={false}
-    />
-  )}
-</View>
+          <View style={styles.groupContent}>
+            {barbers.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No team members added.</Text>
+                <TouchableOpacity onPress={becomeBarber}>
+                  <Text style={styles.emptyLink}>Become a Barber</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={barbers}
+                renderItem={renderBarber}
+                keyExtractor={(item) => item._id}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
         </View>
 
-        {/* Services Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionIcon}>
-                <MaterialIcons name="content-cut" size={20} color="#4F46E5" />
-              </View>
-              <Text style={styles.sectionTitle}>Services & Pricing</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{services.length}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setShowServiceModal(true)}>
-              <MaterialIcons name="add-circle-outline" size={16} color="white" />
-              <Text style={styles.addBtnText}>Add</Text>
+        <View style={styles.settingsGroup}>
+          <View style={styles.groupHeader}>
+            <Text style={styles.groupTitle}>SERVICES & PRICING</Text>
+            <TouchableOpacity onPress={() => setShowServiceModal(true)}>
+              <Text style={styles.groupAddText}>Add</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.listWrapper}>
+          <View style={styles.groupContent}>
             {services.length === 0 ? (
               <View style={styles.empty}>
-                <MaterialIcons name="content-cut" size={48} color="#CBD5E1" />
-                <Text style={styles.emptyTitle}>No services yet</Text>
-                <Text style={styles.emptyText}>Add your services & prices</Text>
+                <Text style={styles.emptyText}>No services added.</Text>
               </View>
             ) : (
               <FlatList
@@ -684,26 +619,33 @@ const becomeBarber = async () => {
           </View>
         </View>
 
-        {/* Working Hours Button */}
-        <View style={styles.bottomAction}>
-          <TouchableOpacity
-            style={styles.workingHoursBtn}
-            onPress={() => navigation.navigate('Screens/Shop/WorkingHoursScreen')}
-          >
-            <MaterialIcons name="access-time" size={24} color="#4F46E5" />
-            <Text style={styles.workingHoursText}>Manage Working Hours</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748B" />
-          </TouchableOpacity>
-        </View>
+        <View style={[styles.settingsGroup, { marginTop: 24 }]}>
+          <View style={styles.groupContent}>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Screens/Shop/WorkingHoursScreen')}
+            >
+              <View style={[styles.menuIconBg, { backgroundColor: '#F3F4F6' }]}>
+                <MaterialIcons name="access-time" size={20} color="#000000" />
+              </View>
+              <Text style={styles.menuRowText}>Manage Working Hours</Text>
+              <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+            </TouchableOpacity>
 
-        {/* Logout when shop exists */}
-        <TouchableOpacity
-          style={styles.logoutFull}
-          onPress={() => performLogout(navigation)}
-        >
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-          <Text style={styles.logoutFullText}>Logout</Text>
-        </TouchableOpacity>
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => performLogout(navigation)}
+            >
+              <View style={[styles.menuIconBg, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              </View>
+              <Text style={[styles.menuRowText, { color: '#EF4444' }]}>Logout</Text>
+              <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
 
       {/* ──────────────────────────────────────────────── */}
@@ -979,17 +921,18 @@ const becomeBarber = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#64748B',
     marginTop: 12,
   },
 
@@ -999,27 +942,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    backgroundColor: '#FFFFFF',
   },
   noShopCard: {
-    backgroundColor: 'white',
-    borderRadius: 24,
-    padding: 40,
     alignItems: 'center',
     width: '100%',
     maxWidth: 380,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',     // subtle modern border
   },
   noShopTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#000000',
     marginTop: 24,
     marginBottom: 12,
   },
   noShopSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#64748B',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
@@ -1027,10 +966,10 @@ const styles = StyleSheet.create({
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#000000',
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 16,
+    borderRadius: 12,
     width: '100%',
     justifyContent: 'center',
     marginBottom: 24,
@@ -1047,7 +986,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   logoutText: {
-    color: '#ef4444',
+    color: '#EF4444',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -1055,115 +994,115 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    padding: 20,
     paddingBottom: 80,
   },
 
-  section: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  profileHeader: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 32,
+    paddingBottom: 24,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  sectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#eef2ff',
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  badge: {
-    backgroundColor: '#4f46e5',
-    borderRadius: 10,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-    paddingHorizontal: 8,
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4f46e5',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  addBtnText: {
-    color: 'white',
-    fontWeight: '600',
-    marginLeft: 6,
-    fontSize: 14,
-  },
-
-  shopInfoContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  shopRow: {
-    flexDirection: 'row',
     marginBottom: 16,
   },
-  shopItem: {
-    flex: 1,
-    marginRight: 16,
+  profileAvatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#000000',
   },
-  shopItemFull: {
-    flex: 1,
+  profileName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  profileSub: {
+    fontSize: 15,
+    color: '#64748B',
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  value: {
-    fontSize: 16,
-    color: '#0f172a',
+  profileTiming: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  profileLink: {
+    fontSize: 14,
+    color: '#3B82F6',
     fontWeight: '500',
+    textAlign: 'center',
   },
 
-  listWrapper: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  settingsGroup: {
+    marginTop: 24,
   },
-  listItem: {
+  groupHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  groupTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  groupAddText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  groupContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderColor: '#E2E8F0',
+  },
+  
+  // Empty states
+  empty: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#94A3B8',
+    marginBottom: 8,
+  },
+  emptyLink: {
+    fontSize: 15,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+
+  // List Items
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingLeft: 20,
+    paddingRight: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   lastItem: {
     borderBottomWidth: 0,
@@ -1174,10 +1113,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#eef2ff',
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1187,132 +1126,96 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 3,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 2,
   },
   itemDetail: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#64748B',
   },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editButton: {
-    backgroundColor: '#ecfdf5',
-  },
-  deleteButton: {
-    backgroundColor: '#fef2f2',
+  iconButton: {
+    padding: 6,
   },
 
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#64748b',
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-
-  bottomAction: {
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  workingHoursBtn: {
+  // Menu Rows (Working Hours / Logout)
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    paddingVertical: 14,
+    paddingLeft: 20,
+    paddingRight: 16,
   },
-  workingHoursText: {
+  menuIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  menuRowText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginLeft: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 68,
   },
 
-  logoutFull: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fef2f2',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#fee2e2',
-  },
-  logoutFullText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-
-  // Modal
+  // Modal Styles remain largely similar to match the app
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    maxHeight: '85%',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#000000',
   },
   form: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   field: {
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
   input: {
     height: 52,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: '#ffffff',
+    color: '#000000',
+    backgroundColor: '#F8FAFC',
   },
   modalActions: {
     flexDirection: 'row',
@@ -1323,34 +1226,32 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelBtn: {
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    backgroundColor: '#F1F5F9',
   },
   confirmBtn: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#000000',
   },
   cancelText: {
-    color: '#64748b',
+    color: '#64748B',
     fontWeight: '600',
     fontSize: 16,
   },
   confirmText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
   },
+  
+  // Added Notice Styles
   activationNotice: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: '#FEF3C7',
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
-    marginHorizontal: 16,
-    gap: 8,
     borderWidth: 1,
     borderColor: '#FCD34D',
   },
@@ -1364,12 +1265,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 16,
-    marginHorizontal: 16,
     gap: 8,
   },
   becomeBarberButtonText: {

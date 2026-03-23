@@ -17,28 +17,28 @@ const BarberScheduleTimeLine = ({
     breaks: [],
     bookings: [],
     freeSlots: []
-  },
-  totalDuration = 60,
+  } as any,
+  totalDuration = 60 as number,
   onTimeSelect,
-}) => {
+}: any) => {
 
   console.log('Schedule Data Received:', scheduleData);
 console.log('Free Slots:', scheduleData.freeSlots);
 console.log('Total Duration:', totalDuration);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState<any>(null);
 
-  const timeToMinutes = (time) => {
+  const timeToMinutes = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
   };
 
-  const minutesToTime = (minutes) => {
+  const minutesToTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  const isSlotBlocked = (startMin, endMin) => {
+  const isSlotBlocked = (startMin: number, endMin: number) => {
     for (const booking of scheduleData.bookings || []) {
       const bookingStart = timeToMinutes(booking.startTime);
       const bookingEnd = timeToMinutes(booking.endTime);
@@ -59,9 +59,9 @@ console.log('Total Duration:', totalDuration);
   };
 
   const generateTimeSlots = useMemo(() => {
-    const slots = [];
+    const slots: any[] = [];
     
-    (scheduleData.freeSlots || []).forEach((freeSlot) => {
+    (scheduleData.freeSlots || []).forEach((freeSlot: any) => {
       const startMin = timeToMinutes(freeSlot.from);
       const endMin = timeToMinutes(freeSlot.to);
       const duration = endMin - startMin;
@@ -89,22 +89,22 @@ console.log('Total Duration:', totalDuration);
     return slots;
   }, [scheduleData, totalDuration]);
 
-  const handleSlotPress = (slot) => {
+  const handleSlotPress = (slot: any) => {
     setSelectedSlot(slot);
     if (onTimeSelect) {
       onTimeSelect(slot);
     }
   };
 
-  // Compact time format for small cards
-  const formatCompactTime = (time24) => {
+  // Convert time to user friendly string e.g. "10:30 AM"
+  const formatCompactTime = (time24: string) => {
     const [hours, minutes] = time24.split(':').map(Number);
-    const period = hours >= 12 ? 'p' : 'a';
+    const period = hours >= 12 ? 'PM' : 'AM';
     const hours12 = hours % 12 || 12;
-    return `${hours12}:${minutes.toString().padStart(2, '0')}${period}`;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-  const getTimeOfDay = (time) => {
+  const getTimeOfDay = (time: string) => {
     const hour = parseInt(time.split(':')[0]);
     if (hour < 12) return 'morning';
     if (hour < 17) return 'afternoon';
@@ -112,7 +112,7 @@ console.log('Total Duration:', totalDuration);
   };
 
   const groupedSlots = useMemo(() => {
-    const groups = {
+    const groups: Record<string, any[]> = {
       morning: [],
       afternoon: [],
       evening: [],
@@ -126,7 +126,7 @@ console.log('Total Duration:', totalDuration);
     return groups;
   }, [generateTimeSlots]);
 
-const getPeriodIcon = (period) => {
+const getPeriodIcon = (period: string) => {
   switch(period) {
     case 'morning': 
       return <Feather name="sunrise" size={14} color="#1877F2" />; // Primary blue
@@ -139,7 +139,7 @@ const getPeriodIcon = (period) => {
   }
 };
 
-const getPeriodColor = (period) => {
+const getPeriodColor = (period: string) => {
   switch(period) {
     case 'morning': return '#1877F2'; // Primary blue
     case 'afternoon': return '#5C9CFF'; // Light blue
@@ -148,7 +148,7 @@ const getPeriodColor = (period) => {
   }
 };
 
-  const renderTimeSlot = (slot, period, index) => {
+  const renderTimeSlot = (slot: any, period: string, index: number) => {
     const isSelected = selectedSlot?.startTime === slot.startTime;
     const periodColor = getPeriodColor(period);
     
@@ -163,24 +163,13 @@ const getPeriodColor = (period) => {
         activeOpacity={0.7}
       >
         <View style={styles.timeSlotContent}>
-          {/* Single line for times with arrow */}
+          {/* Single line for start time */}
           <View style={styles.timeContainer}>
             <Text style={[
               styles.timeText,
               isSelected && [styles.timeTextSelected, { color: periodColor }]
             ]}>
               {formatCompactTime(slot.startTime)}
-            </Text>
-            
-            <View style={styles.arrowContainer}>
-              <Feather name="arrow-right" size={10} color={periodColor} />
-            </View>
-            
-            <Text style={[
-              styles.timeText,
-              isSelected && [styles.timeTextSelected, { color: periodColor }]
-            ]}>
-              {formatCompactTime(slot.endTime)}
             </Text>
           </View>
           
@@ -201,7 +190,7 @@ const getPeriodColor = (period) => {
     );
   };
 
-  const renderPeriodSection = (period, slots) => {
+  const renderPeriodSection = (period: string, slots: any[]) => {
     if (slots.length === 0) return null;
     const periodColor = getPeriodColor(period);
     
@@ -382,13 +371,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   timeSlotCard: {
-    width: (SCREEN_WIDTH - 48) / 3, // Reduced from 56 to 48 for more width
+    width: (SCREEN_WIDTH - 48) / 3, // 3 columns
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderWidth: 1.5,
     borderColor: '#F0F0F0',
-    minHeight: 60, // Fixed minimum height
+    minHeight: 64, // Bigger minimum height
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timeSlotCardSelected: {
     backgroundColor: '#FFFFFF',
@@ -409,10 +401,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1C1C1E',
-    minWidth: 36, // Fixed width for time text
     textAlign: 'center',
   },
   timeTextSelected: {

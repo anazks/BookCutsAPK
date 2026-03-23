@@ -7,11 +7,12 @@ type ProgressStepsProps = {
   total?: number;    // default 3
 };
 
-export const ProgressSteps = ({ completed, total = 3 }: ProgressStepsProps) => {
+export const ProgressSteps = ({ completed, total = 4 }: ProgressStepsProps) => {
   const steps = [
     { label: 'Services', number: 1 },
     { label: 'Date', number: 2 },
     { label: 'Time', number: 3 },
+    { label: 'Confirm', number: 4 },
   ];
 
   return (

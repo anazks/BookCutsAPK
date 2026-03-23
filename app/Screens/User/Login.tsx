@@ -103,12 +103,7 @@ export default function Login() {
           console.error('🔴 ERROR IN PUSH TOKEN BLOCK:', tokenError);
         }
 
-        Alert.alert('Success', 'Login successful!', [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/Home'),
-          },
-        ]);
+        router.replace('/(tabs)/Home');
       } else {
         Alert.alert('Login Error', response.message || 'Google login failed');
       }
