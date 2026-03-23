@@ -17,7 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import Reanimated, { FadeInDown, FadeInRight, useAnimatedScrollHandler, useSharedValue, withTiming } from 'react-native-reanimated';
+import Reanimated, { FadeInDown, FadeInRight, useAnimatedScrollHandler, useSharedValue, withTiming, withRepeat, useAnimatedStyle, withSequence } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { getAllShops } from '../api/Service/Shop';
@@ -172,16 +172,58 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook }) => {
 
 const MOCK_CATEGORIES = [
   { id: '1', name: 'Haircut', image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=150&q=80' },
-  { id: '2', name: 'Beard Trim', image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=150&q=80' },
-  { id: '3', name: 'Facial', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=150&q=80' },
-  { id: '4', name: 'Massage', image: 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=150&q=80' },
-  { id: '5', name: 'Hair Color', image: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=150&q=80' },
+  { id: '2', name: 'Hair Wash', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=150&q=80' },
+  { id: '3', name: 'Hair Color', image: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=150&q=80' },
+  { id: '4', name: 'Hair Spa', image: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=150&q=80' },
+  { id: '5', name: 'Styling', image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=150&q=80' },
 ];
 
 const KM_RANGES = ['All', '<5 km', '5-10 km', '10-20 km', '20+ km'];
 
+// Animated Banner Item for scaling effect
+const AnimatedBannerItem = ({ item }) => {
+  const scale = useSharedValue(1);
+  
+  useEffect(() => {
+    if (item.type === 'animated-image') {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.08, { duration: 4000 }),
+          withTiming(1, { duration: 4000 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [item.type]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  return (
+    <View style={styles.bannerContainer}>
+      {item.type === 'animated-image' ? (
+        <Reanimated.Image 
+          source={{ uri: item.url }} 
+          style={[styles.bannerImage, animatedStyle]} 
+          resizeMode="cover" 
+        />
+      ) : (
+        <Image source={{ uri: item.url }} style={styles.bannerImage} resizeMode="cover" />
+      )}
+      {item.type === 'video' && (
+        <View style={styles.videoBadge}>
+          <Ionicons name="play-circle" size={14} color="white" />
+          <Text style={styles.videoBadgeText}>Ad</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
 const PROMO_BANNERS = [
-  { id: 'b1', type: 'mp4', url: 'https://cdn.pixabay.com/video/2019/04/16/22753-330656094_medium.mp4' },
+  { id: 'b1', type: 'animated-image', url: 'https://images.template.net/374070/Salon-Product-Showcase-Banner-Template-edit-online-1.jpg' },
   { id: 'b2', type: 'image', url: 'https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?auto=format&fit=crop&w=600&q=80' },
   { id: 'b3', type: 'image', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80' },
 ];
@@ -577,84 +619,12 @@ const BookNow = ({ navigation }) => {
   const activeFiltersCount = (selectedCity !== 'All' ? 1 : 0);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={18} color={colors.text.light} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search shops or locations..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={colors.text.light}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
-              <Ionicons name="close-circle" size={16} color={colors.text.light} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Filter and Sort Buttons */}
-        <View style={styles.filterSortRow}>
-          <TouchableOpacity
-            style={[
-              styles.filterSortButton,
-              selectedCity !== 'All' && styles.filterSortButtonActive
-            ]}
-            onPress={() => setShowFilters(true)}
-          >
-            <Ionicons
-              name="options-outline"
-              size={16}
-              color={selectedCity !== 'All' ? colors.primary : colors.text.secondary}
-            />
-            <Text style={[
-              styles.filterSortButtonText,
-              selectedCity !== 'All' && styles.filterSortButtonTextActive
-            ]}>
-              Filter
-            </Text>
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.filterSortButton}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Ionicons name="swap-vertical-outline" size={16} color={colors.text.secondary} />
-            <Text style={styles.filterSortButtonText}>Sort</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Active Filters Section */}
-      {selectedCity !== 'All' && (
-        <View style={styles.activeFiltersSection}>
-          <View style={styles.activeFilterChip}>
-            <Ionicons name="location-outline" size={12} color={colors.primary} />
-            <Text style={styles.activeFilterText}>{selectedCity}</Text>
-            <TouchableOpacity
-              onPress={() => setSelectedCity('All')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close-circle" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} translucent={false} />
 
       {/* Shop List */}
       <Reanimated.FlatList
-        ListHeaderComponent={() => (
+        ListHeaderComponent={
           <View style={styles.listHeaderContainer}>
             {/* Video / Marketing Banners */}
             <FlatList
@@ -666,50 +636,81 @@ const BookNow = ({ navigation }) => {
               snapToAlignment="center"
               decelerationRate="fast"
               renderItem={({ item }) => (
-                <View style={styles.bannerContainer}>
-                  {item.type === 'mp4' ? (
-                    <WebView
-                      style={styles.bannerImage}
-                      javaScriptEnabled={true}
-                      domStorageEnabled={true}
-                      allowsInlineMediaPlayback={true}
-                      mediaPlaybackRequiresUserAction={false}
-                      scrollEnabled={false}
-                      source={{
-                        html: `
-                          <!DOCTYPE html>
-                          <html>
-                            <head>
-                              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                              <style>
-                                body { margin: 0; padding: 0; background-color: black; overflow: hidden; }
-                                video { width: 100vw; height: 100vh; object-fit: cover; }
-                              </style>
-                            </head>
-                            <body>
-                              <video autoplay loop muted playsinline>
-                                <source src="${item.url}" type="video/mp4" />
-                              </video>
-                            </body>
-                          </html>
-                        `
-                      }}
-                      pointerEvents="none"
-                    />
-                  ) : (
-                    <>
-                      <Image source={{ uri: item.url }} style={styles.bannerImage} resizeMode="cover" />
-                      {item.type === 'video' && (
-                        <View style={styles.videoBadge}>
-                          <Ionicons name="play-circle" size={14} color="white" />
-                          <Text style={styles.videoBadgeText}>Ad</Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
+                <AnimatedBannerItem item={item} />
               )}
             />
+
+            {/* Header (Search & Filter) */}
+            <View style={[styles.header, { paddingTop: 16, paddingBottom: 8, paddingHorizontal: 16 }]}>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search-outline" size={18} color={colors.text.light} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search shops or locations..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={colors.text.light}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearch}>
+                    <Ionicons name="close-circle" size={16} color={colors.text.light} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Filter and Sort Buttons */}
+              <View style={styles.filterSortRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterSortButton,
+                    selectedCity !== 'All' && styles.filterSortButtonActive
+                  ]}
+                  onPress={() => setShowFilters(true)}
+                >
+                  <Ionicons
+                    name="options-outline"
+                    size={16}
+                    color={selectedCity !== 'All' ? colors.primary : colors.text.secondary}
+                  />
+                  <Text style={[
+                    styles.filterSortButtonText,
+                    selectedCity !== 'All' && styles.filterSortButtonTextActive
+                  ]}>
+                    Filter
+                  </Text>
+                  {activeFiltersCount > 0 && (
+                    <View style={styles.filterBadge}>
+                      <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.filterSortButton}
+                  onPress={() => setShowSortModal(true)}
+                >
+                  <Ionicons name="swap-vertical-outline" size={16} color={colors.text.secondary} />
+                  <Text style={styles.filterSortButtonText}>Sort</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Active Filters Section */}
+            {selectedCity !== 'All' && (
+              <View style={styles.activeFiltersSection}>
+                <View style={styles.activeFilterChip}>
+                  <Ionicons name="location-outline" size={12} color={colors.primary} />
+                  <Text style={styles.activeFilterText}>{selectedCity}</Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedCity('All')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close-circle" size={14} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* What's on your mind? */}
             <View style={styles.whatsOnMindSection}>
@@ -747,7 +748,7 @@ const BookNow = ({ navigation }) => {
               </ScrollView>
             </View>
           </View>
-        )}
+        }
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         data={filteredAndSortedShops}
