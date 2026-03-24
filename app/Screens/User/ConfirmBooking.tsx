@@ -11,7 +11,18 @@ import {
 
 export default function ConfirmBooking() {
   const params = useLocalSearchParams();
-  const { bookingId, paymentId, paymentType, amount, verified } = params;
+  const {
+    bookingId,
+    paymentId,
+    paymentType,
+    amount,
+    verified,
+    barberName,
+    bookingDate,
+    timeSlot,
+    serviceName,
+    serviceDuration,
+  } = params;
 
   const formatAmount = (amt: string | string[]) => {
     return `₹${parseFloat(amt?.toString() || '0').toLocaleString('en-IN')}`;
@@ -21,14 +32,6 @@ export default function ConfirmBooking() {
     const t = type?.toString() || '';
     return t === 'advance' ? 'Advance Payment' : 'Full Payment';
   };
-
-  // Mock data for display (replace with real from params or state)
-  const selectedTime = '10:00 – 10:30';
-  const selectedDate = 'Mon, Mar 23 2026';
-  const selectedBarber = 'Albin';
-  const totalAmount = 220;
-  const serviceName = 'Low Tapper';
-  const serviceDuration = '30 min';
 
   return (
     <View style={styles.container}>
@@ -55,30 +58,30 @@ export default function ConfirmBooking() {
           <View style={styles.summaryRow}>
             <Ionicons name="cut-outline" size={20} color="#64748B" />
             <Text style={styles.summaryLabel}>Service</Text>
-            <Text style={styles.summaryValue}>{serviceName}</Text>
+            <Text style={styles.summaryValue}>{serviceName || 'Standard Service'}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Ionicons name="person-outline" size={20} color="#64748B" />
             <Text style={styles.summaryLabel}>Barber</Text>
-            <Text style={styles.summaryValue}>{selectedBarber}</Text>
+            <Text style={styles.summaryValue}>{barberName || 'Unknown'}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Ionicons name="calendar-outline" size={20} color="#64748B" />
             <Text style={styles.summaryLabel}>Date</Text>
-            <Text style={styles.summaryValue}>{selectedDate}</Text>
+            <Text style={styles.summaryValue}>{bookingDate || '--/--/----'}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Ionicons name="time-outline" size={20} color="#64748B" />
             <Text style={styles.summaryLabel}>Time</Text>
-            <Text style={styles.summaryValue}>{selectedTime}</Text>
+            <Text style={styles.summaryValue}>{timeSlot || '--:--'}</Text>
           </View>
 
           <View style={[styles.summaryRow, styles.summaryRowTotal]}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{formatAmount(totalAmount)}</Text>
+            <Text style={styles.totalLabel}>Amount Paid</Text>
+            <Text style={styles.totalValue}>{formatAmount(amount || '')}</Text>
           </View>
         </View>
 
@@ -90,8 +93,8 @@ export default function ConfirmBooking() {
               <Ionicons name="checkmark-circle" size={28} color="#10B981" />
             </View>
             <View style={styles.timelineContent}>
-              <Text style={styles.timelineTime}>{selectedTime}</Text>
-              <Text style={styles.timelineService}>{serviceName} • {serviceDuration}</Text>
+              <Text style={styles.timelineTime}>{timeSlot || '--:--'}</Text>
+              <Text style={styles.timelineService}>{serviceName || 'Service'} • {serviceDuration ? `${serviceDuration} min` : ''}</Text>
             </View>
           </View>
         </View>
@@ -128,7 +131,7 @@ export default function ConfirmBooking() {
             style={styles.primaryButton}
             onPress={() => router.push({
               pathname: '/Screens/User/BookingDetails',
-              params: { bookingId },
+              params: { bookingId: String(bookingId) },
             })}
           >
             <Text style={styles.primaryButtonText}>View Booking Details</Text>

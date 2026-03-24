@@ -57,11 +57,11 @@ export default function Profile() {
                 }
               }
               await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              router.replace('/Screens/User/Login');
+              router.replace('/');
             } catch (error) {
               console.error('Logout Error:', error);
               await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              router.replace('/Screens/User/Login');
+              router.replace('/');
             }
           },
         },

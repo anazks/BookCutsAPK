@@ -47,7 +47,7 @@ export default function Payment({ route }) {
       description: 'Booking Payment',
       image: 'https://your-app-logo-url.com/logo.png', // Replace with your app logo
       currency: 'INR',
-      key: 'rzp_test_YOUR_API_KEY', // Replace with your Razorpay API Key
+      key: 'rzp_live_SUY56QCdYmPx1Q', // Replace with your Razorpay API Key
       amount: amount * 100, // Convert to paise
       name: 'Your App Name',
       prefill: {
