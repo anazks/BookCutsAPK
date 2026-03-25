@@ -65,9 +65,9 @@ export const createOrder = async (data:any)=>{
         const response = await Axios.post('/booking/create-order',data);
         console.log("order:",response)
         return response.data
-    } catch (error) {
-        console.log(error)
-        return null
+    } catch (error: any) {
+        console.log("createOrder error:", error?.response?.data || error.message)
+        return error?.response?.data || { message: error.message }
     }
 }
 

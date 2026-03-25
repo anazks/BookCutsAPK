@@ -10,9 +10,32 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { viewBankDetails, createBankDetails } from '@/app/api/Service/Shop';
+
+// ── Constants ──────────────────────────────────────────
+const BANKS = [
+  { name: "Federal Bank", state: "Kerala" },
+  { name: "South Indian Bank", state: "Kerala" },
+  { name: "CSB Bank", state: "Kerala" },
+  { name: "Dhanalakshmi Bank", state: "Kerala" },
+  { name: "Kerala Bank", state: "Kerala" },
+  { name: "Indian Bank", state: "Tamil Nadu" },
+  { name: "Indian Overseas Bank", state: "Tamil Nadu" },
+  { name: "Karur Vysya Bank", state: "Tamil Nadu" },
+  { name: "City Union Bank", state: "Tamil Nadu" },
+  { name: "Tamilnad Mercantile Bank", state: "Tamil Nadu" },
+  { name: "State Bank of India", state: "Both" },
+  { name: "HDFC Bank", state: "Both" },
+  { name: "ICICI Bank", state: "Both" },
+  { name: "Axis Bank", state: "Both" }
+];
+
+const ACCOUNT_TYPES = ["Savings", "Current"];
 
 // ── Type ───────────────────────────────────────────────
 interface BankDetails {
@@ -30,7 +53,7 @@ const initialForm: BankDetails = {
   AccountHolderName: '',
   AccountNumber: '',
   ifceCode: '',
-  AccountType: '',
+  AccountType: 'Savings', // Default to Savings
 };
 
 // ── Main Component ─────────────────────────────────────
@@ -41,6 +64,10 @@ export default function BankDetailsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Modals visibility
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,52 +75,33 @@ export default function BankDetailsScreen() {
         setError(null);
 
         const res = await viewBankDetails();
-
-        // ── Debug: always log what we actually received ──
-        console.log('[viewBankDetails] Raw response:', res);
-        console.log('[viewBankDetails] Type:', typeof res);
-        if (res) {
-          console.log('[viewBankDetails] Keys:', Object.keys(res));
-          console.log('[viewBankDetails] JSON:', JSON.stringify(res, null, 2));
-        }
-
-        // ── Flexible data extraction ─────────────────────────────────
+        
+        // Flexible data extraction
         let data: any = res;
-
-        // Common API wrappers
         if (res && typeof res === 'object') {
           if ('data' in res) data = res.data;
           else if ('result' in res) data = res.result;
           else if ('bankDetails' in res) data = res.bankDetails;
-          else if ('payload' in res) data = res.payload;
         }
 
-        // Handle array response (very rare but possible)
         if (Array.isArray(data) && data.length > 0) {
           data = data[0];
         }
 
-        // Final check: do we have something that looks like bank details?
         if (
           data &&
           typeof data === 'object' &&
           !Array.isArray(data) &&
           (data.BankName || data.bankName || data.AccountNumber || data.accountNumber)
         ) {
-          // Normalize field names (in case backend uses different casing)
           const normalized: BankDetails = {
             BankName: data.BankName || data.bankName || data.bank_name || '',
             BranchName: data.BranchName || data.branchName || data.branch_name || '',
-            AccountHolderName:
-              data.AccountHolderName ||
-              data.accountHolderName ||
-              data.account_holder_name ||
-              '',
-            AccountNumber: data.AccountNumber || data.accountNumber || data.account_number || '',
-            ifceCode: data.ifceCode || data.IFSC || data.ifscCode || data.ifsc || '',
-            AccountType: data.AccountType || data.accountType || data.account_type || '',
+            AccountHolderName: data.AccountHolderName || data.accountHolderName || '',
+            AccountNumber: data.AccountNumber || data.accountNumber || '',
+            ifceCode: data.ifceCode || data.IFSC || '',
+            AccountType: data.AccountType || data.accountType || 'Savings',
           };
-
           setBankData(normalized);
         } else {
           setBankData(null);
@@ -113,6 +121,16 @@ export default function BankDetailsScreen() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBankSelect = (bankName: string) => {
+    handleChange('BankName', bankName);
+    setShowBankModal(false);
+  };
+
+  const handleTypeSelect = (type: string) => {
+    handleChange('AccountType', type);
+    setShowTypeModal(false);
+  };
+
   const handleSubmit = async () => {
     if (
       !form.BankName.trim() ||
@@ -129,18 +147,15 @@ export default function BankDetailsScreen() {
 
     try {
       const result = await createBankDetails(form);
-
-      // After creation → show the new data (use result if returned, otherwise form)
       const newData = result && result.AccountNumber ? result : form;
 
-      // Normalize again just in case
       const normalized = {
-        BankName: newData.BankName || '',
-        BranchName: newData.BranchName || '',
-        AccountHolderName: newData.AccountHolderName || '',
-        AccountNumber: newData.AccountNumber || '',
-        ifceCode: newData.ifceCode || '',
-        AccountType: newData.AccountType || '',
+        BankName: newData.BankName || form.BankName,
+        BranchName: newData.BranchName || form.BranchName,
+        AccountHolderName: newData.AccountHolderName || form.AccountHolderName,
+        AccountNumber: newData.AccountNumber || form.AccountNumber,
+        ifceCode: newData.ifceCode || form.ifceCode,
+        AccountType: newData.AccountType || form.AccountType,
       };
 
       setBankData(normalized);
@@ -156,53 +171,29 @@ export default function BankDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0066cc" />
+        <ActivityIndicator size="large" color="#4F46E5" />
         <Text style={styles.loadingText}>Loading bank details...</Text>
       </View>
     );
   }
 
-  // ── VIEW MODE ────────────────────────────────────────
   if (bankData) {
     return (
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Bank Details</Text>
 
         <View style={styles.card}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Bank Name</Text>
-            <Text style={styles.value}>{bankData.BankName || '-'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Branch Name</Text>
-            <Text style={styles.value}>{bankData.BranchName || '-'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Account Holder</Text>
-            <Text style={styles.value}>{bankData.AccountHolderName || '-'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Account Number</Text>
-            <Text style={styles.value}>
-              {/* Option: mask account number */}
-              {bankData.AccountNumber}
-              {/* {'•••• ' + bankData.AccountNumber.slice(-4)} */}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>IFSC Code</Text>
-            <Text style={styles.value}>{bankData.ifceCode || '-'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Account Type</Text>
-            <Text style={styles.value}>{bankData.AccountType || '-'}</Text>
-          </View>
+          <DetailRow label="Bank Name" value={bankData.BankName} />
+          <DetailRow label="Branch Name" value={bankData.BranchName} />
+          <DetailRow label="Account Holder" value={bankData.AccountHolderName} />
+          <DetailRow label="Account Number" value={bankData.AccountNumber} />
+          <DetailRow label="IFSC Code" value={bankData.ifceCode} />
+          <DetailRow label="Account Type" value={bankData.AccountType} />
         </View>
       </ScrollView>
     );
   }
 
-  // ── ADD MODE (FORM) ──────────────────────────────────
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Add Bank Details</Text>
@@ -211,14 +202,15 @@ export default function BankDetailsScreen() {
 
       <View style={styles.form}>
         <Text style={styles.fieldLabel}>Bank Name *</Text>
-        <TextInput
-          style={styles.input}
-          value={form.BankName}
-          onChangeText={(v) => handleChange('BankName', v)}
-          placeholder="State Bank of India"
-          autoCapitalize="words"
-          returnKeyType="next"
-        />
+        <TouchableOpacity 
+          style={styles.selectTrigger} 
+          onPress={() => setShowBankModal(true)}
+        >
+          <Text style={form.BankName ? styles.selectValueText : styles.placeholderText}>
+            {form.BankName || "Select Bank"}
+          </Text>
+          <Ionicons name="chevron-down" size={20} color="#94A3B8" />
+        </TouchableOpacity>
 
         <Text style={styles.fieldLabel}>Branch Name</Text>
         <TextInput
@@ -235,7 +227,7 @@ export default function BankDetailsScreen() {
           style={styles.input}
           value={form.AccountHolderName}
           onChangeText={(v) => handleChange('AccountHolderName', v)}
-          placeholder="Govind Kumar"
+          placeholder="Ex: John Doe"
           autoCapitalize="words"
           returnKeyType="next"
         />
@@ -245,7 +237,7 @@ export default function BankDetailsScreen() {
           style={styles.input}
           value={form.AccountNumber}
           onChangeText={(v) => handleChange('AccountNumber', v.replace(/\D/g, ''))}
-          placeholder="xxxxxxxxxx1234"
+          placeholder="Enter Account Number"
           keyboardType="numeric"
           maxLength={18}
           returnKeyType="next"
@@ -256,21 +248,20 @@ export default function BankDetailsScreen() {
           style={styles.input}
           value={form.ifceCode}
           onChangeText={(v) => handleChange('ifceCode', v.toUpperCase())}
-          placeholder="SBIN0001234"
+          placeholder="Ex: SBIN0001234"
           autoCapitalize="characters"
           maxLength={11}
           returnKeyType="next"
         />
 
-        <Text style={styles.fieldLabel}>Account Type</Text>
-        <TextInput
-          style={styles.input}
-          value={form.AccountType}
-          onChangeText={(v) => handleChange('AccountType', v)}
-          placeholder="Savings / Current"
-          autoCapitalize="words"
-          returnKeyType="done"
-        />
+        <Text style={styles.fieldLabel}>Account Type *</Text>
+        <TouchableOpacity 
+          style={styles.selectTrigger} 
+          onPress={() => setShowTypeModal(true)}
+        >
+          <Text style={styles.selectValueText}>{form.AccountType}</Text>
+          <Ionicons name="chevron-down" size={20} color="#94A3B8" />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, submitting && styles.buttonDisabled]}
@@ -285,102 +276,250 @@ export default function BankDetailsScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Bank Selection Modal */}
+      <Modal visible={showBankModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Bank</Text>
+              <TouchableOpacity onPress={() => setShowBankModal(false)}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={BANKS}
+              keyExtractor={(item) => item.name}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.modalItem} 
+                  onPress={() => handleBankSelect(item.name)}
+                >
+                  <View>
+                    <Text style={styles.bankNameText}>{item.name}</Text>
+                    <Text style={styles.bankStateText}>{item.state}</Text>
+                  </View>
+                  {form.BankName === item.name && (
+                    <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Account Type Selection Modal */}
+      <Modal visible={showTypeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Account Type</Text>
+              <TouchableOpacity onPress={() => setShowTypeModal(false)}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            {ACCOUNT_TYPES.map((type) => (
+              <TouchableOpacity 
+                key={type}
+                style={styles.modalItem} 
+                onPress={() => handleTypeSelect(type)}
+              >
+                <Text style={styles.bankNameText}>{type}</Text>
+                {form.AccountType === type && (
+                  <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
-// ── Styles (unchanged) ───────────────────────────────────
+const DetailRow = ({ label, value }: { label: string, value: string }) => (
+  <View style={styles.row}>
+    <Text style={styles.label}>{label}</Text>
+    <Text style={styles.value}>{value || '-'}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8FAFC',
     padding: 20,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8FAFC',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#555',
+    color: '#64748B',
+    fontWeight: '500',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#1E293B',
     marginBottom: 24,
     textAlign: 'center',
   },
   error: {
-    color: '#d32f2f',
-    backgroundColor: '#ffebee',
+    color: '#EF4444',
+    backgroundColor: '#FEF2F2',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
     textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    fontSize: 14,
+    fontWeight: '500',
   },
   form: {
     gap: 16,
+    paddingBottom: 40,
   },
   fieldLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: -8,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 14 : 12,
     fontSize: 16,
+    color: '#1E293B',
+  },
+  selectTrigger: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectValueText: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#94A3B8',
   },
   button: {
-    backgroundColor: '#0066cc',
-    borderRadius: 10,
-    paddingVertical: 16,
+    backgroundColor: '#4F46E5',
+    borderRadius: 12,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#99b3ff',
+    backgroundColor: '#A5B4FC',
+    elevation: 0,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    gap: 16,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
   },
   label: {
-    fontSize: 15,
-    color: '#555',
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
     flex: 1,
   },
   value: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#222',
-    flex: 1.6,
+    fontWeight: '600',
+    color: '#1E293B',
+    flex: 1.5,
     textAlign: 'right',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  bankNameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  bankStateText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
   },
 });

@@ -1,13 +1,16 @@
 import { getDashBoardIncome } from '@/app/api/Service/ShoperOwner'
 import React, { useEffect, useState } from 'react'
 import { Alert, Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import RazorpayCheckout from 'react-native-razorpay';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createPremiumOrder, verifyPremiumPayment } from '@/app/api/Service/Shop';
 
 const { width } = Dimensions.get('window')
 
-export default function Dashboard() {
+export default function Dashboard({ isPremium = false }: { isPremium?: boolean }) {
   // Subscription state
   const [subscriptionData, setSubscriptionData] = useState({
-    isSubscribed: false, // Change to true to test subscription view
+    isSubscribed: isPremium, // Initialize with prop
     startDate: null,
     endDate: null,
     amount: 799
@@ -54,7 +57,12 @@ export default function Dashboard() {
     fetchDashboardIncome()
   }, [])
 
-  const handleSubscription = () => {
+  // Sync isPremium prop with state
+  useEffect(() => {
+    setSubscriptionData(prev => ({ ...prev, isSubscribed: isPremium }))
+  }, [isPremium])
+
+  const handleSubscription = async () => {
     Alert.alert(
       "Subscription Confirmation",
       `Subscribe for ₹${subscriptionData.amount} to get premium features and top listing priority?`,
@@ -62,19 +70,69 @@ export default function Dashboard() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Subscribe",
-          onPress: () => {
-            const startDate = new Date()
-            const endDate = new Date()
-            endDate.setMonth(endDate.getMonth() + 1) // 1 month subscription
+          onPress: async () => {
+            try {
+              const shopId = await AsyncStorage.getItem('shopId');
+              if (!shopId) {
+                Alert.alert("Error", "Shop ID not found");
+                return;
+              }
 
-            setSubscriptionData({
-              isSubscribed: true,
-              startDate,
-              endDate,
-              amount: 799
-            })
+              // 1. Create order on backend
+              const orderResponse = await createPremiumOrder(shopId);
+              if (!orderResponse?.order?.id) {
+                Alert.alert("Error", orderResponse?.message || "Failed to create premium order");
+                return;
+              }
 
-            Alert.alert("Success!", "Subscription activated successfully! Your account is now top-listed.")
+              const options = {
+                description: 'Premium Subscription',
+                image: 'https://cdn.iconscout.com/icon/free/png-512/razorpay-1649771-1399875.png',
+                currency: 'INR',
+                key: 'rzp_live_SUY56QCdYmPx1Q', // Using the exact key from PayNow.tsx
+                amount: orderResponse.order.amount,
+                name: 'BookMyCuts Premium',
+                order_id: orderResponse.order.id,
+                theme: { color: '#4F46E5' },
+              };
+
+              // 2. Open Razorpay Checkout
+              RazorpayCheckout.open(options).then(async (data: any) => {
+                // 3. Verify Payment
+                try {
+                  const verifyResponse = await verifyPremiumPayment({
+                    shopId,
+                    razorpay_order_id: data.razorpay_order_id,
+                    razorpay_payment_id: data.razorpay_payment_id,
+                    razorpay_signature: data.razorpay_signature,
+                  });
+
+                  if (verifyResponse.success) {
+                    const startDate = new Date();
+                    const endDate = new Date();
+                    endDate.setMonth(endDate.getMonth() + 1); // 1 month subscription
+
+                    setSubscriptionData({
+                      isSubscribed: true,
+                      startDate,
+                      endDate,
+                      amount: 799
+                    });
+
+                    Alert.alert("Success!", "Subscription activated successfully! Your account is now top-listed.");
+                  } else {
+                    Alert.alert("Verification Failed", verifyResponse.message || "Payment verification failed.");
+                  }
+                } catch (verifyErr: any) {
+                  Alert.alert("Verification Error", verifyErr.message || "An error occurred during verification.");
+                }
+              }).catch((error: any) => {
+                Alert.alert("Payment Failed", error.description || "The payment was cancelled or failed.");
+              });
+
+            } catch (err: any) {
+              Alert.alert("Error", err.message || "Something went wrong while initiating payment");
+            }
           }
         }
       ]

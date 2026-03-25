@@ -22,7 +22,7 @@ export const userLogin = async (userData: any) => {
     }
 }
 
-export const getmyProfile = async (userId: string) => {
+export const getmyProfile = async (userId?: string) => {
     try {
         const response = await Axios.get('/auth/user/getProfile');
         return response.data;

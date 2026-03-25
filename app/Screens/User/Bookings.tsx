@@ -189,9 +189,34 @@ export default function Bookings() {
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 6 }}>
-                {booking.shopId?.ShopName || 'Salon Shop'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>
+                  {booking.shopId?.ShopName || 'Salon Shop'}
+                </Text>
+                
+                {booking.shopId?.IsPremium && (
+                  <View
+                    style={{
+                      backgroundColor: '#F59E0B',
+                      paddingHorizontal: 6,
+                      paddingVertical: 4,
+                      borderRadius: 4,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                      elevation: 2,
+                    }}
+                  >
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>
+                      ⭐ PREMIUM
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '400' }}>
                 {formatDate(booking.bookingDate)}
               </Text>

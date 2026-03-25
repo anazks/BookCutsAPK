@@ -1,11 +1,11 @@
 import Axios from '../axios';
 
- 
+
 
 export const getAllShops = async () => {
   try {
     const response = await Axios.get('/shop/ViewAllShop');
-    console.log("Response from getAllShops:", JSON.stringify(response,null,2));
+    console.log("Response from getAllShops:", JSON.stringify(response, null, 2));
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Registration failed" };
@@ -14,9 +14,9 @@ export const getAllShops = async () => {
 
 export const getShopById = async (shopId: string) => {
   try {
-    let id =shopId
+    let id = shopId
     let data = id
-    const response = await Axios.post('/shop/viewSigleShop/', {id});
+    const response = await Axios.post('/shop/viewSigleShop/', { id });
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to fetch shop details" };
@@ -100,7 +100,7 @@ export const AddBarber = async (data: any) => {
   }
 }
 
-export const viewMyBarbers = async (shopId: string) => {
+export const viewMyBarbers = async (shopId?: string) => {
   try {
     const response = await Axios.get(`/shop/viewMyBarbers/`);
     return response.data;
@@ -159,25 +159,25 @@ export const viewMyShop = async () => {
   }
 }
 
-export const modifyBarber = async (barberId,data) => {
+export const modifyBarber = async (barberId, data) => {
   try {
-    const response = await Axios.put(`/shop/updateBarber/${barberId}`,data)
+    const response = await Axios.put(`/shop/updateBarber/${barberId}`, data)
     return response.data
   } catch (error: any) {
-    throw error?.response?.data || { message: "Failed to update barber"}
+    throw error?.response?.data || { message: "Failed to update barber" }
   }
 }
 
-export const modifyService = async (serviceId,data) => {
+export const modifyService = async (serviceId, data) => {
   try {
-    const response = await Axios.put(`/shop/editService/${serviceId}`,data)
+    const response = await Axios.put(`/shop/editService/${serviceId}`, data)
     return response.data
   } catch (error: any) {
-    throw  error?.response?.data || {message: "Failed to edit service"}
+    throw error?.response?.data || { message: "Failed to edit service" }
   }
 }
 
-export const deleteBarberAPI = async (barberId,shopId) => {
+export const deleteBarberAPI = async (barberId, shopId) => {
   try {
     console.log("barberId:", barberId);
     const response = await Axios.delete(`/shop/deleteBarber/${barberId}/${shopId}`);
@@ -189,15 +189,15 @@ export const deleteBarberAPI = async (barberId,shopId) => {
   }
 };
 
-export const deleteServiceAPI  = async (serviceId) => {
+export const deleteServiceAPI = async (serviceId) => {
   try {
     console.log("serviceId:", serviceId);
     const response = await Axios.delete(`/shop/deleteService/${serviceId}`);
     console.log('Delete service response:', response);
     return response;
   } catch (error: any) {
-      console.error('Delete barber API error:', error);
-      throw error?.response?.data || { message: "Failed to delete" };
+    console.error('Delete barber API error:', error);
+    throw error?.response?.data || { message: "Failed to delete" };
   }
 }
 
@@ -206,7 +206,7 @@ export const findNearestShops = async ({ latitude, longitude, page = 1, limit = 
     console.log({ latitude, longitude, page, limit }, "in shop.ts");
     const lat = latitude;
     const lng = longitude;
-    
+
     const shops = await Axios.get('/shop/findNearByShops', {
       params: { lat, lng, page, limit },
     });
@@ -219,48 +219,48 @@ export const findNearestShops = async ({ latitude, longitude, page = 1, limit = 
 };
 
 export const saveToCloud = async (shopId: string, data: FormData) => {
-    try {
-        console.log('📤 Uploading to:', `/uploadMedia/${shopId}`);
-        
-        // Backend route is /uploadMedia/:id, so shopId goes in URL
-        const response = await Axios.post(`/uploadMedia/${shopId}`, data, {
-            headers: {
-                'Accept': 'application/json',
-                // Content-Type will be handled automatically by interceptor
-            },
-            timeout: 60000, // 60 seconds for file uploads
-        });
+  try {
+    console.log('📤 Uploading to:', `/uploadMedia/${shopId}`);
 
-        console.log('✅ Upload successful:', response.data);
-        return response.data;
-        
-    } catch (error: any) {
-        console.error('❌ Axios upload error:', error);
-        
-        // Handle axios error structure
-        if (error.response) {
-            // Server responded with error status
-            console.error('Error response data:', error.response.data);
-            const errorMessage = error.response.data?.message || 'Failed to store in cloud';
-            throw { message: errorMessage };
-        } else if (error.request) {
-            // Request was made but no response received
-            console.error('No response received:', error.request);
-            throw { message: 'No response from server. Check your connection.' };
-        } else if (error.message) {
-            // Something else happened
-            throw { message: error.message };
-        } else {
-            throw { message: 'Failed to store in cloud' };
-        }
+    // Backend route is /uploadMedia/:id, so shopId goes in URL
+    const response = await Axios.post(`/uploadMedia/${shopId}`, data, {
+      headers: {
+        'Accept': 'application/json',
+        // Content-Type will be handled automatically by interceptor
+      },
+      timeout: 60000, // 60 seconds for file uploads
+    });
+
+    console.log('✅ Upload successful:', response.data);
+    return response.data;
+
+  } catch (error: any) {
+    console.error('❌ Axios upload error:', error);
+
+    // Handle axios error structure
+    if (error.response) {
+      // Server responded with error status
+      console.error('Error response data:', error.response.data);
+      const errorMessage = error.response.data?.message || 'Failed to store in cloud';
+      throw { message: errorMessage };
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('No response received:', error.request);
+      throw { message: 'No response from server. Check your connection.' };
+    } else if (error.message) {
+      // Something else happened
+      throw { message: error.message };
+    } else {
+      throw { message: 'Failed to store in cloud' };
     }
+  }
 };
 
 export const search = async (q) => {
   try {
     // Use template literal with proper query parameter
     const response = await Axios.get(`/shop/search?q=${encodeURIComponent(q)}`);
-    console.log("search result",JSON.stringify(response , null, 2))
+    console.log("search result", JSON.stringify(response, null, 2))
     return response.data;
 
   } catch (error) {
@@ -284,7 +284,7 @@ export const addWorkingHours = async (shopId, days) => {
 
 export const updateWorkinghours = async (data) => {
   try {
-    const  response = await Axios.put('/shop/workingHours/updateWorkingHours',data)
+    const response = await Axios.put('/shop/workingHours/updateWorkingHours', data)
     return response.data
   } catch (error) {
     console.log(error)
@@ -315,10 +315,10 @@ export const filterShopsByService = async ({ shopIds, serviceName }) => {
 
 export const createBankDetails = async (data) => {
   try {
-    const response = await Axios.post('/shop/saveBankDetails',data)
+    const response = await Axios.post('/shop/saveBankDetails', data)
     return response.data
   } catch (error) {
-    console.log("error in createBankDetails api:",error)
+    console.log("error in createBankDetails api:", error)
   }
 }
 
@@ -327,7 +327,7 @@ export const viewBankDetails = async () => {
     const response = await Axios.get(`/shop/viewBankDetails`)
     return response.data
   } catch (error) {
-    console.log("error in viewBankDetails",error)
+    console.log("error in viewBankDetails", error)
   }
 }
 
@@ -336,7 +336,7 @@ export const ownerToBarber = async (shopId) => {
     const response = await Axios.post(`/shop//shop-owner/create-as-barber/${shopId}`)
     return response.data
   } catch (error) {
-    console.log("error in ownerToBarber",error)
+    console.log("error in ownerToBarber", error)
   }
 }
 
@@ -346,5 +346,28 @@ export const confirmArrival = async (userId: string) => {
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to confirm arrival" };
+  }
+};
+
+export const createPremiumOrder = async (shopId: string) => {
+  try {
+    const response = await Axios.post('/shop/premium/order', { shopId });
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to create premium order" };
+  }
+};
+
+export const verifyPremiumPayment = async (data: {
+  shopId: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}) => {
+  try {
+    const response = await Axios.post('/shop/premium/verify', data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to verify premium payment" };
   }
 };

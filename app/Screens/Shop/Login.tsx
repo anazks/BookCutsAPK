@@ -77,12 +77,7 @@ export default function Login() {
           await AsyncStorage.setItem('shopId', response.user.shopId);
         }
 
-        Alert.alert('Success', 'Login successful!', [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/ShopOwner/shopOwnerHome'),
-          },
-        ]);
+        router.replace('/ShopOwner/shopOwnerHome');
       } else {
         Alert.alert('Login Error', response.message || 'Google login failed');
       }
@@ -131,9 +126,7 @@ export default function Login() {
           await AsyncStorage.setItem('shopId', response.user.shopId);
         }
 
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.replace('/ShopOwner/shopOwnerHome') },
-        ]);
+        router.replace('/ShopOwner/shopOwnerHome');
       } else {
         Alert.alert('Login Error', response.message || 'Login failed. Please try again.');
       }

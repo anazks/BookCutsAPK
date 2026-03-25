@@ -94,11 +94,21 @@ export default function BookNow() {
 
   const { baseTotal, discountAmount, finalTotal, hasDiscount } = priceDetails;
 
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const handleNext = () => {
+    if (currentStep < 4) setCurrentStep(currentStep + 1);
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
   // Animation value for fade-in
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   // Trigger fade-in when content is ready
-  useState(() => {
+  useEffect(() => {
     if (!loading && shopDetails) {
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -177,13 +187,7 @@ return (
       <ShopHeader shopName={shopDetails.name} />
 
       {/* Progress Steps */}
-      <ProgressSteps
-        completed={
-          (selectedServices.length > 0 ? 1 : 0) +
-          (selectedDate ? 1 : 0) +
-          (selectedBarber && selectedStartTime ? 1 : 0)
-        }
-      />
+      <ProgressSteps completed={currentStep - 1} total={4} />
 
       {/* Scrollable Content */}
       <ScrollView
@@ -192,47 +196,56 @@ return (
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <ServicesSelector
-          services={allServices}
-          selectedServices={selectedServices}
-          onToggleService={toggleService}
-        />
-{/* 
-        {selectedServices.length > 0 && (
-          <SelectedServicesSummary
-            count={selectedServices.length}
-            totalDuration={totalDuration}
-            finalTotal={finalTotal}
-          />
-        )} */}
+        {currentStep === 1 && (
+          <>
+            <ServicesSelector
+              services={allServices}
+              selectedServices={selectedServices}
+              onToggleService={toggleService}
+            />
+            {hasDiscount && <DiscountBanner discountAmount={discountAmount} />}
+          </>
+        )}
 
-        {hasDiscount && <DiscountBanner discountAmount={discountAmount} />}
-
-        <DateSelector
-          selectedDate={selectedDate}
-          onPress={() => setCalendarVisibility(true)}
-        />
-
-        <BarberSelector
-          barbers={barberOptions}
-          selectedBarber={selectedBarber}
-          onSelect={handleBarberSelect}
-        />
-
-        {selectedDate ? (
-          <TimeSlotsSection
+        {currentStep === 2 && (
+          <DateSelector
             selectedDate={selectedDate}
-            selectedBarber={selectedBarber}
-            scheduleData={freeGaps}
-            totalDuration={totalDuration}
-            loading={loadingSlots}
-            onTimeSelect={(sel) => setSelectedStartTime(sel.startTime)}
+            onPress={() => setCalendarVisibility(true)}
           />
-        ) : (
-          <View style={styles.placeholderSection}>
-            <Text style={styles.placeholderText}>
-              Select a date to see available time slots
-            </Text>
+        )}
+
+        {currentStep === 3 && (
+          <>
+            <BarberSelector
+              barbers={barberOptions}
+              selectedBarber={selectedBarber}
+              onSelect={handleBarberSelect}
+            />
+
+            {selectedDate ? (
+              <TimeSlotsSection
+                selectedDate={selectedDate}
+                selectedBarber={selectedBarber}
+                scheduleData={freeGaps}
+                totalDuration={totalDuration}
+                loading={loadingSlots}
+                onTimeSelect={(sel) => setSelectedStartTime(sel.startTime)}
+              />
+            ) : (
+              <View style={styles.placeholderSection}>
+                <Text style={styles.placeholderText}>
+                  Select a date to see available time slots
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {currentStep === 4 && (
+          <View style={styles.summaryStepContainer}>
+             <Ionicons name="checkmark-circle-outline" size={64} color="#10B981" style={{ alignSelf: 'center', marginBottom: 16 }} />
+             <Text style={styles.summaryStepTitle}>Almost done!</Text>
+             <Text style={styles.summaryStepSubtitle}>Please review your booking details below before confirming the appointment.</Text>
           </View>
         )}
       </ScrollView>
@@ -247,13 +260,16 @@ return (
         hasDiscount={hasDiscount}
         discountAmount={discountAmount}
         isValid={
-          selectedServices.length > 0 &&
-          selectedDate !== null &&
-          selectedBarber !== null &&
-          selectedStartTime !== null
+          currentStep === 1 ? selectedServices.length > 0 :
+          currentStep === 2 ? selectedDate !== null :
+          currentStep === 3 ? (selectedBarber !== null && selectedStartTime !== null) :
+          true
         }
         isBooking={isBooking}
         onBookPress={handleBookNow}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
       />
     </SafeAreaView>
   );
@@ -301,6 +317,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingContent: {
+    alignItems: 'center',
+  },
 
   // ── Error ────────────────────────────────────────────────────────────
   errorContainer: {
@@ -309,5 +328,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+  },
+  errorContent: {
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 16,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  summaryStepContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  summaryStepTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  summaryStepSubtitle: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

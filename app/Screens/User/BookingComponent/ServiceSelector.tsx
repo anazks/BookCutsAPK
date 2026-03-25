@@ -84,11 +84,10 @@ export const ServicesSelector = ({
         </View>
       )}
 
-      {/* Services List - Compact Horizontal */}
+      {/* Services List - Vertical */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContentVertical}
       >
         {filteredServices.map((service) => {
           const isSelected = selectedServices.some((s) => s.id === service.id);
@@ -206,12 +205,12 @@ const styles = StyleSheet.create({
   },
 
   // Scroll Content
-  scrollContent: {
-    paddingRight: 8,
-    gap: 8,
+  scrollContentVertical: {
+    paddingBottom: 8,
+    gap: 12,
   },
 
-  // Compact Service Card
+  // Service Card vertically stacked
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,9 +218,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    padding: 8,
-    minWidth: 140,
-    gap: 8,
+    padding: 14,
+    width: '100%',
+    gap: 16,
   },
   selectedCard: {
     backgroundColor: '#EFF6FF',
@@ -231,10 +230,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   serviceName: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   priceRow: {
     flexDirection: 'row',
@@ -273,11 +272,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Compact Add Button
+  // Add Button
   addButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

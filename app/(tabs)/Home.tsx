@@ -22,6 +22,7 @@ import {
   View,
   Image
 } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolate } from 'react-native-reanimated';
 import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
 import { getmyProfile, getNearbyCitiesFallback, getCustomization } from '../api/Service/User';
 import PaisAdd from '../Components/Filters/PaisAdd';
@@ -29,10 +30,175 @@ import ServiceFilter from '../Components/Filters/ServiceFilter';
 import BookingReminder from '../Components/Reminder/BookingReminder';
 import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
+import { useTabBar } from '../context/TabBarContext';
+import WeatherOverlay from '../Components/WeatherOverlay';
+import HomeSkeleton from '../Components/Loading/HomeSkeleton';
 
 const { width } = Dimensions.get('window');
 
+const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
+  const flatListRef = useRef<FlatList>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!shops || shops.length === 0) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const nextIndex = (prev + 1) % shops.length;
+        if (flatListRef.current) {
+          try {
+            flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+          } catch (error) {}
+        }
+        return nextIndex;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [shops]);
+
+  if (!shops || shops.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
+        Top Brands
+      </Text>
+      <FlatList
+        ref={flatListRef}
+        data={shops}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, idx) => item.id || idx.toString()}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={{ alignItems: 'center', marginRight: 16 }}
+            onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })}
+          >
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#1877F2' }}>
+              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            <Text style={{ marginTop: 8, fontSize: 12, fontWeight: '600', color: '#1F2937', maxWidth: 72, textAlign: 'center' }} numberOfLines={1}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        )}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise(resolve => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+          });
+        }}
+      />
+    </View>
+  );
+};
+
+const TrendingStyles = ({ styles }: { styles: any[] }) => {
+  if (!styles || styles.length === 0) return null;
+  return (
+    <View style={{ marginBottom: 24 }}>
+      <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
+        Trending Now
+      </Text>
+      <FlatList
+        data={styles}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={{ marginRight: 16, width: 140, height: 180, borderRadius: 16, overflow: 'hidden' }}>
+            <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.8)']}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, justifyContent: 'flex-end', padding: 12 }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }} numberOfLines={1}>{item.name}</Text>
+              <Text style={{ color: '#D1D5DB', fontSize: 12, fontWeight: '500', marginTop: 2 }}>{item.popularity} like this</Text>
+            </LinearGradient>
+          </View>
+        )}
+      />
+    </View>
+  );
+};
+
+const homeOffers = [
+  {
+    id: '1',
+    title: '20% OFF First Visit',
+    description: 'New customers get 20% off on all services',
+    code: 'FIRST20',
+    validUntil: '2025-10-31',
+    gradient: ['#1877F2', '#FF8E8E'],
+  },
+  {
+    id: '2',
+    title: 'Free Beard Trim',
+    description: 'Get free beard trim with any haircut',
+    code: 'BEARDTRIM',
+    validUntil: '2025-09-30',
+    gradient: ['#4ECDC4', '#44A08D'],
+  }
+];
+
+const renderHomeOfferCard = ({ item }: { item: any }) => (
+  <View style={{ width: width * 0.8, marginRight: 16, borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }}>
+    <LinearGradient colors={item.gradient as [string, string]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16 }} start={{x: 0, y: 0}} end={{x: 1, y: 1}} />
+    <View style={{ flex: 1, zIndex: 1 }}>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 4 }}>{item.title}</Text>
+      <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 8, lineHeight: 18 }}>{item.description}</Text>
+      <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 6 }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFF' }}>Code: {item.code}</Text>
+      </View>
+    </View>
+    <View style={{ marginLeft: 12, zIndex: 1 }}>
+      <Ionicons name="gift" size={32} color="#FFF" />
+    </View>
+  </View>
+);
+
 const Home = () => {
+  const { tabBarOffset } = useTabBar();
+  const lastScrollY = useSharedValue(0);
+  const scrollY = useSharedValue(0);
+  const isTabBarHidden = useSharedValue(false);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const currentScrollY = event.contentOffset.y;
+      scrollY.value = currentScrollY;
+      
+      if (currentScrollY <= 0 && isTabBarHidden.value) {
+        isTabBarHidden.value = false;
+        tabBarOffset.value = withTiming(0, { duration: 200 });
+      } else if (currentScrollY > lastScrollY.value + 10 && !isTabBarHidden.value) {
+        isTabBarHidden.value = true;
+        tabBarOffset.value = withTiming(100, { duration: 200 });
+      } else if (currentScrollY < lastScrollY.value - 10 && isTabBarHidden.value) {
+        isTabBarHidden.value = false;
+        tabBarOffset.value = withTiming(0, { duration: 200 });
+      }
+      
+      lastScrollY.value = currentScrollY;
+    },
+  });
+
+  const animatedHeaderStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollY.value, [0, 150], [1, 0], Extrapolate.CLAMP),
+      transform: [
+        { translateY: interpolate(scrollY.value, [0, 200], [0, -260], Extrapolate.CLAMP) }
+      ],
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+    };
+  });
+
   const isFetchingMoreRef = useRef(false);
   const [shops, setShops] = useState<any[]>([]);
   const [filteredShops, setFilteredShops] = useState<any[]>([]);
@@ -173,7 +339,7 @@ const Home = () => {
         }
       }
       console.log('Geobytes failed → using fallback API');
-      const fallbackCities = await getNearbyCitiesFallback(lat, lon, 15);
+      const fallbackCities = await getNearbyCitiesFallback(lat, lon);
       if (fallbackCities?.length > 0) {
         setCities(fallbackCities);
         return fallbackCities;
@@ -330,7 +496,7 @@ const Home = () => {
   const getProfile = async () => {
     if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
     try {
-      const response = await getmyProfile(coordinates);
+      const response = await getmyProfile();
       if (response?.success) setUserProfile(response.user);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -348,7 +514,7 @@ const Home = () => {
             const authProvider = await AsyncStorage.getItem('authProvider');
             if (authProvider === 'google') {
               try {
-                const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
                 if (isGoogleSignedIn) {
                   await GoogleSignin.revokeAccess();
                   await GoogleSignin.signOut();
@@ -453,6 +619,7 @@ const Home = () => {
         website: shop.website || '',
         image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop',
         rating: shop.rating || 4.5,
+        isPremium: shop.IsPremium || false,
       };
     });
   };
@@ -472,12 +639,7 @@ const Home = () => {
   ];
 
   if (loading && shops.length === 0) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1877F2' }}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text style={{ marginTop: 16, color: '#FFFFFF', fontWeight: '600' }}>Loading shops...</Text>
-      </View>
-    );
+    return <HomeSkeleton />;
   }
 
   return (
@@ -485,13 +647,12 @@ const Home = () => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Zomato-style layered header with creative background */}
-      <View style={{
+      <Animated.View style={[animatedHeaderStyle, {
         height: 260,
-        position: 'relative',
         overflow: 'hidden',
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-      }}>
+      }]}>
         {/* Background Pattern - Wave Layer */}
         {customization.backgroundImage ? (
           <Image
@@ -675,7 +836,7 @@ const Home = () => {
                   flex: 1,
                   fontSize: 15,
                   color: '#1A1F36',
-                  paddingVertical: 12,
+                  paddingVertical: 14,
                   zIndex: 3,
                 }}
                 value={searchQuery}
@@ -706,9 +867,7 @@ const Home = () => {
             }} />
           </View>
         </View>
-      </View>
-
-      <BookingReminder />
+      </Animated.View>
 
       {/* ── City Modal ── */}
       <Modal visible={showCityDropdown} transparent animationType="fade" onRequestClose={() => setShowCityDropdown(false)}>
@@ -770,10 +929,15 @@ const Home = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* ── City Modal ── */}
+      <BookingReminder />
+
       {/* ── Main Scroll ── */}
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 260, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -815,6 +979,8 @@ const Home = () => {
           </>
         ) : (
           <>
+            <WeatherOverlay />
+            
             {/* Services section */}
             <View style={{ marginVertical: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1877F2' }}>
@@ -830,14 +996,37 @@ const Home = () => {
               </View>
             ) : (
               <>
+                <TopBrandsCarousel shops={transformedActiveShops} />
+                <TrendingStyles styles={trendingDesigns} />
+
+                {/* Special Offers Section */}
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
+                    Special Offers
+                  </Text>
+                  <FlatList
+                    data={homeOffers}
+                    renderItem={renderHomeOfferCard}
+                    keyExtractor={(item) => item.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16 }}
+                  />
+                </View>
+
                 {activeShops.length > 0 && (
                   <ShopCarousel
-                    title="Top Rated This Week"
-                    shops={getPopularShops()}
+                    title="Shops Near You"
+                    shops={getPopularShops().slice(0, 5)}
                     onViewAll={() => router.push('/(tabs)/BookNow')}
-                    onEndReached={loadMoreShops}
-                    isLoadingMore={loadingMore}
-                    hasMore={hasMoreShops}
+                  />
+                )}
+
+                {activeShops.length > 5 && (
+                  <ShopCarousel
+                    title="Recommended For You"
+                    shops={transformedActiveShops.slice(5, 10)}
+                    onViewAll={() => router.push('/(tabs)/BookNow')}
                   />
                 )}
                 <PaisAdd />
@@ -846,7 +1035,7 @@ const Home = () => {
             )}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

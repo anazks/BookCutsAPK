@@ -5,18 +5,51 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getmyProfile } from '../api/Service/User';
+import { useNavigation } from '@react-navigation/native';
+import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useTabBar } from '../context/TabBarContext';
+
+
+interface UserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  city?: string;
+  referralCode?: string;
+}
 
 export default function Profile() {
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const navigation = useNavigation<any>();
+
+  const { tabBarOffset } = useTabBar();
+  const lastScrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const currentScrollY = event.contentOffset.y;
+      
+      if (currentScrollY <= 0) {
+        tabBarOffset.value = withTiming(0, { duration: 200 });
+      } else if (currentScrollY > lastScrollY.value + 5) {
+        tabBarOffset.value = withTiming(100, { duration: 200 }); // hide
+      } else if (currentScrollY < lastScrollY.value - 5) {
+        tabBarOffset.value = withTiming(0, { duration: 200 }); // show
+      }
+      
+      lastScrollY.value = currentScrollY;
+    },
+  });
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await getmyProfile();
+      // getmyProfile might need a token or something, but usually it takes it from AsyncStorage in the service
+      const response = await getmyProfile(); 
       console.log("profile data:", JSON.stringify(response, null, 2));
       if (response && response.success) {
         setUserData(response.user);
@@ -45,7 +78,7 @@ export default function Profile() {
               const authProvider = await AsyncStorage.getItem('authProvider');
               if (authProvider === 'google') {
                 try {
-                  const isGoogleSignedIn = await GoogleSignin.isSignedIn();
+                  const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
                   if (isGoogleSignedIn) {
                     await GoogleSignin.revokeAccess();
                     await GoogleSignin.signOut();
@@ -57,11 +90,18 @@ export default function Profile() {
                 }
               }
               await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              router.replace('/');
+              // Use navigation.reset for a clean break
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Screens/User/Login' }],
+              });
             } catch (error) {
               console.error('Logout Error:', error);
               await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              router.replace('/');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Screens/User/Login' }],
+              });
             }
           },
         },
@@ -120,7 +160,9 @@ export default function Profile() {
         </View>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -210,7 +252,7 @@ export default function Profile() {
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
