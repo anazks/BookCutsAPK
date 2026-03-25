@@ -230,7 +230,7 @@ export default function PayNow() {
       const amountInPaise = Math.round(amount * 100);
 
       const orderResponse = await createOrder({
-        amount: amountInPaise,
+        amount: amount,
         currency: 'INR',
         bookingId: finalBookingId,
         paymentType,
