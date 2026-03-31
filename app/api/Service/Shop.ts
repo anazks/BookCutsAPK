@@ -46,18 +46,20 @@ export const getShopServices = async (shopId: string) => {
 interface GetShopBookingsParams {
   page?: number;
   limit?: number;
+  status?: string;
 }
 
 export const getShopBookings = async (
   params: GetShopBookingsParams = {}
 ) => {
   try {
-    const { page = 1, limit = 10 } = params;
+    const { page = 1, limit = 10, status } = params;
 
     const response = await Axios.get("/shop/viewMyBooking", {
       params: {
         page,
-        limit
+        limit,
+        status
       }
     });
 

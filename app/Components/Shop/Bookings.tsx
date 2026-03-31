@@ -151,7 +151,11 @@ export default function Bookings() {
         if (pageNum > 1) setLoadingMore(true);
         setError(null);
 
-        const response = await getShopBookings({ page: pageNum, limit: ITEMS_PER_PAGE });
+        const response = await getShopBookings({ 
+          page: pageNum, 
+          limit: ITEMS_PER_PAGE,
+          status: activeFilter === 'all' ? undefined : activeFilter
+        });
 
         if (response?.success && response.data) {
           const formatted = response.data.map(formatBooking);
@@ -199,10 +203,12 @@ export default function Bookings() {
         if (isRefresh) setRefreshing(false);
       }
     },
-    []
+    [activeFilter]
   );
 
-  useEffect(() => { fetchBookings(1); }, [fetchBookings]);
+  useEffect(() => {
+    fetchBookings(1);
+  }, [activeFilter, fetchBookings]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -231,7 +237,6 @@ export default function Bookings() {
     }
   };
 
-  const filteredBookings = bookings.filter(b => activeFilter === 'all' || b.status === activeFilter);
 
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -293,7 +298,8 @@ export default function Bookings() {
       >
         {filters.map(f => {
           const active = activeFilter === f.key;
-          const count = f.key === 'all' ? bookings.length : bookings.filter(b => b.status === f.key).length;
+          // Count only applies to current filter view
+          const count = summary[f.key as keyof typeof summary] || 0;
           return (
             <TouchableOpacity
               key={f.key}
@@ -311,8 +317,8 @@ export default function Bookings() {
       </ScrollView>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Bookings</Text>
-        <Text style={styles.sectionCount}>{filteredBookings.length}</Text>
+        <Text style={styles.sectionTitle}>{activeFilter === 'all' ? 'Recent Bookings' : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}</Text>
+        <Text style={styles.sectionCount}>{bookings.length}</Text>
       </View>
     </View>
   );
@@ -332,13 +338,18 @@ export default function Bookings() {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isExpanded = expandedBooking === item.id;
 
-    // Check if Inform/Notify button should show (Success if confirmed and in the future)
-    let showEnquire = false;
+    // Show "Arrival Reminder" only for CONFIRMED bookings scheduled for TODAY that ARE UPCOMING
+    let showArrivalReminder = false;
     if (item.status === 'confirmed' && item.rawStartTime) {
-      const startTimeMs = new Date(item.rawStartTime).getTime();
-      const nowMs = Date.now();
-      if (startTimeMs > nowMs) {
-        showEnquire = true;
+      const startTime = new Date(item.rawStartTime);
+      const now = new Date();
+      
+      const isToday = startTime.getDate() === now.getDate() &&
+                      startTime.getMonth() === now.getMonth() &&
+                      startTime.getFullYear() === now.getFullYear();
+      
+      if (isToday && startTime.getTime() > now.getTime()) {
+        showArrivalReminder = true;
       }
     }
 
@@ -448,19 +459,19 @@ export default function Bookings() {
                   </TouchableOpacity>
                 )}
 
-                {showEnquire && item.status !== 'completed' && (
+                {showArrivalReminder && (
                   <TouchableOpacity 
-                    style={styles.actionBtnEnquire} 
+                    style={styles.actionBtnArrival} 
                     onPress={() => handleEnquire(item.userId, item.id)}
                     disabled={enquiringId === item.id}
                     activeOpacity={0.8}
                   >
                     {enquiringId === item.id ? (
-                      <ActivityIndicator size="small" color={COLORS.primary} />
+                      <ActivityIndicator size="small" color={COLORS.white} />
                     ) : (
                       <>
-                        <MaterialIcons name="waving-hand" size={17} color={COLORS.primary} />
-                        <Text style={styles.actionBtnTextEnquire}>Notify</Text>
+                        <MaterialIcons name="notifications-active" size={17} color={COLORS.white} />
+                        <Text style={styles.actionBtnTextArrival}>Notify Arrival</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -527,7 +538,7 @@ export default function Bookings() {
       <StatusBar backgroundColor={COLORS.bg} barStyle="dark-content" />
 
       <FlatList
-        data={filteredBookings}
+        data={bookings}
         renderItem={renderBookingItem}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
@@ -543,7 +554,7 @@ export default function Bookings() {
             <Text style={styles.emptyText}>
               {activeFilter === 'all'
                 ? "Your schedule is clear. Bookings will appear here."
-                : `No ${activeFilter} bookings at the moment.`}
+                : `No ${activeFilter} bookings found for this view.`}
             </Text>
           </View>
         }
@@ -662,8 +673,8 @@ const styles = StyleSheet.create({
   actionBtnTextComplete: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
   actionBtnCall: { flex: 0.8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
   actionBtnTextCall: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
-  actionBtnEnquire: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primaryBg, borderWidth: 1, borderColor: COLORS.primaryBorder, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTextEnquire: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
+  actionBtnArrival: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextArrival: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
 
   collapseHint: { alignItems: 'center', marginTop: 14, paddingBottom: 2 },
 
