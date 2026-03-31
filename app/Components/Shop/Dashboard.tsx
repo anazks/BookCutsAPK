@@ -1,18 +1,28 @@
-import { getDashBoardIncome } from '@/app/api/Service/ShoperOwner'
-import React, { useEffect, useState } from 'react'
-import { Alert, Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import RazorpayCheckout from 'react-native-razorpay';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createPremiumOrder, verifyPremiumPayment } from '@/app/api/Service/Shop';
+import { getDashBoardIncome } from '@/app/api/Service/ShoperOwner';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState } from 'react';
+import { Alert, Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 
 const { width } = Dimensions.get('window')
 
-export default function Dashboard({ isPremium = false }: { isPremium?: boolean }) {
+export default function Dashboard({
+  isPremium = false,
+  premiumStartDate = null,
+  premiumEndDate = null
+}: {
+  isPremium?: boolean;
+  premiumStartDate?: string | null;
+  premiumEndDate?: string | null;
+}) {
   // Subscription state
   const [subscriptionData, setSubscriptionData] = useState({
     isSubscribed: isPremium, // Initialize with prop
-    startDate: null,
-    endDate: null,
+    startDate: premiumStartDate ? new Date(premiumStartDate) : null,
+    endDate: premiumEndDate ? new Date(premiumEndDate) : null,
     amount: 799
   })
 
@@ -59,8 +69,13 @@ export default function Dashboard({ isPremium = false }: { isPremium?: boolean }
 
   // Sync isPremium prop with state
   useEffect(() => {
-    setSubscriptionData(prev => ({ ...prev, isSubscribed: isPremium }))
-  }, [isPremium])
+    setSubscriptionData(prev => ({
+      ...prev,
+      isSubscribed: isPremium,
+      startDate: premiumStartDate ? new Date(premiumStartDate) : prev.startDate,
+      endDate: premiumEndDate ? new Date(premiumEndDate) : prev.endDate
+    }))
+  }, [isPremium, premiumStartDate, premiumEndDate])
 
   const handleSubscription = async () => {
     Alert.alert(
@@ -89,7 +104,7 @@ export default function Dashboard({ isPremium = false }: { isPremium?: boolean }
                 description: 'Premium Subscription',
                 image: 'https://cdn.iconscout.com/icon/free/png-512/razorpay-1649771-1399875.png',
                 currency: 'INR',
-                key: 'rzp_live_SUY56QCdYmPx1Q', // Using the exact key from PayNow.tsx
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID, // Using hardcoded key as requested
                 amount: orderResponse.order.amount,
                 name: 'BookMyCuts Premium',
                 order_id: orderResponse.order.id,
@@ -150,8 +165,8 @@ export default function Dashboard({ isPremium = false }: { isPremium?: boolean }
 
   const getDaysRemaining = () => {
     if (!subscriptionData.endDate) return 0
-    const today = new Date()
-    const diffTime = subscriptionData.endDate - today
+    const today = new Date().getTime()
+    const diffTime = subscriptionData.endDate.getTime() - today
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return Math.max(0, diffDays)
   }
@@ -246,35 +261,57 @@ export default function Dashboard({ isPremium = false }: { isPremium?: boolean }
         {/* Subscription Section */}
         <View style={styles.section}>
           {subscriptionData.isSubscribed ? (
-            <View style={styles.subscriptionCard}>
-              <View style={styles.subscriptionHeader}>
-                <View style={styles.subscriptionIcon}>
-                  <Text style={styles.subscriptionIconText}>👑</Text>
+            <LinearGradient
+              colors={['#1e1b4b', '#312e81', '#4338ca']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.premiumCard}
+            >
+              <View style={styles.premiumCardDecoration} />
+
+              <View style={styles.premiumHeader}>
+                <View style={styles.premiumIconContainer}>
+                  <Ionicons name="diamond" size={24} color="#fbbf24" />
                 </View>
-                <View style={styles.subscriptionInfo}>
-                  <Text style={styles.subscriptionTitle}>Premium Subscription Active</Text>
-                  <Text style={styles.subscriptionStatus}>Your account is top-listed</Text>
+                <View style={styles.premiumInfo}>
+                  <Text style={styles.premiumTitle}>Premium Member</Text>
+                  <Text style={styles.premiumSubtitle}>Top-listed & Exclusive features active</Text>
                 </View>
               </View>
 
-              <View style={styles.subscriptionDetails}>
-                <View style={styles.dateContainer}>
-                  <View style={styles.dateItem}>
-                    <Text style={styles.dateLabel}>Started</Text>
-                    <Text style={styles.dateValue}>{formatDate(subscriptionData.startDate)}</Text>
-                  </View>
-                  <View style={styles.dateItem}>
-                    <Text style={styles.dateLabel}>Expires</Text>
-                    <Text style={styles.dateValue}>{formatDate(subscriptionData.endDate)}</Text>
-                  </View>
+              <View style={styles.premiumDivider} />
+
+              <View style={styles.premiumDetailsRow}>
+                <View style={styles.premiumDateBlock}>
+                  <Text style={styles.premiumDateLabel}>Started On</Text>
+                  <Text style={styles.premiumDateValue}>
+                    {formatDate(subscriptionData.startDate)}
+                  </Text>
                 </View>
 
-                <View style={styles.daysRemainingContainer}>
-                  <Text style={styles.daysRemainingText}>{getDaysRemaining()} days remaining</Text>
-                  <ProgressBar progress={(getDaysRemaining() / 30) * 100} color="#10B981" />
+                <View style={styles.premiumDateBlockRight}>
+                  <Text style={styles.premiumDateLabel}>Valid Until</Text>
+                  <Text style={styles.premiumDateValue}>
+                    {formatDate(subscriptionData.endDate)}
+                  </Text>
                 </View>
               </View>
-            </View>
+
+              <View style={styles.premiumProgressContainer}>
+                <View style={styles.premiumProgressHeader}>
+                  <Text style={styles.premiumProgressText}>Time Remaining</Text>
+                  <Text style={styles.premiumDaysLeft}>{getDaysRemaining()} days</Text>
+                </View>
+                <View style={styles.premiumProgressBarBg}>
+                  <View
+                    style={[
+                      styles.premiumProgressBarFill,
+                      { width: `${Math.min((getDaysRemaining() / 30) * 100, 100)}%` }
+                    ]}
+                  />
+                </View>
+              </View>
+            </LinearGradient>
           ) : (
             <View style={styles.subscriptionOfferCard}>
               <View style={styles.offerHeader}>
@@ -340,7 +377,7 @@ export default function Dashboard({ isPremium = false }: { isPremium?: boolean }
           </View>
         </View>
 
-     
+
       </ScrollView>
     </SafeAreaView>
   )
@@ -576,89 +613,120 @@ const styles = StyleSheet.create({
   // Subscription active view
   // ────────────────────────────────────────────────
 
-  subscriptionHeader: {
+  // ────────────────────────────────────────────────
+  // Premium Active Card Styles
+  // ────────────────────────────────────────────────
+
+  premiumCard: {
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#4338ca',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  premiumCardDecoration: {
+    position: 'absolute',
+    top: -50,
+    right: -20,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  premiumHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
-
-  subscriptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10B981',
+  premiumIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-
-  subscriptionIconText: {
-    fontSize: 20,
-  },
-
-  subscriptionInfo: {
-    flex: 1,
-  },
-
-  subscriptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-
-  subscriptionStatus: {
-    fontSize: 13,
-    color: '#10B981',
-    fontWeight: '500',
-  },
-
-  subscriptionDetails: {
-    marginTop: 8,
-  },
-
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-
-  dateItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    marginHorizontal: 4,
+    marginRight: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0', // lighter here is intentional
+    borderColor: 'rgba(251, 191, 36, 0.5)',
   },
-
-  dateLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-    textTransform: 'uppercase',
+  premiumInfo: {
+    flex: 1,
+  },
+  premiumTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-
-  dateValue: {
+  premiumSubtitle: {
     fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '500',
+    color: '#c7d2fe',
+    fontWeight: '400',
   },
-
-  daysRemainingContainer: {
-    marginTop: 8,
+  premiumDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 20,
   },
-
-  daysRemainingText: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
+  premiumDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  premiumDateBlock: {
+    flex: 1,
+  },
+  premiumDateBlockRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  premiumDateLabel: {
+    fontSize: 11,
+    color: '#a5b4fc',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  premiumDateValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  premiumProgressContainer: {
+    marginTop: 4,
+  },
+  premiumProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
-    textAlign: 'center',
+  },
+  premiumProgressText: {
+    fontSize: 13,
+    color: '#c7d2fe',
+    fontWeight: '500',
+  },
+  premiumDaysLeft: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fbbf24',
+  },
+  premiumProgressBarBg: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  premiumProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#fbbf24',
+    borderRadius: 3,
   },
 
   // ────────────────────────────────────────────────

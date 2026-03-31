@@ -18,7 +18,7 @@ import {
   LayoutAnimation,
   UIManager,
 } from 'react-native';
-import { getShopBookings, confirmArrival } from '../../api/Service/Shop';
+import { getShopBookings, confirmArrival, completeBooking } from '../../api/Service/Shop';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -80,12 +80,13 @@ export default function Bookings() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [enquiringId, setEnquiringId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   const [summary, setSummary] = useState({
-    totalBookings: 0,
-    paidBookings: 0,
-    pendingAmount: 0,
-    completedBookings: 0,
+    total: 0,
+    completed: 0,
+    confirmed: 0,
+    pending: 0,
   });
 
   // ── Map raw API booking → UI model ────────────────────
@@ -141,18 +142,6 @@ export default function Bookings() {
     };
   };
 
-  // ── Calculate summary ─────────────────────────────────
-  const calcSummary = (all: any[]) =>
-    all.reduce(
-      (acc, b) => {
-        acc.totalBookings += 1;
-        if (b.status === 'completed') acc.completedBookings += 1;
-        if (b.paymentStatus === 'paid') acc.paidBookings += 1;
-        else acc.pendingAmount += b.price - b.amountPaid;
-        return acc;
-      },
-      { totalBookings: 0, paidBookings: 0, pendingAmount: 0, completedBookings: 0 }
-    );
 
   // ── Fetch bookings ────────────────────────────────────
   const fetchBookings = useCallback(
@@ -169,13 +158,15 @@ export default function Bookings() {
 
           if (pageNum === 1) {
             setBookings(formatted);
-            setSummary(calcSummary(formatted));
+            if (response.stats) setSummary(response.stats);
           } else {
             setBookings(prev => {
               const merged = [...prev, ...formatted];
-              setSummary(calcSummary(merged));
-              return merged;
+              // Remove duplicate bookings by ID
+              const unique = Array.from(new Map(merged.map(b => [b.id, b])).values());
+              return unique;
             });
+            if (response.stats) setSummary(response.stats);
           }
 
           if (response.pagination) {
@@ -187,7 +178,7 @@ export default function Bookings() {
         } else if (response?.success && (!response.data || response.data.length === 0)) {
           if (pageNum === 1) {
             setBookings([]);
-            setSummary({ totalBookings: 0, paidBookings: 0, pendingAmount: 0, completedBookings: 0 });
+            setSummary({ total: 0, completed: 0, confirmed: 0, pending: 0 });
           }
           setHasMore(false);
         } else {
@@ -223,6 +214,23 @@ export default function Bookings() {
     if (!loadingMore && hasMore && !loading) fetchBookings(page + 1);
   }, [loadingMore, hasMore, loading, page, fetchBookings]);
 
+  const handleCompleteBooking = async (bookingId: string) => {
+    try {
+      setCompletingId(bookingId);
+      const res = await completeBooking(bookingId);
+      if (res?.success) {
+        Alert.alert('Success', 'Booking marked as completed successfully.');
+        fetchBookings(1, true); // Refresh list
+      } else {
+        Alert.alert('Error', res?.message || 'Failed to complete booking');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to complete booking');
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   const filteredBookings = bookings.filter(b => activeFilter === 'all' || b.status === activeFilter);
 
   const toggleExpand = (id: string) => {
@@ -257,7 +265,7 @@ export default function Bookings() {
   // ── Filter data ───────────────────────────────────────
   const filters = [
     { key: 'all', label: 'All', icon: 'apps' },
-    { key: 'completed', label: 'Done', icon: 'check-circle' },
+    { key: 'completed', label: 'Completed', icon: 'check-circle' },
     { key: 'confirmed', label: 'Confirmed', icon: 'verified' },
     { key: 'pending', label: 'Pending', icon: 'schedule' },
     { key: 'cancelled', label: 'Cancelled', icon: 'cancel' },
@@ -271,10 +279,10 @@ export default function Bookings() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.statsBar}>
-        <StatPill icon="event-note" label="Bookings" value={summary.totalBookings} color={COLORS.primary} />
-        <StatPill icon="check-circle" label="Completed" value={summary.completedBookings} color={COLORS.success} />
-        <StatPill icon="payments" label="Paid" value={summary.paidBookings} color={COLORS.primary} />
-        <StatPill icon="hourglass-top" label="Pending ₹" value={summary.pendingAmount} color={COLORS.warning} />
+        <StatPill icon="event-note" label="Total" value={summary.total} color={COLORS.primary} />
+        <StatPill icon="check-circle" label="Completed" value={summary.completed} color={COLORS.success} />
+        <StatPill icon="verified" label="Confirmed" value={summary.confirmed} color={COLORS.primary} />
+        <StatPill icon="hourglass-top" label="Pending" value={summary.pending} color={COLORS.warning} />
       </View>
 
       {/* Scrollable Filters (fixes VirtualizedList nesting error) */}
@@ -324,14 +332,12 @@ export default function Bookings() {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isExpanded = expandedBooking === item.id;
 
-    // Check if Enquire button should show (within 30 mins before rawStartTime)
+    // Check if Inform/Notify button should show (Success if confirmed and in the future)
     let showEnquire = false;
-    if (item.rawStartTime) {
+    if (item.status === 'confirmed' && item.rawStartTime) {
       const startTimeMs = new Date(item.rawStartTime).getTime();
       const nowMs = Date.now();
-      const diffMins = (startTimeMs - nowMs) / 60000;
-      // Show if it's currently between 30 mins before start to 5 mins past start
-      if (diffMins <= 30 && diffMins >= -5) {
+      if (startTimeMs > nowMs) {
         showEnquire = true;
       }
     }
@@ -417,14 +423,32 @@ export default function Bookings() {
 
               {/* Action Buttons */}
               <View style={styles.actionGrid}>
-                {item.customerPhone !== 'N/A' && (
-                  <TouchableOpacity style={styles.actionBtnCall} onPress={() => handleCall(item.customerPhone)} activeOpacity={0.8}>
-                    <MaterialIcons name="call" size={17} color={COLORS.white} />
-                    <Text style={styles.actionBtnTextCall}>Call Customer</Text>
+                {item.status === 'confirmed' && (
+                  <TouchableOpacity 
+                    style={styles.actionBtnComplete} 
+                    onPress={() => handleCompleteBooking(item.id)}
+                    disabled={completingId === item.id}
+                    activeOpacity={0.8}
+                  >
+                    {completingId === item.id ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <>
+                        <MaterialIcons name="done-all" size={17} color={COLORS.white} />
+                        <Text style={styles.actionBtnTextComplete}>Mark Completed</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 )}
 
-                {showEnquire && (
+                {item.customerPhone !== 'N/A' && (
+                  <TouchableOpacity style={styles.actionBtnCall} onPress={() => handleCall(item.customerPhone)} activeOpacity={0.8}>
+                    <MaterialIcons name="call" size={17} color={COLORS.white} />
+                    <Text style={styles.actionBtnTextCall}>Call</Text>
+                  </TouchableOpacity>
+                )}
+
+                {showEnquire && item.status !== 'completed' && (
                   <TouchableOpacity 
                     style={styles.actionBtnEnquire} 
                     onPress={() => handleEnquire(item.userId, item.id)}
@@ -436,7 +460,7 @@ export default function Bookings() {
                     ) : (
                       <>
                         <MaterialIcons name="waving-hand" size={17} color={COLORS.primary} />
-                        <Text style={styles.actionBtnTextEnquire}>Enquire Arrival</Text>
+                        <Text style={styles.actionBtnTextEnquire}>Notify</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -633,11 +657,13 @@ const styles = StyleSheet.create({
   serviceFooter: { borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', marginTop: 8, paddingTop: 10, alignItems: 'flex-end' },
   serviceTotalText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
 
-  actionGrid: { flexDirection: 'row', gap: 10 },
-  actionBtnCall: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTextCall: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
+  actionGrid: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  actionBtnComplete: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.success, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextComplete: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
+  actionBtnCall: { flex: 0.8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextCall: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
   actionBtnEnquire: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primaryBg, borderWidth: 1, borderColor: COLORS.primaryBorder, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTextEnquire: { color: COLORS.primary, fontSize: 14, fontWeight: '700' },
+  actionBtnTextEnquire: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
 
   collapseHint: { alignItems: 'center', marginTop: 14, paddingBottom: 2 },
 

@@ -331,6 +331,24 @@ export const viewBankDetails = async () => {
   }
 }
 
+export const fetchPayoutAccounts = async () => {
+  try {
+    const response = await Axios.get('/shop/payout/accounts');
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to fetch payout accounts" };
+  }
+};
+
+export const savePayoutAccounts = async (data: any) => {
+  try {
+    const response = await Axios.post('/shop/payout/accounts', data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to save payout accounts" };
+  }
+};
+
 export const ownerToBarber = async (shopId) => {
   try {
     const response = await Axios.post(`/shop//shop-owner/create-as-barber/${shopId}`)
@@ -346,6 +364,15 @@ export const confirmArrival = async (userId: string) => {
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to confirm arrival" };
+  }
+};
+
+export const completeBooking = async (bookingId: string) => {
+  try {
+    const response = await Axios.post('/booking/complete-booking', { bookingId });
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to complete booking" };
   }
 };
 

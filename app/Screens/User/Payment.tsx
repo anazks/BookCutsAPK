@@ -47,7 +47,7 @@ export default function Payment({ route }) {
       description: 'Booking Payment',
       image: 'https://your-app-logo-url.com/logo.png', // Replace with your app logo
       currency: 'INR',
-      key: 'rzp_live_SUY56QCdYmPx1Q', // Replace with your Razorpay API Key
+      key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID, // Replace with your Razorpay API Key
       amount: amount * 100, // Convert to paise
       name: 'Bookmycuts',
       prefill: {

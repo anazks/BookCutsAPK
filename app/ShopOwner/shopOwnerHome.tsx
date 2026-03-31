@@ -44,6 +44,8 @@ export default function ShopOwnerHome() {
   const [loading, setLoading] = useState(true);
   const [showAddShopModal, setShowAddShopModal] = useState(false);
   const [isPremium, setIsPremium] = useState(false); // To pass premium status down to Dashboard
+  const [premiumStartDate, setPremiumStartDate] = useState<string | null>(null);
+  const [premiumEndDate, setPremiumEndDate] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +64,8 @@ export default function ShopOwnerHome() {
         console.log("Shop data fetched in home:", JSON.stringify(shopResponse));
         if (shopResponse.success && shopResponse.data) {
           setIsPremium(!!shopResponse.data.IsPremium);
+          setPremiumStartDate(shopResponse.data.PremiumStartDate || null);
+          setPremiumEndDate(shopResponse.data.PremiumEndDate || null);
         }
       } catch (error) {
         console.log("Error fetching shop data:", error);
@@ -143,7 +147,11 @@ export default function ShopOwnerHome() {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
       >
-        <Dashboard isPremium={isPremium} />
+        <Dashboard 
+          isPremium={isPremium} 
+          premiumStartDate={premiumStartDate}
+          premiumEndDate={premiumEndDate}
+        />
       </ScrollView>
 
       {/* ── Add Shop Modal ── */}

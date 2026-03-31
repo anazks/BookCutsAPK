@@ -959,12 +959,71 @@ const Home = () => {
               <FlatList
                 data={searchData}
                 keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <ShopCard
-                    shop={item}
-                    onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })}
-                  />
-                )}
+                renderItem={({ item }) => {
+                  let shopName = item.ShopName?.trim() || 'Unknown Shop';
+                  let imageUrl = item.ProfileImage;
+                  if (!imageUrl && item.media?.length > 0) {
+                    const first = item.media[0];
+                    imageUrl = typeof first === 'string' ? first : first?.url;
+                  }
+                  const displayImage = imageUrl || 'https://via.placeholder.com/300x200/F1F5F9/94A3B8?text=Shop';
+                  
+                  return (
+                    <TouchableOpacity 
+                      style={{
+                        flexDirection: 'row',
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 16,
+                        padding: 14,
+                        marginHorizontal: 16,
+                        marginBottom: 16,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 10,
+                        elevation: 3,
+                        borderWidth: 1,
+                        borderColor: '#EEF2FF'
+                      }}
+                      onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ width: 85, height: 85, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F8FAFC' }}>
+                        <Image source={{ uri: displayImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 16, justifyContent: 'center' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0F172A', flex: 1, marginRight: 8 }} numberOfLines={1}>
+                            {shopName}
+                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                            <Ionicons name="star" size={12} color="#F59E0B" />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#92400E', marginLeft: 4 }}>
+                              {item.rating || '4.5'}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={{ fontSize: 13, color: '#64748B', marginTop: 4 }} numberOfLines={1}>
+                          <Ionicons name="location-outline" size={12} color="#94A3B8" /> {item.ExactLocation || item.City || 'Location not specified'}
+                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+                            <Ionicons name="time-outline" size={14} color="#1877F2" />
+                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#1877F2', marginLeft: 4 }}>
+                              {item.Timing || '9 AM - 8 PM'}
+                            </Text>
+                          </View>
+                          {item.IsPremium && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF2FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                               <Ionicons name="diamond" size={10} color="#4F46E5" />
+                               <Text style={{ fontSize: 10, fontWeight: '700', color: '#4F46E5', marginLeft: 4 }}>PREMIUM</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
                 ListEmptyComponent={() => (
                   <View style={{ paddingVertical: 80, alignItems: 'center', paddingHorizontal: 32 }}>
                     <Ionicons name="search-outline" size={64} color="#BFDBFE" />

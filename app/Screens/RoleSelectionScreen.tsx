@@ -15,8 +15,8 @@ import {
   View,
 } from 'react-native';
 
-import Barber from '../../assets/images/barber.png';
-import Customer from '../../assets/images/customer.png';
+import Barber from '../../assets/images/barber-removebg-preview.png';
+import Customer from '../../assets/images/customer-removebg-preview (1).png';
 
 const { height } = Dimensions.get('window');
 
@@ -25,8 +25,8 @@ export default function RoleSelectionScreen() {
   const [selected, setSelected] = useState<'user' | 'shop' | null>(null);
 
   // ── Entrance anims (useNativeDriver: true — opacity + translateY only) ───────
-  const logoAnim  = useRef(new Animated.Value(0)).current;
-  const headAnim  = useRef(new Animated.Value(0)).current;
+  const logoAnim = useRef(new Animated.Value(0)).current;
+  const headAnim = useRef(new Animated.Value(0)).current;
   const card1Anim = useRef(new Animated.Value(0)).current;
   const card2Anim = useRef(new Animated.Value(0)).current;
 
@@ -40,8 +40,8 @@ export default function RoleSelectionScreen() {
 
   // ── CTA anims (useNativeDriver: true — opacity + transform only) ─────────────
   const btnOpacity = useRef(new Animated.Value(0)).current;
-  const btnSlide   = useRef(new Animated.Value(40)).current;
-  const btnScale   = useRef(new Animated.Value(0.92)).current;
+  const btnSlide = useRef(new Animated.Value(40)).current;
+  const btnScale = useRef(new Animated.Value(0.92)).current;
 
   // ── Pulse accent (useNativeDriver: false — backgroundColor) ──────────────────
   const pulse = useRef(new Animated.Value(0)).current;
@@ -49,8 +49,8 @@ export default function RoleSelectionScreen() {
   useEffect(() => {
     // All native driver — only opacity + translateY
     Animated.stagger(110, [
-      Animated.timing(logoAnim,  { toValue: 1, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(headAnim,  { toValue: 1, duration: 580, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(logoAnim, { toValue: 1, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(headAnim, { toValue: 1, duration: 580, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(card1Anim, { toValue: 1, duration: 680, easing: Easing.out(Easing.back(1.1)), useNativeDriver: true }),
       Animated.timing(card2Anim, { toValue: 1, duration: 680, easing: Easing.out(Easing.back(1.1)), useNativeDriver: true }),
     ]).start();
@@ -68,13 +68,13 @@ export default function RoleSelectionScreen() {
     // scale uses native driver
     const scale = role === 'user' ? userScale : shopScale;
     // glow uses JS driver
-    const glow  = role === 'user' ? userGlow  : shopGlow;
+    const glow = role === 'user' ? userGlow : shopGlow;
 
     if (entering) {
       // Scale — native driver
       Animated.sequence([
         Animated.timing(scale, { toValue: 0.96, duration: 90, useNativeDriver: true }),
-        Animated.spring(scale, { toValue: 1.0,  friction: 5, tension: 65, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1.0, friction: 5, tension: 65, useNativeDriver: true }),
       ]).start();
       // Glow — JS driver (separate, never mixed)
       Animated.timing(glow, { toValue: 1, duration: 280, useNativeDriver: false }).start();
@@ -93,8 +93,8 @@ export default function RoleSelectionScreen() {
       // CTA hide — native driver
       Animated.parallel([
         Animated.timing(btnOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(btnSlide,   { toValue: 40, duration: 200, useNativeDriver: true }),
-        Animated.timing(btnScale,   { toValue: 0.92, duration: 200, useNativeDriver: true }),
+        Animated.timing(btnSlide, { toValue: 40, duration: 200, useNativeDriver: true }),
+        Animated.timing(btnScale, { toValue: 0.92, duration: 200, useNativeDriver: true }),
       ]).start();
       return;
     }
@@ -104,8 +104,8 @@ export default function RoleSelectionScreen() {
     // CTA show — native driver
     Animated.parallel([
       Animated.timing(btnOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
-      Animated.spring(btnSlide,   { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
-      Animated.spring(btnScale,   { toValue: 1, friction: 8, tension: 55, useNativeDriver: true }),
+      Animated.spring(btnSlide, { toValue: 0, friction: 8, tension: 55, useNativeDriver: true }),
+      Animated.spring(btnScale, { toValue: 1, friction: 8, tension: 55, useNativeDriver: true }),
     ]).start();
   };
 
@@ -115,19 +115,19 @@ export default function RoleSelectionScreen() {
   };
 
   // ── JS-driver interpolations (colors only) ───────────────────────────────────
-  const pulseColor    = pulse.interpolate({ inputRange: [0, 1], outputRange: ['#0057FF', '#4480FF'] });
+  const pulseColor = pulse.interpolate({ inputRange: [0, 1], outputRange: ['#0057FF', '#4480FF'] });
   const userBorderCol = userGlow.interpolate({ inputRange: [0, 1], outputRange: ['#E4E9F2', '#0057FF'] });
   const shopBorderCol = shopGlow.interpolate({ inputRange: [0, 1], outputRange: ['#E4E9F2', '#0057FF'] });
-  const userBgCol     = userGlow.interpolate({ inputRange: [0, 1], outputRange: ['#FFFFFF', '#EEF3FF'] });
-  const shopBgCol     = shopGlow.interpolate({ inputRange: [0, 1], outputRange: ['#FFFFFF', '#EEF3FF'] });
+  const userBgCol = userGlow.interpolate({ inputRange: [0, 1], outputRange: ['#FFFFFF', '#EEF3FF'] });
+  const shopBgCol = shopGlow.interpolate({ inputRange: [0, 1], outputRange: ['#FFFFFF', '#EEF3FF'] });
 
   // ── Native-driver interpolations (opacity + translateY only) ─────────────────
   const card1Style = {
-    opacity:   card1Anim,
+    opacity: card1Anim,
     transform: [{ translateY: card1Anim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
   };
   const card2Style = {
-    opacity:   card2Anim,
+    opacity: card2Anim,
     transform: [{ translateY: card2Anim.interpolate({ inputRange: [0, 1], outputRange: [70, 0] }) }],
   };
 

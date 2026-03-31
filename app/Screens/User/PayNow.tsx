@@ -150,9 +150,9 @@ export default function PayNow() {
 
         const verificationResponse = await verifyPayment(verificationData);
 
-        console.log(verificationResponse, "RESPONSE OF VERIFY PAYMENT")
+        console.log('✅ Verification response received:', verificationResponse);
 
-        if (verificationResponse.success) {
+        if (verificationResponse && verificationResponse.success) {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: 'Payment Successful 🎉',
@@ -197,7 +197,8 @@ export default function PayNow() {
             },
           });
         } else {
-          throw new Error(verificationResponse.message || 'Payment verification failed');
+          console.error('❌ Verification failed with response:', verificationResponse);
+          throw new Error(verificationResponse?.message || 'Payment verification failed');
         }
       } catch (error) {
         console.error('Payment verification error:', error);
@@ -246,7 +247,7 @@ export default function PayNow() {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: 'rzp_live_SUY56QCdYmPx1Q',
+        key: "rzp_test_SXMOCCKV91lttJ",
         amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: { name: customerName, email: customerEmail, contact: customerPhone },
@@ -258,7 +259,11 @@ export default function PayNow() {
         },
       };
 
-      console.log('Opening Razorpay checkout with options:', options);
+      console.log('--- RAZORPAY FRONTEND DEBUG ---');
+      console.log('Key ID (HARDCODED):', options.key);
+      console.log('Options Key:', options.key);
+      console.log('Order ID:', options.order_id);
+      console.log('-------------------------------');
 
       RazorpayCheckout.open(options)
         .then(handlePaymentSuccess)
