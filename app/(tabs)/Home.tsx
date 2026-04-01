@@ -20,7 +20,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Image
+  Image,
+  Switch
 } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolate } from 'react-native-reanimated';
 import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
@@ -33,6 +34,7 @@ import ShopCarousel from '../Screens/User/ShopCarousel';
 import { useTabBar } from '../context/TabBarContext';
 import WeatherOverlay from '../Components/WeatherOverlay';
 import HomeSkeleton from '../Components/Loading/HomeSkeleton';
+import { useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -160,6 +162,7 @@ const renderHomeOfferCard = ({ item }: { item: any }) => (
 );
 
 const Home = () => {
+  const { category, setCategory, theme } = useAppTheme();
   const { tabBarOffset } = useTabBar();
   const lastScrollY = useSharedValue(0);
   const scrollY = useSharedValue(0);
@@ -219,6 +222,7 @@ const Home = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [showOffers, setShowOffers] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreShops, setHasMoreShops] = useState(true);
@@ -642,7 +646,7 @@ const Home = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Zomato-style layered header with creative background */}
@@ -653,7 +657,7 @@ const Home = () => {
         borderBottomRightRadius: 30,
       }]}>
         {/* Background Pattern - Wave Layer */}
-        {customization.backgroundImage ? (
+        {showOffers && customization.backgroundImage ? (
           <Image
             source={{ uri: customization.backgroundImage }}
             style={{ position: 'absolute', width: '100%', height: '100%', resizeMode: 'cover' }}
@@ -663,7 +667,7 @@ const Home = () => {
             position: 'absolute',
             width: '100%',
             height: '100%',
-            backgroundColor: customization.backgroundColor,
+            backgroundColor: theme.headerBackground,
           }}>
             <View style={{
               position: 'absolute',
@@ -695,15 +699,16 @@ const Home = () => {
           </View>
         )}
 
-        {/* Gradient Overlay - Hidden if Background Image present */}
-        {!customization.backgroundImage && (
+        {/* Premium Professional Gradient Overlay */}
+        {!(showOffers && customization.backgroundImage) && (
           <LinearGradient
             colors={[
-              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.95)' : `${customization.backgroundColor}F2`,
-              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.85)' : `${customization.backgroundColor}D9`
+              theme.headerBackground,
+              theme.accent,
+              `${theme.primary}E6`
             ]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 1.2 }}
             style={{
               position: 'absolute',
               width: '100%',
@@ -740,32 +745,44 @@ const Home = () => {
                 paddingVertical: 8,
                 gap: 6,
               }}>
-                <Ionicons name="location-outline" size={16} color={customization.textColor} />
+                <Ionicons name="location-outline" size={16} color={theme.headerText} />
                 <Text style={{
-                  color: customization.textColor,
+                  color: theme.headerText,
                   fontSize: 14,
                   fontWeight: '600',
                 }}>{selectedCity}</Text>
-                <Ionicons name="chevron-down" size={14} color={customization.textColor} />
+                <Ionicons name="chevron-down" size={14} color={theme.headerText} />
               </BlurView>
             </TouchableOpacity>
 
-            {/* Right icons with glassmorphism */}
+            {/* Right icons: Offers Toggle & Logout */}
             <View style={{
               flexDirection: 'row',
+              alignItems: 'center',
               gap: 8,
             }}>
-              <TouchableOpacity onPress={() => router.push('/Screens/User/Notifications')} style={{
+              {/* Offers Toggle */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                paddingHorizontal: 8,
+                paddingVertical: 2,
                 borderRadius: 20,
-                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
               }}>
-                <BlurView intensity={20} tint="light" style={{
-                  padding: 8,
-                  borderRadius: 20,
-                }}>
-                  <Ionicons name="notifications-outline" size={18} color={customization.textColor} />
-                </BlurView>
-              </TouchableOpacity>
+                <Text style={{ color: '#FFF', marginRight: 4, fontSize: 13, fontWeight: '600' }}>
+                  Offers
+                </Text>
+                <Switch
+                  value={showOffers}
+                  onValueChange={setShowOffers}
+                  trackColor={{ false: 'rgba(255,255,255,0.3)', true: `${theme.accent}99` }}
+                  thumbColor="#FFF"
+                  style={{ transform: [{ scale: 0.8 }] }}
+                />
+              </View>
 
               <TouchableOpacity onPress={handleLogout} style={{
                 borderRadius: 20,
@@ -775,9 +792,94 @@ const Home = () => {
                   padding: 8,
                   borderRadius: 20,
                 }}>
-                  <Ionicons name="log-out-outline" size={18} color={customization.textColor} />
+                  <Ionicons name="log-out-outline" size={18} color={theme.headerText} />
                 </BlurView>
               </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Category Selector */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              borderRadius: 22,
+              padding: 4,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+            }}>
+              {(['men', 'womens', 'kids'] as const).map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  onPress={() => setCategory(cat)}
+                  activeOpacity={0.8}
+                >
+                  {category === cat ? (
+                    <LinearGradient
+                      colors={['rgba(255, 255, 255, 0.45)', 'rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.3)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 18,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        shadowColor: '#FFF',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 10,
+                      }}
+                    >
+                      <Ionicons 
+                        name={cat === 'men' ? 'man' : cat === 'womens' ? 'woman' : 'happy'} 
+                        size={16} 
+                        color="#FFF" 
+                      />
+                      <Text style={{
+                        color: '#FFF',
+                        fontSize: 13,
+                        fontWeight: '700',
+                        textTransform: 'capitalize'
+                      }}>
+                        {cat === 'womens' ? 'Women' : cat}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 18,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: 'transparent',
+                    }}>
+                      <Ionicons 
+                        name={cat === 'men' ? 'man' : cat === 'womens' ? 'woman' : 'happy'} 
+                        size={16} 
+                        color="rgba(255, 255, 255, 0.7)" 
+                      />
+                      <Text style={{
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        fontSize: 13,
+                        fontWeight: '500',
+                        textTransform: 'capitalize'
+                      }}>
+                        {cat === 'womens' ? 'Women' : cat}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -787,12 +889,12 @@ const Home = () => {
           }}>
             <Text style={{
               fontSize: 24,
-              color: customization.subTextColor,
+              color: theme.subText,
               fontWeight: '400',
             }}>Find your perfect</Text>
             <Text style={{
               fontSize: 32,
-              color: customization.textColor,
+              color: theme.headerText,
               fontWeight: '700',
               marginTop: -4,
             }}>style match</Text>
@@ -999,19 +1101,21 @@ const Home = () => {
                 <TrendingStyles styles={trendingDesigns} />
 
                 {/* Special Offers Section */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
-                    Special Offers
-                  </Text>
-                  <FlatList
-                    data={homeOffers}
-                    renderItem={renderHomeOfferCard}
-                    keyExtractor={(item) => item.id}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16 }}
-                  />
-                </View>
+                {showOffers && (
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
+                      Special Offers
+                    </Text>
+                    <FlatList
+                      data={homeOffers}
+                      renderItem={renderHomeOfferCard}
+                      keyExtractor={(item) => item.id}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ paddingHorizontal: 16 }}
+                    />
+                  </View>
+                )}
 
                 {activeShops.length > 0 && (
                   <ShopCarousel

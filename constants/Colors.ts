@@ -23,4 +23,32 @@ export const Colors = {
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
   },
+  men: {
+    primary: '#1A1F36',
+    accent: '#1877F2',
+    background: 'transparent',
+    text: '#11181C',
+    headerBackground: '#1A1F36',
+    headerText: '#FFFFFF',
+    subText: 'rgba(255, 255, 255, 0.8)',
+  },
+  womens: {
+    primary: '#BE185D',     // Rich deep pink for depth
+    accent: '#F472B6',      // Light, vivid pink for accents
+    background: 'transparent',
+    text: '#11181C',
+    headerBackground: '#DB2777', // Soft medium pink
+    headerText: '#FFFFFF',
+    subText: 'rgba(255, 255, 255, 0.9)',
+  },
+  kids: {
+    primary: '#D97706',
+    accent: '#F59E0B',
+    background: 'transparent',
+    text: '#11181C',
+    headerBackground: '#D97706',
+    headerText: '#FFFFFF',
+    subText: 'rgba(255, 255, 255, 0.9)',
+  },
 };
+

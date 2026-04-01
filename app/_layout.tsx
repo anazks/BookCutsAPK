@@ -13,6 +13,53 @@ import { Platform, Alert } from 'react-native';
 import { savePushToken } from './api/Service/User';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { View } from 'react-native';
+
+const InnerGradientLayout = ({ colorScheme }: { colorScheme: 'light' | 'dark' }) => {
+  const { theme, category } = useAppTheme();
+
+  // Make the navigation container's background transparent globally
+  const navTheme = {
+    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: 'transparent',
+    },
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Global category-based gradient background */}
+      <LinearGradient
+        colors={[
+          theme.accent === '#1877F2' ? 'rgba(24, 119, 242, 0.15)' : `${theme.accent}25`,
+          (category === 'men' ? '#F8FAFC' : category === 'womens' ? '#FFF1F2' : '#FFFBEB'),
+          (category === 'men' ? '#F8FAFC' : category === 'womens' ? '#FFF1F2' : '#FFFBEB')
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.6 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
+      <ThemeProvider value={navTheme}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="Home" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(tabs)/Home" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </View>
+  );
+};
 
 // ─── Notification Handler ────────────────────────────────────────────────
 Notifications.setNotificationHandler({
@@ -139,15 +186,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="Home" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="(tabs)/Home" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <AppThemeProvider>
+        <InnerGradientLayout colorScheme={colorScheme ?? 'light'} />
+      </AppThemeProvider>
     </GestureHandlerRootView>
   );
-}
+}

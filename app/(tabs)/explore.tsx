@@ -10,6 +10,7 @@ import { getmyProfile } from '../api/Service/User';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTabBar } from '../context/TabBarContext';
+import { useAppTheme } from '../context/ThemeContext';
 
 
 interface UserData {
@@ -21,6 +22,7 @@ interface UserData {
 }
 
 export default function Profile() {
+  const { theme } = useAppTheme();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,19 +118,19 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1877F2" />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: 'transparent' }]}>
+        <ActivityIndicator size="large" color={theme.accent} />
+        <Text style={[styles.loadingText, { color: theme.accent }]}>Loading your profile...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#1877F2" />
+      <View style={[styles.errorContainer, { backgroundColor: 'transparent' }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={theme.accent} />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchProfile}>
+        <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.accent, shadowColor: theme.accent }]} onPress={fetchProfile}>
           <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -138,7 +140,7 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       {/* Hero Header */}
-      <View style={styles.heroHeader}>
+      <View style={[styles.heroHeader, { backgroundColor: theme.headerBackground }]}>
         <View style={styles.avatarSection}>
           <View style={styles.avatarRing}>
             <View style={styles.avatar}>
@@ -147,14 +149,14 @@ export default function Profile() {
               </Text>
             </View>
           </View>
-          <View style={styles.onlineIndicator} />
+          <View style={[styles.onlineIndicator, { borderColor: theme.headerBackground }]} />
           <Text style={styles.heroName}>
             {userData?.firstName} {userData?.lastName}
           </Text>
           <Text style={styles.heroEmail}>{userData?.email}</Text>
           {userData?.city ? (
             <View style={styles.locationPill}>
-              <Ionicons name="location-sharp" size={12} color="#1877F2" />
+              <Ionicons name="location-sharp" size={12} color={theme.accent} />
               <Text style={styles.locationPillText}>{userData.city}</Text>
             </View>
           ) : null}
@@ -182,8 +184,8 @@ export default function Profile() {
             }
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
+                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
               </View>
               <Text style={styles.menuText}>Bookings</Text>
             </View>
@@ -200,8 +202,8 @@ export default function Profile() {
             }
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
-                <Ionicons name="gift-outline" size={20} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
+                <Ionicons name="gift-outline" size={20} color={theme.accent} />
               </View>
               <Text style={styles.menuText}>Refer & Reward</Text>
             </View>
@@ -213,8 +215,8 @@ export default function Profile() {
             onPress={() => router.push('/Screens/User/Payment')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
-                <Ionicons name="wallet-outline" size={20} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
+                <Ionicons name="wallet-outline" size={20} color={theme.accent} />
               </View>
               <Text style={styles.menuText}>Payment Methods</Text>
             </View>
@@ -226,8 +228,8 @@ export default function Profile() {
             onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
               </View>
               <Text style={styles.menuText}>Privacy & Policy</Text>
             </View>
@@ -239,8 +241,8 @@ export default function Profile() {
             onPress={() => router.push('/Screens/User/Support')}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F0FE' }]}>
-                <Ionicons name="help-circle-outline" size={20} color="#1877F2" />
+              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
+                <Ionicons name="help-circle-outline" size={20} color={theme.accent} />
               </View>
               <Text style={styles.menuText}>Help & Support</Text>
             </View>
@@ -261,7 +263,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'transparent',
   },
 
   /* Hero Header */
