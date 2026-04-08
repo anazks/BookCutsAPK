@@ -12,17 +12,13 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { TabBarContext } from '../context/TabBarContext';
+import { useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_WIDTH = width * 0.92;
 const TAB_COUNT = 5;
 const TAB_WIDTH = TAB_BAR_WIDTH / TAB_COUNT;
 const BAR_HEIGHT = 64;
-
-const COLORS = {
-  primary: '#4F46E5',
-  inactive: '#94A3B8',
-};
 
 const tabConfig: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { icon: 'home', label: 'Home' },
@@ -34,6 +30,7 @@ const tabConfig: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: s
 
 /* ─── Tab icon ───────────────────────────────────────────────────── */
 const TabIcon = ({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) => {
+  const { theme } = useAppTheme();
   const scale = useSharedValue(focused ? 1.2 : 1);
   const translateY = useSharedValue(focused ? -3 : 0);
 
@@ -51,7 +48,7 @@ const TabIcon = ({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focu
       <Ionicons
         name={name}
         size={focused ? 24 : 22}
-        color={focused ? COLORS.primary : COLORS.inactive}
+        color={focused ? theme.accent : '#94A3B8'}
       />
     </Animated.View>
   );
@@ -59,6 +56,7 @@ const TabIcon = ({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focu
 
 /* ─── Animated label ─────────────────────────────────────────────── */
 const AnimatedLabel = ({ children, focused }: { children: string; focused: boolean }) => {
+  const { theme } = useAppTheme();
   const opacity = useSharedValue(focused ? 1 : 0);
   const translateY = useSharedValue(focused ? 0 : 5);
 
@@ -75,7 +73,7 @@ const AnimatedLabel = ({ children, focused }: { children: string; focused: boole
   if (!focused) return null;
 
   return (
-    <Animated.Text style={[styles.tabLabel, animatedStyle]}>
+    <Animated.Text style={[styles.tabLabel, { color: theme.accent }, animatedStyle]}>
       {children}
     </Animated.Text>
   );
@@ -168,7 +166,7 @@ export default function TabLayout() {
     <TabBarContext.Provider value={{ tabBarOffset }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GestureDetector gesture={swipeGesture}>
-          <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+          <View style={{ flex: 1, backgroundColor: 'transparent' }}>
             <Tabs
               tabBar={(props) => <CustomTabBar tabBarOffset={tabBarOffset} {...props} />}
             screenOptions={{
@@ -232,7 +230,6 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.primary,
     letterSpacing: 0.2,
   },
 });

@@ -41,6 +41,9 @@ interface ShopCarouselProps {
   hasMore?: boolean;
 }
 
+const CARD_WIDTH = 186;
+const CARD_GAP = 12;
+
 const ShopCarousel: React.FC<ShopCarouselProps> = ({
   title,
   shops,
@@ -63,60 +66,59 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
     if (!hasMore || isLoadingMore || onEndReachedCalled.current) return;
     onEndReachedCalled.current = true;
     onEndReached?.();
-    setTimeout(() => {
-      onEndReachedCalled.current = false;
-    }, 800);
+    setTimeout(() => { onEndReachedCalled.current = false; }, 800);
   }, [hasMore, isLoadingMore, onEndReached]);
 
-  const renderShopItem = ({ item, index }: { item: ShopItem; index: number }) => {
+  const renderShopItem = ({ item }: { item: ShopItem }) => {
+    const isOpen = item.isOpen !== false;
+
     return (
       <TouchableOpacity
         style={{
-          width: 200,
-          marginRight: 16,
-          backgroundColor: 'white',
+          width: CARD_WIDTH,
+          marginRight: CARD_GAP,
+          backgroundColor: '#FFFFFF',
           borderRadius: 16,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: '#F0F0F0',
+          borderColor: '#E2E8F0',
+          shadowColor: '#1E40AF',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.07,
+          shadowRadius: 8,
+          elevation: 3,
         }}
         onPress={() => handleShopPress(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.82}
       >
-        {/* Image Container with Gradient Overlay */}
-        <View style={{ position: 'relative', height: 130 }}>
+        {/* Image */}
+        <View style={{ height: 118, position: 'relative' }}>
           <Image
             source={{ uri: item.image }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
-          
-          {/* Gradient Overlay for better text readability */}
+
+          {/* Gradient overlay */}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.4)']}
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 50,
-            }}
+            colors={['transparent', 'rgba(15,23,42,0.45)']}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 56 }}
           />
 
-          {/* Discount Badge */}
+          {/* Discount badge */}
           {item.discount && (
             <View
               style={{
                 position: 'absolute',
-                top: 12,
-                left: 12,
+                top: 9,
+                left: 9,
                 backgroundColor: '#2563EB',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 4,
+                paddingHorizontal: 7,
+                paddingVertical: 3,
+                borderRadius: 6,
               }}
             >
-              <Text style={{ color: 'white', fontSize: 11, fontWeight: '600' }}>
+              <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 }}>
                 {item.discount}
               </Text>
             </View>
@@ -151,56 +153,85 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           )}
         </View>
 
-        <View style={{ padding: 14 }}>
-          {/* Shop Name */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 }} numberOfLines={1}>
-              {item.name}
+          {/* Open/Closed pill */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 9,
+              right: 9,
+              backgroundColor: isOpen ? 'rgba(16,185,129,0.9)' : 'rgba(100,116,139,0.85)',
+              paddingHorizontal: 7,
+              paddingVertical: 3,
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '700', letterSpacing: 0.4 }}>
+              {isOpen ? 'OPEN' : 'CLOSED'}
             </Text>
           </View>
 
-          {/* Cuisine/Categories */}
+          {/* Distance badge - bottom right over gradient */}
+          {item.distance && (
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                right: 9,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 3,
+              }}
+            >
+              <Ionicons name="navigate-outline" size={10} color="#93C5FD" />
+              <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '600' }}>
+                {item.distance}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Content */}
+        <View style={{ padding: 11 }}>
+          {/* Name */}
+          <Text
+            style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 3, letterSpacing: -0.2 }}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+
+          {/* Cuisine tags */}
           {item.cuisine && (
-            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }} numberOfLines={1}>
-              {item.cuisine.join(' • ')}
+            <Text style={{ fontSize: 10, color: '#64748B', marginBottom: 5 }} numberOfLines={1}>
+              {item.cuisine.join(' · ')}
             </Text>
           )}
 
-          {/* Location and Distance Row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Ionicons name="location-outline" size={11} color="#9CA3AF" />
-            <Text style={{ fontSize: 11, color: '#6B7280', marginLeft: 4, flex: 1 }} numberOfLines={1}>
-              {item.location}
+          {/* Location */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <Ionicons name="location-outline" size={10} color="#94A3B8" />
+            <Text style={{ fontSize: 10, color: '#64748B', marginLeft: 3, flex: 1 }} numberOfLines={1}>
+              {item.location || item.city || '—'}
             </Text>
-            {item.distance && (
-              <>
-                <Text style={{ fontSize: 11, color: '#9CA3AF', marginHorizontal: 4 }}>•</Text>
-                <Text style={{ fontSize: 11, color: '#2563EB', fontWeight: '500' }}>
-                  {item.distance}
-                </Text>
-              </>
-            )}
           </View>
 
-          {/* Timing and Price Range Row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="time-outline" size={11} color="#9CA3AF" />
-              <Text style={{ fontSize: 11, color: '#6B7280', marginLeft: 4 }}>
-                {item.timing || '9am - 8pm'}
+          {/* Timing + Price row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Ionicons name="time-outline" size={10} color="#94A3B8" />
+              <Text style={{ fontSize: 10, color: '#64748B' }}>
+                {item.timing || '9am – 8pm'}
               </Text>
             </View>
-            
             {item.priceRange && (
-              <View style={{ flexDirection: 'row' }}>
-                {[1, 2, 3].map((price) => (
+              <View style={{ flexDirection: 'row', gap: 1 }}>
+                {[1, 2, 3].map((p) => (
                   <Text
-                    key={price}
+                    key={p}
                     style={{
-                      fontSize: 11,
-                      color: parseInt(item.priceRange || '2') >= price ? '#2563EB' : '#E5E7EB',
-                      fontWeight: '500',
-                      marginLeft: 2,
+                      fontSize: 10,
+                      fontWeight: '600',
+                      color: parseInt(item.priceRange || '2') >= p ? '#2563EB' : '#E2E8F0',
                     }}
                   >
                     ₹
@@ -210,25 +241,30 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
             )}
           </View>
 
-          {/* Action Buttons Row */}
-          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-            <TouchableOpacity
+          {/* Book button */}
+          <TouchableOpacity
+            onPress={() => handleShopPress(item)}
+            activeOpacity={0.85}
+            style={{ borderRadius: 10, overflow: 'hidden' }}
+          >
+            <LinearGradient
+              colors={['#3B82F6', '#1D4ED8']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={{
-                flex: 1,
-                backgroundColor: '#1877F2',
-                paddingVertical: 9,
-                borderRadius: 8,
-                alignItems: 'center',
+                paddingVertical: 8,
                 flexDirection: 'row',
+                alignItems: 'center',
                 justifyContent: 'center',
-                gap: 4,
+                gap: 5,
               }}
-              onPress={() => handleShopPress(item)}
             >
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>Book</Text>
-              <Ionicons name="arrow-forward" size={10} color="white" />
-            </TouchableOpacity>
-          </View>
+              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.2 }}>
+                Book Now
+              </Text>
+              <Ionicons name="arrow-forward" size={10} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -236,26 +272,24 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-
     return (
-      <View style={{ width: 200, justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
-        <View
-          style={{
-            width: 200,
-            height: 280,
-            backgroundColor: 'white',
-            borderRadius: 16,
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#F0F0F0',
-          }}
-        >
-          <ActivityIndicator size="small" color="#2563EB" />
-          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280', fontWeight: '400' }}>
-            Loading more...
-          </Text>
-        </View>
+      <View
+        style={{
+          width: CARD_WIDTH,
+          height: 260,
+          backgroundColor: '#FFF',
+          borderRadius: 16,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: '#E2E8F0',
+          marginRight: CARD_GAP,
+        }}
+      >
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={{ marginTop: 8, fontSize: 11, color: '#94A3B8', fontWeight: '500' }}>
+          Loading...
+        </Text>
       </View>
     );
   };
@@ -263,50 +297,46 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   if (shops.length === 0 && !isLoadingMore) return null;
 
   return (
-    <View style={{ marginVertical: 16 }}>
-      {/* Header */}
+    <View style={{ marginBottom: 20 }}>
+      {/* Section header */}
       <View
         style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingHorizontal: 16,
-          marginBottom: 16,
+          paddingHorizontal: 14,
+          marginBottom: 12,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View
             style={{
               width: 3,
-              height: 20,
+              height: 16,
               backgroundColor: '#2563EB',
-              borderRadius: 1.5,
-              marginRight: 8,
+              borderRadius: 2,
             }}
           />
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', letterSpacing: -0.3 }}>
             {title}
           </Text>
         </View>
 
         {onViewAll && (
           <TouchableOpacity
+            onPress={onViewAll}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#F9FAFB',
-              paddingHorizontal: 10,
+              gap: 3,
+              backgroundColor: '#EFF6FF',
+              paddingHorizontal: 9,
               paddingVertical: 4,
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: '#F0F0F0',
+              borderRadius: 8,
             }}
-            onPress={onViewAll}
           >
-            <Text style={{ fontSize: 12, fontWeight: '500', color: '#4B5563', marginRight: 4 }}>
-              View All
-            </Text>
-            <Ionicons name="arrow-forward" size={12} color="#4B5563" />
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#2563EB' }}>See All</Text>
+            <Ionicons name="arrow-forward" size={11} color="#2563EB" />
           </TouchableOpacity>
         )}
       </View>
@@ -317,26 +347,22 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
         data={shops}
         keyExtractor={(item) => item.id}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 14 }}
         renderItem={renderShopItem}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.35}
         ListFooterComponent={renderFooter}
-        ListFooterComponentStyle={{
-          marginRight: 0,
-          alignSelf: 'center',
-        }}
         bounces={false}
         initialNumToRender={3}
         maxToRenderPerBatch={3}
         windowSize={5}
-        getItemLayout={(data, index) => ({
-          length: 216,
-          offset: 216 * index,
+        getItemLayout={(_, index) => ({
+          length: CARD_WIDTH + CARD_GAP,
+          offset: (CARD_WIDTH + CARD_GAP) * index,
           index,
         })}
         decelerationRate="fast"
-        snapToInterval={216}
+        snapToInterval={CARD_WIDTH + CARD_GAP}
         snapToAlignment="start"
       />
     </View>

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -266,12 +267,12 @@ export const TimeSlotsSection = memo(
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    padding: 12,
+    marginHorizontal: 14,
+    marginVertical: 6,
   },
 
   // Header Styles
@@ -295,13 +296,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
   },
   barberChip: {
@@ -344,9 +345,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },

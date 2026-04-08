@@ -89,8 +89,8 @@ export const ProgressSteps = ({ completed, total = 4 }: ProgressStepsProps) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   },
 
   stepDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   stepDotCompleted: {
@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
   },
 
   stepDotText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 
@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
   },
 
   stepLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 9,
+    fontWeight: '600',
     color: '#8E8E93',
   },
 
@@ -154,10 +154,10 @@ const styles = StyleSheet.create({
   },
 
   connector: {
-    height: 2,
+    height: 1.5,
     flex: 0.8,
     backgroundColor: '#E5E5EA',
-    marginBottom: 24, // Align with dots
+    marginBottom: 16, // Align with dots
   },
 
   connectorCompleted: {
@@ -169,15 +169,15 @@ const styles = StyleSheet.create({
   },
 
   progressText: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#8E8E93',
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   progressBar: {
-    height: 4,
+    height: 2,
     backgroundColor: '#E5E5EA',
-    borderRadius: 2,
+    borderRadius: 1,
     overflow: 'hidden',
   },
 

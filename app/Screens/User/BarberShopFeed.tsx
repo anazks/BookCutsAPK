@@ -8,6 +8,7 @@ import {
   Image,
   Linking,
   Modal,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,12 +21,12 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const BarberShopFeed = () => {
   const { shop_id } = useLocalSearchParams();
-  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [shopData, setShopData] = useState(null);
+  const [shopData, setShopData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const offerScrollRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const offerScrollRef = useRef<any>(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
 
   // Static offers data
@@ -122,13 +123,14 @@ const BarberShopFeed = () => {
     if (selectedMedia?.uri) {
       try {
         const shareOptions = {
-          message: `Check out this from ${shopData?.ShopName || 'Barber Shop'}: ${selectedMedia.caption || ''}`,
+          message: `Check out this from ${shopData?.ShopName || 'Barber Shop'}: ${selectedMedia?.caption || ''}`,
           url: selectedMedia.uri,
         };
         await Share.share(shareOptions);
       } catch (error) {
         // Fallback to WhatsApp if Share fails
-        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(shareOptions.message)}&attach=${selectedMedia.uri}`;
+        const message = `Check out this from ${shopData?.ShopName || 'Barber Shop'}: ${selectedMedia?.caption || ''}`;
+        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}&attach=${selectedMedia.uri}`;
         Linking.openURL(whatsappUrl).catch(() => console.log('Sharing failed'));
       }
     }
@@ -163,7 +165,7 @@ const BarberShopFeed = () => {
         <View style={styles.feedHeader}>
           <View style={styles.feedAvatar} />
           <View style={styles.feedUserInfo}>
-            <Text style={styles.feedShopName}>{shopData.ShopName || 'Barber Shop'}</Text>
+            <Text style={styles.feedShopName}>{shopData?.ShopName || 'Barber Shop'}</Text>
             {/* <Text style={styles.feedTimestamp}>2 hours ago</Text> */}
           </View>
         </View>
@@ -470,19 +472,19 @@ const styles = StyleSheet.create({
   // Hero Header Styles
   headerHeroSection: {
     width: '100%',
-    height: 380,
+    height: 280,
     backgroundColor: '#000',
     position: 'relative',
     justifyContent: 'flex-end',
   },
   heroBackButton: {
     position: 'absolute',
-    top: 54,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    top: 48,
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -493,13 +495,13 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   shopNameHero: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFF',
-    marginBottom: 8,
+    marginBottom: 6,
     textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   shopMetaRowHero: {
     flexDirection: 'row',
@@ -533,13 +535,13 @@ const styles = StyleSheet.create({
   },
   locationTextHero: {
     color: 'rgba(255,255,255,0.95)',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     flexShrink: 1,
   },
   timingTextHero: {
     color: 'rgba(255,255,255,0.95)',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   // Sub Section Styles (Trends)
@@ -579,11 +581,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   offersBannerTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 12,
-    paddingHorizontal: 20,
+    marginBottom: 10,
+    paddingHorizontal: 16,
   },
   offersContainer: {
     paddingLeft: 20,
@@ -638,7 +640,7 @@ const styles = StyleSheet.create({
   },
   // Scroll Container Styles
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 80,
   },
   // Feed Item Styles
   feedListContainer: {

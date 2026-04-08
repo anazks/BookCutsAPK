@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#8E8E93',
     fontWeight: '500',
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   periodSection: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   periodHeader: {
     flexDirection: 'row',
@@ -371,24 +371,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   timeSlotCard: {
-    width: (SCREEN_WIDTH - 48) / 3, // 3 columns
+    width: (SCREEN_WIDTH - 50) / 3, // 3 columns
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     borderWidth: 1.5,
     borderColor: '#F0F0F0',
-    minHeight: 64, // Bigger minimum height
+    minHeight: 56, // Slightly smaller
     alignItems: 'center',
     justifyContent: 'center',
   },
   timeSlotCardSelected: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: '#EFF6FF',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    borderColor: '#2563EB',
   },
   timeSlotContent: {
     flex: 1,
@@ -398,10 +399,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   timeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#1C1C1E',
     textAlign: 'center',

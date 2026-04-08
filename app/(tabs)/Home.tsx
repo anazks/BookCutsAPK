@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -12,30 +11,43 @@ import {
   BackHandler,
   Dimensions,
   FlatList,
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Image
+  View
 } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolate } from 'react-native-reanimated';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
-import { getmyProfile, getNearbyCitiesFallback, getCustomization } from '../api/Service/User';
+import { getCustomization, getmyProfile, getNearbyCitiesFallback } from '../api/Service/User';
+import KidsCorner from '../Components/Filters/KidsCorner';
 import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
+import WomensServices from '../Components/Filters/WomensServices';
+import TransparentInfoCard from '../Components/Home/TransparentInfoCard';
+import HomeSkeleton from '../Components/Loading/HomeSkeleton';
 import BookingReminder from '../Components/Reminder/BookingReminder';
+import WeatherOverlay from '../Components/WeatherOverlay';
+import { useTabBar } from '../context/TabBarContext';
+import { useAppTheme } from '../context/ThemeContext';
 import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
-import { useTabBar } from '../context/TabBarContext';
-import WeatherOverlay from '../Components/WeatherOverlay';
-import HomeSkeleton from '../Components/Loading/HomeSkeleton';
 
 const { width } = Dimensions.get('window');
 
+// ─── Top Brands Carousel ───────────────────────────────────────────────────────
 const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,11 +57,9 @@ const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => {
         const nextIndex = (prev + 1) % shops.length;
-        if (flatListRef.current) {
-          try {
-            flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
-          } catch (error) {}
-        }
+        try {
+          flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        } catch { }
         return nextIndex;
       });
     }, 3000);
@@ -60,70 +70,158 @@ const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
 
   return (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
-        Top Brands
-      </Text>
+      <SectionHeader title="Top Brands" onSeeAll={() => router.push('/(tabs)/BookNow')} />
       <FlatList
         ref={flatListRef}
         data={shops}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, idx) => item.id || idx.toString()}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 14, gap: 16 }}
         renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={{ alignItems: 'center', marginRight: 16 }}
-            onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })}
+          <TouchableOpacity
+            style={{ alignItems: 'center' }}
+            onPress={() =>
+              router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })
+            }
           >
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#1877F2' }}>
+            <View
+              style={{
+                width: 62,
+                height: 62,
+                borderRadius: 31,
+                backgroundColor: '#F1F5F9',
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: '#3B82F6',
+                shadowColor: '#3B82F6',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.18,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
+            >
               <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
-            <Text style={{ marginTop: 8, fontSize: 12, fontWeight: '600', color: '#1F2937', maxWidth: 72, textAlign: 'center' }} numberOfLines={1}>
+            <Text
+              style={{
+                marginTop: 7,
+                fontSize: 11,
+                fontWeight: '600',
+                color: '#1E293B',
+                maxWidth: 66,
+                textAlign: 'center',
+              }}
+              numberOfLines={1}
+            >
               {item.name}
             </Text>
           </TouchableOpacity>
         )}
         onScrollToIndexFailed={(info) => {
-          const wait = new Promise(resolve => setTimeout(resolve, 500));
-          wait.then(() => {
+          setTimeout(() => {
             flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
-          });
+          }, 500);
         }}
       />
     </View>
   );
 };
 
+// ─── Trending Styles ───────────────────────────────────────────────────────────
 const TrendingStyles = ({ styles }: { styles: any[] }) => {
   if (!styles || styles.length === 0) return null;
   return (
-    <View style={{ marginBottom: 24 }}>
-      <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
-        Trending Now
-      </Text>
+    <View style={{ marginBottom: 20 }}>
+      <SectionHeader title="Trending Now 🔥" />
       <FlatList
         data={styles}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-        keyExtractor={item => item.id}
+        contentContainerStyle={{ paddingHorizontal: 14, gap: 12 }}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={{ marginRight: 16, width: 140, height: 180, borderRadius: 16, overflow: 'hidden' }}>
-            <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)']}
-              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, justifyContent: 'flex-end', padding: 12 }}
+          <TouchableOpacity activeOpacity={0.88}>
+            <View
+              style={{
+                width: 126,
+                height: 168,
+                borderRadius: 16,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
             >
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }} numberOfLines={1}>{item.name}</Text>
-              <Text style={{ color: '#D1D5DB', fontSize: 12, fontWeight: '500', marginTop: 2 }}>{item.popularity} like this</Text>
-            </LinearGradient>
-          </View>
+              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.78)']}
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 80,
+                  justifyContent: 'flex-end',
+                  padding: 10,
+                }}
+              >
+                <Text
+                  style={{ color: '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: -0.2 }}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 3 }}>
+                  <Ionicons name="flame-outline" size={10} color="#FFA500" />
+                  <Text style={{ color: '#CBD5E1', fontSize: 10, fontWeight: '500' }}>
+                    {item.popularity} like this
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
+          </TouchableOpacity>
         )}
       />
     </View>
   );
 };
 
+// ─── Section Header ────────────────────────────────────────────────────────────
+const SectionHeader = ({
+  title,
+  onSeeAll,
+  seeAllLabel = 'See All →',
+}: {
+  title: string;
+  onSeeAll?: () => void;
+  seeAllLabel?: string;
+}) => (
+  <View
+    style={{
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    }}
+  >
+    <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', letterSpacing: -0.3 }}>
+      {title}
+    </Text>
+    {onSeeAll && (
+      <TouchableOpacity onPress={onSeeAll}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: '#3B82F6' }}>{seeAllLabel}</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+// ─── Offer Card ────────────────────────────────────────────────────────────────
 const homeOffers = [
   {
     id: '1',
@@ -131,7 +229,8 @@ const homeOffers = [
     description: 'New customers get 20% off on all services',
     code: 'FIRST20',
     validUntil: '2025-10-31',
-    gradient: ['#1877F2', '#FF8E8E'],
+    gradient: ['#667EEA', '#764BA2'] as [string, string],
+    icon: '🎉',
   },
   {
     id: '2',
@@ -139,37 +238,76 @@ const homeOffers = [
     description: 'Get free beard trim with any haircut',
     code: 'BEARDTRIM',
     validUntil: '2025-09-30',
-    gradient: ['#4ECDC4', '#44A08D'],
-  }
+    gradient: ['#F093FB', '#F5576C'] as [string, string],
+    icon: '✂️',
+  },
 ];
 
-const renderHomeOfferCard = ({ item }: { item: any }) => (
-  <View style={{ width: width * 0.8, marginRight: 16, borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }}>
-    <LinearGradient colors={item.gradient as [string, string]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16 }} start={{x: 0, y: 0}} end={{x: 1, y: 1}} />
-    <View style={{ flex: 1, zIndex: 1 }}>
-      <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 4 }}>{item.title}</Text>
-      <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 8, lineHeight: 18 }}>{item.description}</Text>
-      <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 6 }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFF' }}>Code: {item.code}</Text>
+const renderHomeOfferCard = ({ item }: { item: (typeof homeOffers)[0] }) => (
+  <TouchableOpacity activeOpacity={0.9} style={{ width: width * 0.76, marginRight: 12 }}>
+    <LinearGradient
+      colors={item.gradient}
+      style={{ borderRadius: 16, padding: 16 }}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFF', marginBottom: 4, letterSpacing: -0.3 }}>
+            {item.title}
+          </Text>
+          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.88)', marginBottom: 10, lineHeight: 16 }}>
+            {item.description}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.22)',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF', letterSpacing: 0.5 }}>
+                {item.code}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.78)' }}>
+              Until {item.validUntil}
+            </Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 36, marginLeft: 10 }}>{item.icon}</Text>
       </View>
-    </View>
-    <View style={{ marginLeft: 12, zIndex: 1 }}>
-      <Ionicons name="gift" size={32} color="#FFF" />
-    </View>
-  </View>
+    </LinearGradient>
+  </TouchableOpacity>
 );
 
+// ─── Main Home Screen ──────────────────────────────────────────────────────────
 const Home = () => {
+  const { category, setCategory, theme: rawTheme } = useAppTheme();
+  const theme = {
+    headerBackground: rawTheme?.headerBackground ?? '#1D4ED8',
+    headerText: rawTheme?.headerText ?? '#FFFFFF',
+    subText: rawTheme?.subText ?? 'rgba(255,255,255,0.8)',
+    accent: rawTheme?.accent ?? '#3B82F6',
+    primary: rawTheme?.primary ?? '#2563EB',
+    background: rawTheme?.background ?? '#F8FAFC',
+    text: rawTheme?.text ?? '#0F172A',
+    ...rawTheme,
+  };
   const { tabBarOffset } = useTabBar();
   const lastScrollY = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const isTabBarHidden = useSharedValue(false);
 
+  const HEADER_HEIGHT = 268;
+
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const currentScrollY = event.contentOffset.y;
       scrollY.value = currentScrollY;
-      
+
       if (currentScrollY <= 0 && isTabBarHidden.value) {
         isTabBarHidden.value = false;
         tabBarOffset.value = withTiming(0, { duration: 200 });
@@ -180,24 +318,21 @@ const Home = () => {
         isTabBarHidden.value = false;
         tabBarOffset.value = withTiming(0, { duration: 200 });
       }
-      
       lastScrollY.value = currentScrollY;
     },
   });
 
-  const animatedHeaderStyle = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(scrollY.value, [0, 150], [1, 0], Extrapolate.CLAMP),
-      transform: [
-        { translateY: interpolate(scrollY.value, [0, 200], [0, -260], Extrapolate.CLAMP) }
-      ],
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 10,
-    };
-  });
+  const animatedHeaderStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 120], [1, 0], Extrapolate.CLAMP),
+    transform: [
+      { translateY: interpolate(scrollY.value, [0, 180], [0, -HEADER_HEIGHT], Extrapolate.CLAMP) },
+    ],
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  }));
 
   const isFetchingMoreRef = useRef(false);
   const [shops, setShops] = useState<any[]>([]);
@@ -219,6 +354,7 @@ const Home = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [showOffers, setShowOffers] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreShops, setHasMoreShops] = useState(true);
@@ -226,12 +362,11 @@ const Home = () => {
   const [totalShops, setTotalShops] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Customization state
   const [customization, setCustomization] = useState({
-    backgroundColor: '#1877F2',
+    backgroundColor: '#1E40AF',
     backgroundImage: '',
     textColor: '#FFFFFF',
-    subTextColor: 'rgba(255, 255, 255, 0.9)',
+    subTextColor: 'rgba(255, 255, 255, 0.85)',
   });
 
   const fetchCustomization = async () => {
@@ -239,15 +374,13 @@ const Home = () => {
       const res = await getCustomization();
       if (res?.success && res?.customization) {
         setCustomization({
-          backgroundColor: res.customization.backgroundColor || '#1877F2',
+          backgroundColor: res.customization.backgroundColor || '#1E40AF',
           backgroundImage: res.customization.backgroundImage || '',
           textColor: res.customization.textColor || '#FFFFFF',
-          subTextColor: res.customization.subTextColor || 'rgba(255, 255, 255, 0.9)',
+          subTextColor: res.customization.subTextColor || 'rgba(255, 255, 255, 0.85)',
         });
       }
-    } catch (err) {
-      console.log('Failed to fetch customization', err);
-    }
+    } catch { }
   };
 
   useFocusEffect(
@@ -259,8 +392,8 @@ const Home = () => {
         ]);
         return true;
       };
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => subscription.remove();
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
     }, [])
   );
 
@@ -274,20 +407,18 @@ const Home = () => {
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
       setLocation(loc);
-      const reverseGeocode = await Location.reverseGeocodeAsync({
+      const geo = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       });
-      if (reverseGeocode.length > 0) {
-        const addr = reverseGeocode[0];
-        setAddress(addr);
-        const locality = addr.city || addr.subregion || 'India';
-        setSelectedCity(locality);
+      if (geo.length > 0) {
+        setAddress(geo[0]);
+        setSelectedCity(geo[0].city || geo[0].subregion || 'India');
       }
       setCoordinates({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    } catch (error) {
-      console.error('Error getting location:', error);
-      setError('Failed to get your location. Please check your settings.');
+    } catch (e) {
+      console.error(e);
+      setError('Failed to get location.');
       setLoading(false);
     }
   };
@@ -296,211 +427,98 @@ const Home = () => {
     try {
       const lat = Number(latitude.toFixed(4));
       const lon = Number(longitude.toFixed(4));
-      const geobytesUrl = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 5000);
       try {
-        const res = await fetch(geobytesUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(tid);
         const text = await res.text();
         if (text && text.trim() !== '' && text.trim() !== '[["%s"]]') {
-          try {
-            const data = JSON.parse(text);
-            if (Array.isArray(data) && data.length > 0 && data[0][1] !== '%s') {
-              const citiesList = data.map((item: any) => ({
-                name: item[1],
-                lat: Number(item[8]),
-                lon: Number(item[10]),
-              }));
-              const toRad = (deg: number) => (deg * Math.PI) / 180;
-              const distanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-                const R = 6371;
-                const dLat = toRad(lat2 - lat1);
-                const dLon = toRad(lon2 - lon1);
-                const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-                return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-              };
-              const sorted = citiesList.sort(
-                (a: any, b: any) => distanceKm(lat, lon, a.lat, a.lon) - distanceKm(lat, lon, b.lat, b.lon)
-              );
-              setCities(sorted);
-              return sorted;
-            }
-          } catch (parseErr) {
-            console.warn('Geobytes parse failed:', parseErr);
+          const data = JSON.parse(text);
+          if (Array.isArray(data) && data.length > 0 && data[0][1] !== '%s') {
+            const toRad = (d: number) => (d * Math.PI) / 180;
+            const dist = (la1: number, lo1: number, la2: number, lo2: number) => {
+              const R = 6371;
+              const dLa = toRad(la2 - la1);
+              const dLo = toRad(lo2 - lo1);
+              const a =
+                Math.sin(dLa / 2) ** 2 +
+                Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2;
+              return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            };
+            const list = data
+              .map((i: any) => ({ name: i[1], lat: Number(i[8]), lon: Number(i[10]) }))
+              .sort((a: any, b: any) => dist(lat, lon, a.lat, a.lon) - dist(lat, lon, b.lat, b.lon));
+            setCities(list);
+            return list;
           }
         }
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        if (fetchErr.name === 'AbortError') {
-          console.warn('Geobytes request timed out');
-        } else {
-          console.warn('Geobytes fetch failed:', fetchErr);
-        }
+      } catch (e: any) {
+        clearTimeout(tid);
       }
-      console.log('Geobytes failed → using fallback API');
-      const fallbackCities = await getNearbyCitiesFallback(lat, lon);
-      if (fallbackCities?.length > 0) {
-        setCities(fallbackCities);
-        return fallbackCities;
-      }
-      console.warn('No cities from either source');
+      const fallback = await getNearbyCitiesFallback(lat, lon);
+      if (fallback?.length > 0) { setCities(fallback); return fallback; }
       return [];
-    } catch (err) {
-      console.error('Failed to fetch nearby cities (both methods):', err);
+    } catch {
       return [];
     }
   };
 
   const findNearestShopApi = async (
-    page: number = 1,
-    isLoadMore: boolean = false,
-    isRefresh: boolean = false
+    page = 1,
+    isLoadMore = false,
+    isRefresh = false
   ) => {
-    // Early return if we don't have coordinates yet
-    if (coordinates.latitude === 0 && coordinates.longitude === 0) {
-      console.warn('findNearestShopApi called without valid coordinates');
-      return;
-    }
-
-    // ─── Set appropriate loading states ───
-    if (isRefresh) {
-      setIsRefreshing(true);
-      setCurrentPage(1);           // reset pagination on pull-to-refresh
-      setShops([]);                // clear old data on full refresh (optional but recommended)
-      setHasMoreShops(true);       // optimistic reset
-    } else if (isLoadMore) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setError(null);              // clear previous errors on fresh load
-    }
+    if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
+    if (isRefresh) { setIsRefreshing(true); setCurrentPage(1); setShops([]); setHasMoreShops(true); }
+    else if (isLoadMore) setLoadingMore(true);
+    else { setLoading(true); setError(null); }
 
     try {
-      const payload = {
+      const result = await findNearestShops({
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
         page,
         limit: 10,
-      };
-
-      console.log('Fetching shops →', payload);
-
-      const result = await findNearestShops(payload);
-
-      console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++API Response:', result);
-
+      });
       if (!result?.success) {
-        // Handle backend saying "no shops" or other failure
-        if (result?.message?.includes('No nearby shops found')) {
-          setError('No salons found nearby.');
-        } else {
-          setError(result?.message || 'Failed to fetch nearby salons.');
-        }
-
-        // Important: stop pagination if explicit "no shops" message
-        if (page === 1 || result?.shops?.length === 0) {
-          setHasMoreShops(false);
-        }
-
+        setError(result?.message?.includes('No nearby') ? 'No salons found nearby.' : result?.message || 'Failed to fetch.');
+        if (page === 1 || !result?.shops?.length) setHasMoreShops(false);
         return;
       }
-
       const newShops = result.shops || [];
-
-      // ─── Update shops list ───
-      if (isLoadMore) {
-        // Append for infinite scroll
-        setShops((prev) => [...prev, ...newShops]);
-      } else {
-        // Replace on initial load or refresh
-        setShops(newShops);
-      }
-
-      // ─── Update pagination state ───
-      const receivedCount = newShops.length;
-      const pageSize = 10;
-
-      // Most reliable way: if we got fewer items than requested → end reached
-      const hasMore = receivedCount === pageSize;
-
-      setHasMoreShops(hasMore);
-
-      // Bonus: if backend sends total count, use it for even better UX
-      if (result.total !== undefined && result.total !== null) {
-        setTotalShops(result.total);
-        // More precise hasMore calculation
-        setHasMoreShops(page * pageSize < result.total);
-      }
-
+      isLoadMore ? setShops((p) => [...p, ...newShops]) : setShops(newShops);
+      const hasMore = newShops.length === 10;
+      setHasMoreShops(result.total !== undefined ? page * 10 < result.total : hasMore);
+      if (result.total !== undefined) setTotalShops(result.total);
       setError(null);
     } catch (err: any) {
-      console.log('Error fetching shops:', err);
-
-      let errorMessage = 'Failed to load salons. Please check your connection.';
-
-      if (err?.response?.status === 404) {
-        errorMessage = 'No salons found in this area.';
-        setHasMoreShops(false);
-      } else if (err?.message?.includes('timeout')) {
-        errorMessage = 'Request timed out. Try again later.';
-      } else if (err?.message?.includes('network')) {
-        errorMessage = 'Network error. Please check your internet.';
-      }
-
-      setError(errorMessage);
-
-      // Stop trying to load more on error
-      if (isLoadMore) {
-        setHasMoreShops(false);
-      }
+      setError('Failed to load salons. Please check your connection.');
+      if (isLoadMore) setHasMoreShops(false);
     } finally {
-      // ─── Always clean up loading states ───
-      if (isRefresh) {
-        setIsRefreshing(false);
-      } else if (isLoadMore) {
-        setLoadingMore(false);
-      } else {
-        setLoading(false);
-      }
+      if (isRefresh) setIsRefreshing(false);
+      else if (isLoadMore) setLoadingMore(false);
+      else setLoading(false);
     }
   };
-  const handleRefresh = () => {
-    if (!isRefreshing) {
-      findNearestShopApi(1, false, true);
-    }
-  };
+
+  const handleRefresh = () => { if (!isRefreshing) findNearestShopApi(1, false, true); };
 
   const loadMoreShops = useCallback(() => {
-    // ─── The three most important guards ───
-    if (isFetchingMoreRef.current) return;
-    if (loadingMore) return;
-    if (!hasMoreShops) return;
-
+    if (isFetchingMoreRef.current || loadingMore || !hasMoreShops) return;
     isFetchingMoreRef.current = true;
-    setLoadingMore(true);
-
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-
-    findNearestShopApi(nextPage, true, false)
-      .finally(() => {
-        isFetchingMoreRef.current = false;
-        setLoadingMore(false);
-      });
-
+    const next = currentPage + 1;
+    setCurrentPage(next);
+    findNearestShopApi(next, true, false).finally(() => { isFetchingMoreRef.current = false; });
   }, [currentPage, hasMoreShops, loadingMore]);
 
-
-
   const getProfile = async () => {
-    if (coordinates.latitude === 0 && coordinates.longitude === 0) return;
+    if (coordinates.latitude === 0) return;
     try {
-      const response = await getmyProfile();
-      if (response?.success) setUserProfile(response.user);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
+      const r = await getmyProfile();
+      if (r?.success) setUserProfile(r.user);
+    } catch { }
   };
 
   const handleLogout = () => {
@@ -511,22 +529,16 @@ const Home = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            const authProvider = await AsyncStorage.getItem('authProvider');
-            if (authProvider === 'google') {
+            const provider = await AsyncStorage.getItem('authProvider');
+            if (provider === 'google') {
               try {
-                const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
-                if (isGoogleSignedIn) {
-                  await GoogleSignin.revokeAccess();
-                  await GoogleSignin.signOut();
-                }
-              } catch (googleErr: any) {
-                if (googleErr.code !== 'SIGN_IN_REQUIRED') console.log('Google sign-out failed:', googleErr);
-              }
+                const in_ = await (GoogleSignin as any).isSignedIn();
+                if (in_) { await GoogleSignin.revokeAccess(); await GoogleSignin.signOut(); }
+              } catch { }
             }
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
             router.replace('/');
-          } catch (error) {
-            console.error('Logout Error:', error);
+          } catch {
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
             router.replace('/');
           }
@@ -540,9 +552,7 @@ const Home = () => {
     setSelectedCity(city.name);
     setCoordinates({ latitude: Number(city.lat), longitude: Number(city.lon) });
     setShowCityDropdown(false);
-    setShops([]);
-    setCurrentPage(1);
-    setHasMoreShops(true);
+    setShops([]); setCurrentPage(1); setHasMoreShops(true);
   };
 
   const handleServiceChange = async (serviceName: string | null) => {
@@ -551,27 +561,15 @@ const Home = () => {
     if (!shops.length) { setFilteredShops([]); return; }
     try {
       setFilterLoading(true);
-      const shopIds = shops.map((shop) => shop._id).filter(Boolean);
-      const response = await filterShopsByService({ shopIds, serviceName });
-      if (response?.success && response.shops) {
-        setFilteredShops(response.shops);
-      } else {
-        setFilteredShops([]);
-        Alert.alert('No Results', `No shops found offering "${serviceName}"`);
-      }
-    } catch (error) {
-      console.error('Service filter error:', error);
-      setFilteredShops([]);
-    } finally {
-      setFilterLoading(false);
-    }
+      const ids = shops.map((s) => s._id).filter(Boolean);
+      const r = await filterShopsByService({ shopIds: ids, serviceName });
+      if (r?.success && r.shops) setFilteredShops(r.shops);
+      else { setFilteredShops([]); Alert.alert('No Results', `No shops found for "${serviceName}"`); }
+    } catch { setFilteredShops([]); }
+    finally { setFilterLoading(false); }
   };
 
-  useEffect(() => {
-    getLocation();
-    fetchCustomization();
-  }, []);
-
+  useEffect(() => { getLocation(); fetchCustomization(); }, []);
   useEffect(() => {
     if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
       findNearestShopApi(1, false);
@@ -579,58 +577,43 @@ const Home = () => {
       getNearByCities(coordinates);
     }
   }, [coordinates]);
-
   useEffect(() => {
     if (searchQuery.trim() === '') { setSearchData([]); setIsSearching(false); return; }
-    const timer = setTimeout(() => performSearch(searchQuery), 500);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => {
+      setIsSearching(true);
+      search(searchQuery.trim())
+        .then((r) => setSearchData(r?.shops || []))
+        .catch(() => setSearchData([]))
+        .finally(() => setIsSearching(false));
+    }, 500);
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const performSearch = async (query: string) => {
-    setIsSearching(true);
-    try {
-      const response = await search(query.trim());
-      setSearchData(response?.shops || []);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchData([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const transformShopData = (apiShops: any[]) => {
-    return apiShops.map((shop) => {
-      let shopName = 'Unknown Shop';
-      if (shop.ShopName?.trim()) shopName = shop.ShopName.trim();
+  const transformShopData = (apiShops: any[]) =>
+    apiShops.map((shop) => {
       let imageUrl = shop.ProfileImage;
       if (!imageUrl && shop.media?.length > 0) {
-        const first = shop.media[0];
-        imageUrl = typeof first === 'string' ? first : first?.url;
+        const f = shop.media[0];
+        imageUrl = typeof f === 'string' ? f : f?.url;
       }
       return {
         id: shop._id,
-        name: shopName,
+        name: shop.ShopName?.trim() || 'Unknown Shop',
         location: shop.ExactLocation,
         distance: `${(shop.distance / 1000).toFixed(1)} km`,
         city: shop.City || 'Unknown City',
-        timing: shop.Timing || '9am - 8pm',
+        timing: shop.Timing || '9am – 8pm',
         mobile: shop.Mobile || '',
-        website: shop.website || '',
-        image: imageUrl || 'https://via.placeholder.com/300x200/FAFAFA/666666?text=Shop',
+        image: imageUrl || 'https://via.placeholder.com/300x200/F1F5F9/64748B?text=Shop',
         rating: shop.rating || 4.5,
         isPremium: shop.IsPremium || false,
       };
     });
-  };
 
   const activeShops = selectedService && selectedService !== 'All' ? filteredShops : shops;
   const transformedActiveShops = transformShopData(activeShops);
-
-  const getPopularShops = () => {
-    const sorted = [...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999));
-    return transformShopData(sorted);
-  };
+  const getPopularShops = () =>
+    transformShopData([...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999)));
 
   const trendingDesigns = [
     { id: '1', name: 'Fade Cut', popularity: '92%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
@@ -638,290 +621,224 @@ const Home = () => {
     { id: '3', name: 'Undercut', popularity: '89%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
   ];
 
-  if (loading && shops.length === 0) {
-    return <HomeSkeleton />;
-  }
+  const categoryConfig = {
+    men: { activeBg: '#EFF6FF', text: '#2563EB', icon: 'man' as const },
+    womens: { activeBg: '#FFF1F2', text: '#E11D48', icon: 'woman' as const },
+    kids: { activeBg: '#FFFBEB', text: '#D97706', icon: 'happy' as const },
+  };
+
+  if (loading && shops.length === 0) return <HomeSkeleton />;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Zomato-style layered header with creative background */}
-      <Animated.View style={[animatedHeaderStyle, {
-        height: 260,
-        overflow: 'hidden',
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-      }]}>
-        {/* Background Pattern - Wave Layer */}
-        {customization.backgroundImage ? (
+      {/* ── Animated Header ── */}
+      <Animated.View
+        style={[
+          animatedHeaderStyle,
+          { height: HEADER_HEIGHT, overflow: 'hidden', borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+        ]}
+      >
+        {showOffers && customization.backgroundImage ? (
           <Image
             source={{ uri: customization.backgroundImage }}
             style={{ position: 'absolute', width: '100%', height: '100%', resizeMode: 'cover' }}
           />
         ) : (
-          <View style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            backgroundColor: customization.backgroundColor,
-          }}>
-            <View style={{
-              position: 'absolute',
-              width: 200,
-              height: 200,
-              borderRadius: 100,
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              top: -50,
-              right: -50,
-            }} />
-            <View style={{
-              position: 'absolute',
-              width: 300,
-              height: 300,
-              borderRadius: 150,
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              bottom: -100,
-              left: -100,
-            }} />
-            <View style={{
-              position: 'absolute',
-              width: 150,
-              height: 150,
-              borderRadius: 75,
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              top: 40,
-              left: 30,
-            }} />
-          </View>
-        )}
-
-        {/* Gradient Overlay - Hidden if Background Image present */}
-        {!customization.backgroundImage && (
           <LinearGradient
-            colors={[
-              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.95)' : `${customization.backgroundColor}F2`,
-              customization.backgroundColor === '#1877F2' ? 'rgba(24, 119, 242, 0.85)' : `${customization.backgroundColor}D9`
-            ]}
+            colors={['#1D4ED8', '#2563EB', '#3B82F6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-            }}
+            style={{ position: 'absolute', width: '100%', height: '100%' }}
           />
         )}
 
-        {/* Header Content */}
-        <View style={{
-          flex: 1,
-          paddingTop: 48,
-          paddingHorizontal: 20,
-        }}>
-          {/* Top Bar */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20,
-          }}>
-            {/* City selector with Zomato-style pill */}
+        {/* Decorative blobs */}
+        <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50 }} />
+        <View style={{ position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -30, left: 20 }} />
+
+        <View style={{ flex: 1, paddingTop: 46, paddingHorizontal: 16 }}>
+          {/* Top Row */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            {/* Location pill */}
             <TouchableOpacity
-              style={{
-                borderRadius: 25,
-                overflow: 'hidden',
-              }}
               onPress={() => setShowCityDropdown(true)}
-            >
-              <BlurView intensity={20} tint="light" style={{
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                gap: 6,
-              }}>
-                <Ionicons name="location-outline" size={16} color={customization.textColor} />
-                <Text style={{
-                  color: customization.textColor,
-                  fontSize: 14,
-                  fontWeight: '600',
-                }}>{selectedCity}</Text>
-                <Ionicons name="chevron-down" size={14} color={customization.textColor} />
-              </BlurView>
+                backgroundColor: 'rgba(255,255,255,0.16)',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 20,
+                gap: 5,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.22)',
+              }}
+            >
+              <Ionicons name="location-outline" size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
+                {selectedCity}
+              </Text>
+              <Ionicons name="chevron-down" size={13} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
 
-            {/* Right icons with glassmorphism */}
-            <View style={{
-              flexDirection: 'row',
-              gap: 8,
-            }}>
-              <TouchableOpacity onPress={() => router.push('/Screens/User/Notifications')} style={{
-                borderRadius: 20,
-                overflow: 'hidden',
-              }}>
-                <BlurView intensity={20} tint="light" style={{
-                  padding: 8,
-                  borderRadius: 20,
-                }}>
-                  <Ionicons name="notifications-outline" size={18} color={customization.textColor} />
-                </BlurView>
-              </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {/* Offers toggle */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 18,
+                  gap: 4,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                }}
+              >
+                <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '600' }}>Offers</Text>
+                <Switch
+                  value={showOffers}
+                  onValueChange={setShowOffers}
+                  trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.5)' }}
+                  thumbColor="#FFF"
+                  style={{ transform: [{ scale: 0.72 }] }}
+                />
+              </View>
 
-              <TouchableOpacity onPress={handleLogout} style={{
-                borderRadius: 20,
-                overflow: 'hidden',
-              }}>
-                <BlurView intensity={20} tint="light" style={{
+              {/* Logout */}
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.14)',
                   padding: 8,
-                  borderRadius: 20,
-                }}>
-                  <Ionicons name="log-out-outline" size={18} color={customization.textColor} />
-                </BlurView>
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                }}
+              >
+                <Ionicons name="log-out-outline" size={16} color="#FFF" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Welcome Text */}
-          <View style={{
-            marginBottom: 20,
-          }}>
-            <Text style={{
-              fontSize: 24,
-              color: customization.subTextColor,
-              fontWeight: '400',
-            }}>Find your perfect</Text>
-            <Text style={{
-              fontSize: 32,
-              color: customization.textColor,
-              fontWeight: '700',
-              marginTop: -4,
-            }}>style match</Text>
+          {/* Headline */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)', fontWeight: '500', letterSpacing: 0.2 }}>
+              Find your perfect
+            </Text>
+            <Text style={{ fontSize: 26, color: '#FFF', fontWeight: '800', marginTop: 1, letterSpacing: -0.5 }}>
+              style match ✂️
+            </Text>
           </View>
 
-          {/* Zomato-style Search Bar with depth effect */}
-          <View style={{
-            position: 'relative',
-            marginTop: 4,
-          }}>
-            <View style={{
+          {/* Search bar */}
+          <View
+            style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#FFFFFF',
-              borderRadius: 30,
-              paddingHorizontal: 16,
-              paddingVertical: 4,
-              height: 52,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              position: 'relative',
-              zIndex: 2,
-            }}>
-              <LinearGradient
-                colors={['#FFFFFF', '#F8FAFC']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  borderRadius: 30,
-                }}
-              />
-              <Ionicons name="search-outline" size={18} color="#1877F2" style={{ marginRight: 10, zIndex: 3 }} />
-              <TextInput
-                style={{
-                  flex: 1,
-                  fontSize: 15,
-                  color: '#1A1F36',
-                  paddingVertical: 14,
-                  zIndex: 3,
-                }}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search for salons, services..."
-                placeholderTextColor="#94A3B8"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => { setSearchQuery(''); setSearchData([]); }}
-                  style={{ padding: 4, zIndex: 3 }}
-                >
-                  <Ionicons name="close-circle" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Decorative search bar shadow layer */}
-            <View style={{
-              position: 'absolute',
-              bottom: -6,
-              left: 10,
-              right: 10,
-              height: 20,
-              backgroundColor: 'rgba(0, 0, 0, 0.1)',
-              borderRadius: 30,
-              zIndex: 1,
-            }} />
+              backgroundColor: '#FFF',
+              borderRadius: 28,
+              paddingHorizontal: 14,
+              height: 46,
+              shadowColor: '#0F172A',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.12,
+              shadowRadius: 10,
+              elevation: 6,
+            }}
+          >
+            <Ionicons name="search-outline" size={18} color="#3B82F6" style={{ marginRight: 9 }} />
+            <TextInput
+              style={{ flex: 1, fontSize: 14, color: '#0F172A', paddingVertical: 0, fontWeight: '500' }}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search salons, services..."
+              placeholderTextColor="#94A3B8"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
+                <Ionicons name="close-circle" size={18} color="#CBD5E1" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Animated.View>
 
-      {/* ── City Modal ── */}
-      <Modal visible={showCityDropdown} transparent animationType="fade" onRequestClose={() => setShowCityDropdown(false)}>
+      {/* ── City Picker Modal ── */}
+      <Modal
+        visible={showCityDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCityDropdown(false)}
+      >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' }}
+          style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', alignItems: 'center' }}
           activeOpacity={1}
           onPress={() => setShowCityDropdown(false)}
         >
-          <View style={{
-            backgroundColor: '#FFF',
-            borderRadius: 16,
-            width: '90%',
-            maxHeight: '70%',
-            shadowColor: '#0D4FB5',
-            shadowOpacity: 0.2,
-            elevation: 8,
-            overflow: 'hidden',
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              padding: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: '#DBEAFE',
-              backgroundColor: '#EEF4FF',
-            }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#1877F2' }}>Select Your Location</Text>
+          <View
+            style={{
+              backgroundColor: '#FFF',
+              borderRadius: 20,
+              width: '88%',
+              maxHeight: '70%',
+              overflow: 'hidden',
+              shadowColor: '#1E40AF',
+              shadowOpacity: 0.2,
+              shadowOffset: { width: 0, height: 8 },
+              shadowRadius: 20,
+              elevation: 12,
+            }}
+          >
+            <LinearGradient
+              colors={['#2563EB', '#1D4ED8']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF' }}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowCityDropdown(false)}>
-                <Ionicons name="close" size={24} color="#1877F2" />
+                <Ionicons name="close" size={20} color="#FFF" />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
-            <ScrollView style={{ maxHeight: 400 }}>
-              {cities.map((city, index) => (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {cities.map((city, i) => (
                 <TouchableOpacity
-                  key={index}
+                  key={i}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    padding: 16,
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
                     borderBottomWidth: 1,
-                    borderBottomColor: '#EEF4FF',
-                    backgroundColor: selectedCity === city.name ? '#EEF4FF' : '#FFF',
+                    borderBottomColor: '#F1F5F9',
+                    backgroundColor: selectedCity === city.name ? '#EFF6FF' : '#FFF',
                   }}
                   onPress={() => handleCitySelect(city)}
                 >
-                  <Ionicons name="location-outline" size={20} color={selectedCity === city.name ? '#1877F2' : '#9CA3AF'} />
-                  <Text style={{
-                    flex: 1,
-                    marginLeft: 12,
-                    color: selectedCity === city.name ? '#1877F2' : '#374151',
-                    fontWeight: selectedCity === city.name ? '600' : '400',
-                  }}>{city.name}</Text>
-                  {selectedCity === city.name && <Ionicons name="checkmark-circle" size={20} color="#1877F2" />}
+                  <Ionicons
+                    name="location-outline"
+                    size={18}
+                    color={selectedCity === city.name ? '#2563EB' : '#94A3B8'}
+                  />
+                  <Text
+                    style={{
+                      flex: 1,
+                      marginLeft: 12,
+                      fontSize: 14,
+                      color: selectedCity === city.name ? '#1D4ED8' : '#374151',
+                      fontWeight: selectedCity === city.name ? '600' : '400',
+                    }}
+                  >
+                    {city.name}
+                  </Text>
+                  {selectedCity === city.name && (
+                    <Ionicons name="checkmark-circle" size={18} color="#2563EB" />
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -929,7 +846,6 @@ const Home = () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* ── City Modal ── */}
       <BookingReminder />
 
       {/* ── Main Scroll ── */}
@@ -937,13 +853,13 @@ const Home = () => {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 260, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: HEADER_HEIGHT, paddingBottom: 90 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={['#1877F2']}
-            tintColor="#1877F2"
+            colors={['#2563EB']}
+            tintColor="#2563EB"
           />
         }
         showsVerticalScrollIndicator={false}
@@ -1031,54 +947,124 @@ const Home = () => {
                       No salons found for "{searchQuery}"
                     </Text>
                   </View>
-                )}
-                scrollEnabled={false}
-              />
-            )}
-          </>
+                  <Text style={{ fontSize: 15, fontWeight: '600', textAlign: 'center', color: '#1E293B', marginBottom: 6 }}>
+                    No results found
+                  </Text>
+                  <Text style={{ fontSize: 13, textAlign: 'center', color: '#64748B' }}>
+                    Couldn't find any salons for "{searchQuery}"
+                  </Text>
+                </View>
+              )}
+              scrollEnabled={false}
+            />
+          )
         ) : (
           <>
             <WeatherOverlay />
-            
-            {/* Services section */}
-            <View style={{ marginVertical: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1877F2' }}>
-                Services
-              </Text>
-              <ServiceFilter onServiceChange={handleServiceChange} />
+
+            {/* Category Tabs */}
+            <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 14, paddingHorizontal: 14 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: '#FFF',
+                  borderRadius: 24,
+                  padding: 4,
+                  borderWidth: 1,
+                  borderColor: '#E2E8F0',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                {(['men', 'womens', 'kids'] as const).map((cat) => {
+                  const isSelected = category === cat;
+                  const cfg = categoryConfig[cat];
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setCategory(cat)}
+                      activeOpacity={0.75}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: isSelected ? cfg.activeBg : 'transparent',
+                      }}
+                    >
+                      <Ionicons
+                        name={cfg.icon}
+                        size={15}
+                        color={isSelected ? cfg.text : '#94A3B8'}
+                      />
+                      <Text
+                        style={{
+                          color: isSelected ? cfg.text : '#94A3B8',
+                          fontSize: 13,
+                          fontWeight: isSelected ? '700' : '500',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {cat === 'womens' ? 'Women' : cat === 'men' ? 'Men' : 'Kids'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Service Filters */}
+            <View style={{ marginBottom: 10 }}>
+              {category === 'womens' ? (
+                <WomensServices onServiceChange={handleServiceChange} />
+              ) : category === 'kids' ? (
+                <KidsCorner onServiceChange={handleServiceChange} />
+              ) : (
+                <>
+                  <SectionHeader title="Services" seeAllLabel="View All →" />
+                  <ServiceFilter onServiceChange={handleServiceChange} />
+                </>
+              )}
             </View>
 
             {filterLoading ? (
-              <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#1877F2" />
-                <Text style={{ marginTop: 12, color: '#1877F2', fontWeight: '500' }}>Filtering salons...</Text>
+              <View style={{ padding: 50, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={{ marginTop: 12, color: '#2563EB', fontWeight: '600', fontSize: 13 }}>
+                  Finding salons...
+                </Text>
               </View>
             ) : (
               <>
                 <TopBrandsCarousel shops={transformedActiveShops} />
-                <TrendingStyles styles={trendingDesigns} />
-
-                {/* Special Offers Section */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginBottom: 12, color: '#1A1F36' }}>
-                    Special Offers
-                  </Text>
-                  <FlatList
-                    data={homeOffers}
-                    renderItem={renderHomeOfferCard}
-                    keyExtractor={(item) => item.id}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16 }}
-                  />
-                </View>
 
                 {activeShops.length > 0 && (
                   <ShopCarousel
-                    title="Shops Near You"
+                    title="Nearby Salons"
                     shops={getPopularShops().slice(0, 5)}
                     onViewAll={() => router.push('/(tabs)/BookNow')}
                   />
+                )}
+
+                <TrendingStyles styles={trendingDesigns} />
+
+                {showOffers && (
+                  <View style={{ marginBottom: 20 }}>
+                    <SectionHeader title="Special Offers 🎁" seeAllLabel="All Offers →" />
+                    <FlatList
+                      data={homeOffers}
+                      renderItem={renderHomeOfferCard}
+                      keyExtractor={(item) => item.id}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ paddingHorizontal: 14 }}
+                    />
+                  </View>
                 )}
 
                 {activeShops.length > 5 && (
@@ -1088,11 +1074,19 @@ const Home = () => {
                     onViewAll={() => router.push('/(tabs)/BookNow')}
                   />
                 )}
+
+                <TransparentInfoCard />
                 <PaisAdd />
-                {/* <AdvancedFilter /> */}
               </>
             )}
           </>
+        )}
+
+        {loadingMore && (
+          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#2563EB" />
+            <Text style={{ marginTop: 6, color: '#64748B', fontSize: 11 }}>Loading more...</Text>
+          </View>
         )}
       </Animated.ScrollView>
     </View>
