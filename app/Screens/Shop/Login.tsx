@@ -1,11 +1,18 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   SafeAreaView,
   StatusBar,
@@ -14,18 +21,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Linking,
-  Image,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 
+import Logo from '../../../assets/images/logo_black.png';
 import { LoginShopUser } from '../../api/Service/Shop';
-import { userGoogleSignin} from '../../api/Service/User'
-import Logo from '../../../assets/images/logo_black.png'
+import { userGoogleSignin, savePushToken } from '../../api/Service/User';
 
 const { width, height } = Dimensions.get('window');
 
@@ -77,6 +77,15 @@ export default function Login() {
           await AsyncStorage.setItem('shopId', response.user.shopId);
         }
 
+        try {
+          const pushToken = await AsyncStorage.getItem('expoPushToken');
+          if (pushToken) {
+            await savePushToken(pushToken); 
+          }
+        } catch (tokenError) {
+          console.error('Error saving push token:', tokenError);
+        }
+
         router.replace('/ShopOwner/shopOwnerHome');
       } else {
         Alert.alert('Login Error', response.message || 'Google login failed');
@@ -126,6 +135,15 @@ export default function Login() {
           await AsyncStorage.setItem('shopId', response.user.shopId);
         }
 
+        try {
+          const pushToken = await AsyncStorage.getItem('expoPushToken');
+          if (pushToken) {
+            await savePushToken(pushToken); 
+          }
+        } catch (tokenError) {
+          console.error('Error saving push token:', tokenError);
+        }
+
         router.replace('/ShopOwner/shopOwnerHome');
       } else {
         Alert.alert('Login Error', response.message || 'Login failed. Please try again.');
@@ -153,10 +171,10 @@ export default function Login() {
           {/* Header with Logo - Now properly positioned */}
           <View style={styles.headerContainer}>
             <View style={styles.logoWrapper}>
-              <Image 
-                source={Logo} 
-                style={styles.logo} 
-                resizeMode="contain" 
+              <Image
+                source={Logo}
+                style={styles.logo}
+                resizeMode="contain"
               />
             </View>
             <View style={styles.titleContainer}>
@@ -176,10 +194,10 @@ export default function Login() {
                   styles.inputWrapper,
                   focusedInput === 'email' && styles.inputWrapperFocused
                 ]}>
-                  <MaterialIcons 
-                    name="email" 
-                    size={20} 
-                    color={focusedInput === 'email' ? '#1877F2' : '#94A3B8'} 
+                  <MaterialIcons
+                    name="email"
+                    size={20}
+                    color={focusedInput === 'email' ? '#1877F2' : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -204,10 +222,10 @@ export default function Login() {
                   styles.inputWrapper,
                   focusedInput === 'password' && styles.inputWrapperFocused
                 ]}>
-                  <MaterialIcons 
-                    name="lock" 
-                    size={20} 
-                    color={focusedInput === 'password' ? '#1877F2' : '#94A3B8'} 
+                  <MaterialIcons
+                    name="lock"
+                    size={20}
+                    color={focusedInput === 'password' ? '#1877F2' : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -282,7 +300,7 @@ export default function Login() {
                   <ActivityIndicator size="small" color="#1877F2" />
                 ) : (
                   <>
-                    <Image 
+                    <Image
                       source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
                       style={styles.googleIcon}
                     />

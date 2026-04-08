@@ -29,6 +29,7 @@ interface ShopItem {
   isOpen?: boolean;
   discount?: string;
   cuisine?: string[];
+  isPremium?: boolean;
 }
 
 interface ShopCarouselProps {
@@ -122,6 +123,35 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
               </Text>
             </View>
           )}
+
+          {/* Premium Badge */}
+          {item.isPremium && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                backgroundColor: '#F59E0B',
+                paddingHorizontal: 6,
+                paddingVertical: 4,
+                borderRadius: 4,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+                elevation: 2,
+              }}
+            >
+              <Ionicons name="star" size={10} color="white" />
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>
+                PREMIUM
+              </Text>
+            </View>
+          )}
+        </View>
 
           {/* Open/Closed pill */}
           <View

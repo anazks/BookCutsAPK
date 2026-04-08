@@ -150,9 +150,9 @@ export default function PayNow() {
 
         const verificationResponse = await verifyPayment(verificationData);
 
-        console.log(verificationResponse, "RESPONSE OF VERIFY PAYMENT")
+        console.log('✅ Verification response received:', verificationResponse);
 
-        if (verificationResponse.success) {
+        if (verificationResponse && verificationResponse.success) {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: 'Payment Successful 🎉',
@@ -191,11 +191,14 @@ export default function PayNow() {
               barberName,
               bookingDate,
               timeSlot,
+              serviceName: bookingData?.services?.map((s: any) => s.name).join(', ') || 'Various Services',
+              serviceDuration: bookingData?.totalDuration || '30',
               reminderScheduled: 'true',
             },
           });
         } else {
-          throw new Error(verificationResponse.message || 'Payment verification failed');
+          console.error('❌ Verification failed with response:', verificationResponse);
+          throw new Error(verificationResponse?.message || 'Payment verification failed');
         }
       } catch (error) {
         console.error('Payment verification error:', error);
@@ -226,9 +229,7 @@ export default function PayNow() {
 
       console.log('Creating order with booking ID:', finalBookingId);
 
-      // Multiply amount by 100 to send in paise, in case backend expects paise
-      const amountInPaise = Math.round(amount * 100);
-
+      // Backend expects the amount in Rupees and multiples by 100 internally
       const orderResponse = await createOrder({
         amount: amount,
         currency: 'INR',
@@ -246,7 +247,7 @@ export default function PayNow() {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: 'rzp_live_SUY56QCdYmPx1Q',
+        key: "rzp_test_SXMOCCKV91lttJ",
         amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: { name: customerName, email: customerEmail, contact: customerPhone },
@@ -258,16 +259,20 @@ export default function PayNow() {
         },
       };
 
-      console.log('Opening Razorpay checkout with options:', options);
+      console.log('--- RAZORPAY FRONTEND DEBUG ---');
+      console.log('Key ID (HARDCODED):', options.key);
+      console.log('Options Key:', options.key);
+      console.log('Order ID:', options.order_id);
+      console.log('-------------------------------');
 
       RazorpayCheckout.open(options)
         .then(handlePaymentSuccess)
         .catch((error) => {
-          console.error('Razorpay error:', error);
+          console.log('Razorpay error:', error);
           setIsProcessing(false);
 
           if (error.code === 0) {
-            Alert.alert('Payment Status', 'Payment completed. Verifying...');
+            Alert.alert('Payment Status', 'Payment incomplete...');
           } else if (error.code === 1) {
             Alert.alert('Payment Failed', error.description || 'Payment could not be completed');
           } else if (error.code === 2) {

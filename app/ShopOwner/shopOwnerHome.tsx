@@ -17,6 +17,7 @@ import {
   Platform
 } from 'react-native';
 import { getMyProfile } from '../api/Service/ShoperOwner';
+import { viewMyShop } from '../api/Service/Shop';
 import Dashboard from '../Components/Shop/Dashboard';
 
 export default function ShopOwnerHome() {
@@ -42,23 +43,38 @@ export default function ShopOwnerHome() {
   });
   const [loading, setLoading] = useState(true);
   const [showAddShopModal, setShowAddShopModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false); // To pass premium status down to Dashboard
+  const [premiumStartDate, setPremiumStartDate] = useState<string | null>(null);
+  const [premiumEndDate, setPremiumEndDate] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getMyProfile();
-        console.log("Profile data fetched:", JSON.stringify(response));
-        if (response.success && response.data) {
-          setProfileData(response.data);
+        const profileResponse = await getMyProfile();
+        console.log("Profile data fetched:", JSON.stringify(profileResponse));
+        if (profileResponse.success && profileResponse.data) {
+          setProfileData(profileResponse.data);
         }
       } catch (error) {
         console.log("Error fetching profile:", error);
+      }
+
+      try {
+        const shopResponse = await viewMyShop();
+        console.log("Shop data fetched in home:", JSON.stringify(shopResponse));
+        if (shopResponse.success && shopResponse.data) {
+          setIsPremium(!!shopResponse.data.IsPremium);
+          setPremiumStartDate(shopResponse.data.PremiumStartDate || null);
+          setPremiumEndDate(shopResponse.data.PremiumEndDate || null);
+        }
+      } catch (error) {
+        console.log("Error fetching shop data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, []);
 
   const handleShopAdded = () => {
@@ -131,7 +147,11 @@ export default function ShopOwnerHome() {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
       >
-        <Dashboard />
+        <Dashboard 
+          isPremium={isPremium} 
+          premiumStartDate={premiumStartDate}
+          premiumEndDate={premiumEndDate}
+        />
       </ScrollView>
 
       {/* ── Add Shop Modal ── */}

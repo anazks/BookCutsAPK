@@ -615,7 +615,7 @@ const ProfileScreen = () => {
             onPress={() => router.push('/Screens/Shop/BankDetailsComponent')}
           >
             <View style={styles.detailIconBox}>
-              <Ionicons name="card-outline" size={18} color={COLORS.primary} />
+              <MaterialIcons name="payments" size={18} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.detailLabel}>Bank Details</Text>

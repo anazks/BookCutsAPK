@@ -1,13 +1,13 @@
 import Axios from '../axios';
 
 export const SlotBooking = async (data: any) => {
-    try {
-        const response = await Axios.post('/booking/BookNow',data);
-        console.log("Response from BookNow:", response);
-        return response.data;
-    } catch (error: any) {
-        throw error?.response?.data || { message: "Booking failed" };
-    }
+  try {
+    const response = await Axios.post('/booking/BookNow', data);
+    console.log("Response from BookNow:", response);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Booking failed" };
+  }
 }
 
 
@@ -60,35 +60,38 @@ export const myBookings = async (
   }
 };
 
-export const createOrder = async (data:any)=>{
-    try {
-        const response = await Axios.post('/booking/create-order',data);
-        console.log("order:",response)
-        return response.data
-    } catch (error: any) {
-        console.log("createOrder error:", error?.response?.data || error.message)
-        return error?.response?.data || { message: error.message }
-    }
+export const createOrder = async (data: any) => {
+  try {
+    const response = await Axios.post('/booking/create-order', data);
+    console.log("order:", response)
+    return response.data
+  } catch (error: any) {
+    console.log("createOrder error:", error?.response?.data || error.message)
+    return error?.response?.data || { message: error.message }
+  }
 }
 
-export const verifyPayment = async(data:any)=>{
-    try {
-        // console.log("----------------------------------",data)
-        const response = await Axios.post('/booking/verifyPayment',data)
-        console.log(response)
-        return response.data
-    } catch (error) {
-        console.log(error)  
-        return null   
-    }
+export const verifyPayment = async (data: any) => {
+  try {
+    // console.log("----------------------------------",data)
+    console.log(`--- BACKEND VERIFICATION DEBUG ---`);
+    console.log(`URL: ${Axios.defaults.baseURL}/booking/verifyPayment`);
+    
+    const response = await Axios.post('/booking/verifyPayment', data);
+    console.log('✅ Backend verification response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ verifyPayment error:", error?.response?.data || error.message);
+    throw error?.response?.data || new Error(error.message || "Payment verification failed");
+  }
 }
 
 
-export const getBarberFreeTime = async (barberId, dateStr,shopId) => {
+export const getBarberFreeTime = async (barberId: string, dateStr: string, shopId: string) => {
   try {
     const dateObject = new Date(dateStr);
     const isoDate = dateObject.toISOString();
-    console.log("date:",dateStr)
+    console.log("date:", dateStr)
     console.log("Sending Date to Backend:", JSON.stringify(dateStr));
     const response = await Axios.post('/booking/getBarberFreeTime', {
       barberId,
@@ -113,17 +116,17 @@ export const getBarberFreeTime = async (barberId, dateStr,shopId) => {
   }
 };
 
-export const fetchAllAvailableTimeSlots = async (shopId,dateStr) => {
+export const fetchAllAvailableTimeSlots = async (shopId: string, dateStr: string) => {
   try {
-       const dateObject = new Date(dateStr);
+    const dateObject = new Date(dateStr);
     const isoDate = dateObject.toISOString();
-    console.log("date:",dateStr)
+    console.log("date:", dateStr)
     console.log("Sending Date to Backend:", JSON.stringify(dateStr));
     const response = await Axios.post('/booking/fetchAllAvailableTimeSlots', {
       bookingDate: dateStr,
       shopId
     });
-        console.log("shop available slots:",response.data)
+    console.log("shop available slots:", response.data)
 
     const data = response.data;
 
@@ -138,21 +141,32 @@ export const fetchAllAvailableTimeSlots = async (shopId,dateStr) => {
   }
 }
 
-export  const  getdiscount = async () => {
-    try {
-        const response = await Axios.get('/booking/discount')
-        return response.data
-    } catch (error) {
-        console.log(error)
-    }
+export const getdiscount = async () => {
+  try {
+    const response = await Axios.get('/booking/discount')
+    return response.data
+  } catch (error) {
+    console.log(error)
+  }
 }
 
-export const getEarnings = async () => {
-    try {
-        const response = await Axios.get('/shop/payout/earnings');
-        return response.data;
-    } catch (error) {
-        console.error("❌ Error fetching earnings:", error?.response?.data || error.message);
-        return null; 
-    }
+export const getEarnings = async (params: { page?: number; limit?: number; status?: string } = {}) => {
+  try {
+    const response = await Axios.get('/shop/payout/earnings', {
+      params
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching earnings:", error?.response?.data || error.message);
+    return null;
+  }
+}
+
+export const requestWithdrawal = async (data: { amount: number }) => {
+  try {
+    const response = await Axios.post('/shop/payout/withdraw', data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Withdrawal request failed" };
+  }
 }

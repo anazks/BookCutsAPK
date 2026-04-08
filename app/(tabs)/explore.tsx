@@ -3,12 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   GoogleSignin
 } from '@react-native-google-signin/google-signin';
+import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getmyProfile } from '../api/Service/User';
-import { useNavigation } from '@react-navigation/native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming } from 'react-native-reanimated';
+import { getmyProfile } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 
@@ -34,7 +34,7 @@ export default function Profile() {
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const currentScrollY = event.contentOffset.y;
-      
+
       if (currentScrollY <= 0) {
         tabBarOffset.value = withTiming(0, { duration: 200 });
       } else if (currentScrollY > lastScrollY.value + 5) {
@@ -42,7 +42,7 @@ export default function Profile() {
       } else if (currentScrollY < lastScrollY.value - 5) {
         tabBarOffset.value = withTiming(0, { duration: 200 }); // show
       }
-      
+
       lastScrollY.value = currentScrollY;
     },
   });
@@ -51,7 +51,7 @@ export default function Profile() {
     try {
       setLoading(true);
       // getmyProfile might need a token or something, but usually it takes it from AsyncStorage in the service
-      const response = await getmyProfile(); 
+      const response = await getmyProfile();
       console.log("profile data:", JSON.stringify(response, null, 2));
       if (response && response.success) {
         setUserData(response.user);
@@ -67,49 +67,35 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const authProvider = await AsyncStorage.getItem('authProvider');
-              if (authProvider === 'google') {
-                try {
-                  const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
-                  if (isGoogleSignedIn) {
-                    await GoogleSignin.revokeAccess();
-                    await GoogleSignin.signOut();
-                  }
-                } catch (googleErr: any) {
-                  if (googleErr.code !== 'SIGN_IN_REQUIRED') {
-                    console.log('Google sign-out failed:', googleErr);
-                  }
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const authProvider = await AsyncStorage.getItem('authProvider');
+            if (authProvider === 'google') {
+              try {
+                const isGoogleSignedIn = await (GoogleSignin as any).isSignedIn();
+                if (isGoogleSignedIn) {
+                  await GoogleSignin.revokeAccess();
+                  await GoogleSignin.signOut();
                 }
+              } catch (googleErr: any) {
+                if (googleErr.code !== 'SIGN_IN_REQUIRED') console.log('Google sign-out failed:', googleErr);
               }
-              await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              
-              // Use navigation.reset for a clean break
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Screens/User/Login' }],
-              });
-            } catch (error) {
-              console.error('Logout Error:', error);
-              await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Screens/User/Login' }],
-              });
             }
-          },
+            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+            router.replace('/');
+          } catch (error) {
+            console.error('Logout Error:', error);
+            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+            router.replace('/');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -173,7 +159,7 @@ export default function Profile() {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
-          
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() =>
@@ -353,10 +339,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  scrollView: { 
-    flex: 1 
+  scrollView: {
+    flex: 1
   },
-  scrollContent: { 
+  scrollContent: {
     paddingBottom: 100
   },
 

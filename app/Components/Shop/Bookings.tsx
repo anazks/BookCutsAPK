@@ -18,7 +18,7 @@ import {
   LayoutAnimation,
   UIManager,
 } from 'react-native';
-import { getShopBookings, confirmArrival } from '../../api/Service/Shop';
+import { getShopBookings, confirmArrival, completeBooking } from '../../api/Service/Shop';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -80,12 +80,13 @@ export default function Bookings() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [enquiringId, setEnquiringId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   const [summary, setSummary] = useState({
-    totalBookings: 0,
-    paidBookings: 0,
-    pendingAmount: 0,
-    completedBookings: 0,
+    total: 0,
+    completed: 0,
+    confirmed: 0,
+    pending: 0,
   });
 
   // ── Map raw API booking → UI model ────────────────────
@@ -141,18 +142,6 @@ export default function Bookings() {
     };
   };
 
-  // ── Calculate summary ─────────────────────────────────
-  const calcSummary = (all: any[]) =>
-    all.reduce(
-      (acc, b) => {
-        acc.totalBookings += 1;
-        if (b.status === 'completed') acc.completedBookings += 1;
-        if (b.paymentStatus === 'paid') acc.paidBookings += 1;
-        else acc.pendingAmount += b.price - b.amountPaid;
-        return acc;
-      },
-      { totalBookings: 0, paidBookings: 0, pendingAmount: 0, completedBookings: 0 }
-    );
 
   // ── Fetch bookings ────────────────────────────────────
   const fetchBookings = useCallback(
@@ -162,20 +151,26 @@ export default function Bookings() {
         if (pageNum > 1) setLoadingMore(true);
         setError(null);
 
-        const response = await getShopBookings({ page: pageNum, limit: ITEMS_PER_PAGE });
+        const response = await getShopBookings({ 
+          page: pageNum, 
+          limit: ITEMS_PER_PAGE,
+          status: activeFilter === 'all' ? undefined : activeFilter
+        });
 
         if (response?.success && response.data) {
           const formatted = response.data.map(formatBooking);
 
           if (pageNum === 1) {
             setBookings(formatted);
-            setSummary(calcSummary(formatted));
+            if (response.stats) setSummary(response.stats);
           } else {
             setBookings(prev => {
               const merged = [...prev, ...formatted];
-              setSummary(calcSummary(merged));
-              return merged;
+              // Remove duplicate bookings by ID
+              const unique = Array.from(new Map(merged.map(b => [b.id, b])).values());
+              return unique;
             });
+            if (response.stats) setSummary(response.stats);
           }
 
           if (response.pagination) {
@@ -187,7 +182,7 @@ export default function Bookings() {
         } else if (response?.success && (!response.data || response.data.length === 0)) {
           if (pageNum === 1) {
             setBookings([]);
-            setSummary({ totalBookings: 0, paidBookings: 0, pendingAmount: 0, completedBookings: 0 });
+            setSummary({ total: 0, completed: 0, confirmed: 0, pending: 0 });
           }
           setHasMore(false);
         } else {
@@ -208,10 +203,12 @@ export default function Bookings() {
         if (isRefresh) setRefreshing(false);
       }
     },
-    []
+    [activeFilter]
   );
 
-  useEffect(() => { fetchBookings(1); }, [fetchBookings]);
+  useEffect(() => {
+    fetchBookings(1);
+  }, [activeFilter, fetchBookings]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -223,7 +220,23 @@ export default function Bookings() {
     if (!loadingMore && hasMore && !loading) fetchBookings(page + 1);
   }, [loadingMore, hasMore, loading, page, fetchBookings]);
 
-  const filteredBookings = bookings.filter(b => activeFilter === 'all' || b.status === activeFilter);
+  const handleCompleteBooking = async (bookingId: string) => {
+    try {
+      setCompletingId(bookingId);
+      const res = await completeBooking(bookingId);
+      if (res?.success) {
+        Alert.alert('Success', 'Booking marked as completed successfully.');
+        fetchBookings(1, true); // Refresh list
+      } else {
+        Alert.alert('Error', res?.message || 'Failed to complete booking');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to complete booking');
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
 
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -257,7 +270,7 @@ export default function Bookings() {
   // ── Filter data ───────────────────────────────────────
   const filters = [
     { key: 'all', label: 'All', icon: 'apps' },
-    { key: 'completed', label: 'Done', icon: 'check-circle' },
+    { key: 'completed', label: 'Completed', icon: 'check-circle' },
     { key: 'confirmed', label: 'Confirmed', icon: 'verified' },
     { key: 'pending', label: 'Pending', icon: 'schedule' },
     { key: 'cancelled', label: 'Cancelled', icon: 'cancel' },
@@ -271,10 +284,10 @@ export default function Bookings() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.statsBar}>
-        <StatPill icon="event-note" label="Bookings" value={summary.totalBookings} color={COLORS.primary} />
-        <StatPill icon="check-circle" label="Completed" value={summary.completedBookings} color={COLORS.success} />
-        <StatPill icon="payments" label="Paid" value={summary.paidBookings} color={COLORS.primary} />
-        <StatPill icon="hourglass-top" label="Pending ₹" value={summary.pendingAmount} color={COLORS.warning} />
+        <StatPill icon="event-note" label="Total" value={summary.total} color={COLORS.primary} />
+        <StatPill icon="check-circle" label="Completed" value={summary.completed} color={COLORS.success} />
+        <StatPill icon="verified" label="Confirmed" value={summary.confirmed} color={COLORS.primary} />
+        <StatPill icon="hourglass-top" label="Pending" value={summary.pending} color={COLORS.warning} />
       </View>
 
       {/* Scrollable Filters (fixes VirtualizedList nesting error) */}
@@ -285,7 +298,8 @@ export default function Bookings() {
       >
         {filters.map(f => {
           const active = activeFilter === f.key;
-          const count = f.key === 'all' ? bookings.length : bookings.filter(b => b.status === f.key).length;
+          // Count only applies to current filter view
+          const count = summary[f.key as keyof typeof summary] || 0;
           return (
             <TouchableOpacity
               key={f.key}
@@ -303,8 +317,8 @@ export default function Bookings() {
       </ScrollView>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Bookings</Text>
-        <Text style={styles.sectionCount}>{filteredBookings.length}</Text>
+        <Text style={styles.sectionTitle}>{activeFilter === 'all' ? 'Recent Bookings' : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}</Text>
+        <Text style={styles.sectionCount}>{bookings.length}</Text>
       </View>
     </View>
   );
@@ -324,15 +338,18 @@ export default function Bookings() {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isExpanded = expandedBooking === item.id;
 
-    // Check if Enquire button should show (within 30 mins before rawStartTime)
-    let showEnquire = false;
-    if (item.rawStartTime) {
-      const startTimeMs = new Date(item.rawStartTime).getTime();
-      const nowMs = Date.now();
-      const diffMins = (startTimeMs - nowMs) / 60000;
-      // Show if it's currently between 30 mins before start to 5 mins past start
-      if (diffMins <= 30 && diffMins >= -5) {
-        showEnquire = true;
+    // Show "Arrival Reminder" only for CONFIRMED bookings scheduled for TODAY that ARE UPCOMING
+    let showArrivalReminder = false;
+    if (item.status === 'confirmed' && item.rawStartTime) {
+      const startTime = new Date(item.rawStartTime);
+      const now = new Date();
+      
+      const isToday = startTime.getDate() === now.getDate() &&
+                      startTime.getMonth() === now.getMonth() &&
+                      startTime.getFullYear() === now.getFullYear();
+      
+      if (isToday && startTime.getTime() > now.getTime()) {
+        showArrivalReminder = true;
       }
     }
 
@@ -417,26 +434,44 @@ export default function Bookings() {
 
               {/* Action Buttons */}
               <View style={styles.actionGrid}>
-                {item.customerPhone !== 'N/A' && (
-                  <TouchableOpacity style={styles.actionBtnCall} onPress={() => handleCall(item.customerPhone)} activeOpacity={0.8}>
-                    <MaterialIcons name="call" size={17} color={COLORS.white} />
-                    <Text style={styles.actionBtnTextCall}>Call Customer</Text>
+                {item.status === 'confirmed' && (
+                  <TouchableOpacity 
+                    style={styles.actionBtnComplete} 
+                    onPress={() => handleCompleteBooking(item.id)}
+                    disabled={completingId === item.id}
+                    activeOpacity={0.8}
+                  >
+                    {completingId === item.id ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <>
+                        <MaterialIcons name="done-all" size={17} color={COLORS.white} />
+                        <Text style={styles.actionBtnTextComplete}>Mark Completed</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 )}
 
-                {showEnquire && (
+                {item.customerPhone !== 'N/A' && (
+                  <TouchableOpacity style={styles.actionBtnCall} onPress={() => handleCall(item.customerPhone)} activeOpacity={0.8}>
+                    <MaterialIcons name="call" size={17} color={COLORS.white} />
+                    <Text style={styles.actionBtnTextCall}>Call</Text>
+                  </TouchableOpacity>
+                )}
+
+                {showArrivalReminder && (
                   <TouchableOpacity 
-                    style={styles.actionBtnEnquire} 
+                    style={styles.actionBtnArrival} 
                     onPress={() => handleEnquire(item.userId, item.id)}
                     disabled={enquiringId === item.id}
                     activeOpacity={0.8}
                   >
                     {enquiringId === item.id ? (
-                      <ActivityIndicator size="small" color={COLORS.primary} />
+                      <ActivityIndicator size="small" color={COLORS.white} />
                     ) : (
                       <>
-                        <MaterialIcons name="waving-hand" size={17} color={COLORS.primary} />
-                        <Text style={styles.actionBtnTextEnquire}>Enquire Arrival</Text>
+                        <MaterialIcons name="notifications-active" size={17} color={COLORS.white} />
+                        <Text style={styles.actionBtnTextArrival}>Notify Arrival</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -503,7 +538,7 @@ export default function Bookings() {
       <StatusBar backgroundColor={COLORS.bg} barStyle="dark-content" />
 
       <FlatList
-        data={filteredBookings}
+        data={bookings}
         renderItem={renderBookingItem}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
@@ -519,7 +554,7 @@ export default function Bookings() {
             <Text style={styles.emptyText}>
               {activeFilter === 'all'
                 ? "Your schedule is clear. Bookings will appear here."
-                : `No ${activeFilter} bookings at the moment.`}
+                : `No ${activeFilter} bookings found for this view.`}
             </Text>
           </View>
         }
@@ -633,11 +668,13 @@ const styles = StyleSheet.create({
   serviceFooter: { borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', marginTop: 8, paddingTop: 10, alignItems: 'flex-end' },
   serviceTotalText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
 
-  actionGrid: { flexDirection: 'row', gap: 10 },
-  actionBtnCall: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTextCall: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
-  actionBtnEnquire: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primaryBg, borderWidth: 1, borderColor: COLORS.primaryBorder, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTextEnquire: { color: COLORS.primary, fontSize: 14, fontWeight: '700' },
+  actionGrid: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  actionBtnComplete: { flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.success, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextComplete: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
+  actionBtnCall: { flex: 0.8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextCall: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
+  actionBtnArrival: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12 },
+  actionBtnTextArrival: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
 
   collapseHint: { alignItems: 'center', marginTop: 14, paddingBottom: 2 },
 
