@@ -106,7 +106,7 @@ export default function AdvancedFilter() {
     <TouchableOpacity
       style={[
         styles.filterCard,
-        { 
+        {
           backgroundColor: item.color,
           borderColor: item.active ? '#EF4444' : '#E5E7EB'
         }
@@ -119,10 +119,10 @@ export default function AdvancedFilter() {
         styles.iconContainer,
         { backgroundColor: item.active ? '#FFFFFF' : '#EF4444' }
       ]}>
-        <Ionicons 
-          name={item.icon} 
-          size={20} 
-          color={item.active ? '#EF4444' : '#FFFFFF'} 
+        <Ionicons
+          name={item.icon}
+          size={20}
+          color={item.active ? '#EF4444' : '#FFFFFF'}
         />
       </View>
 

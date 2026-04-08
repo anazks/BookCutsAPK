@@ -69,15 +69,6 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
     }).start();
   };
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.5) return colors.rating.excellent;
-    if (rating >= 4.0) return colors.rating.good;
-    if (rating >= 3.5) return colors.rating.average;
-    return colors.rating.poor;
-  };
-
-  const ratingColor = getRatingColor(item.rating);
-
   return (
     <Reanimated.View
       entering={FadeInDown.delay(index * 100).springify().damping(12)}
@@ -97,11 +88,6 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
               style={styles.shopImage}
               resizeMode="cover"
             />
-
-            <View style={[styles.ratingBadge, { backgroundColor: ratingColor }]}>
-              <Ionicons name="star" size={10} color="#FFFFFF" />
-              <Text style={styles.ratingBadgeText}>{item.rating.toFixed(1)}</Text>
-            </View>
 
             {item.discount && (
               <View style={styles.discountBadge}>
@@ -212,10 +198,10 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   const { theme } = useAppTheme();
 
   const colors = useMemo(() => ({
-    primary: theme.accent,
-    primaryLight: `${theme.accent}15`,
+    primary: '#60A5FA', // Lighter Blue
+    primaryLight: '#60A5FA15',
     secondary: '#10B981',
-    accent: theme.accent,
+    accent: '#60A5FA',
     danger: '#EF4444',
     background: theme.background || '#F8FAFC',
     surface: '#FFFFFF',
@@ -226,12 +212,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     },
     border: '#F0F0F0',
     overlay: 'rgba(0, 0, 0, 0.5)',
-    rating: {
-      excellent: theme.accent,
-      good: '#10B981',
-      average: '#F59E0B',
-      poor: '#EF4444',
-    }
   }), [theme]);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -479,22 +459,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     shopImage: {
       height: '100%',
       width: '100%',
-    },
-    ratingBadge: {
-      position: 'absolute',
-      top: 8,
-      right: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-      gap: 2,
-    },
-    ratingBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 10,
-      fontWeight: '700',
     },
     discountBadge: {
       position: 'absolute',
@@ -758,8 +722,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       return {
         id: shop._id,
         name: shopName,
-        rating: 4.0 + (Math.random() * 1),
-        reviews: Math.floor(Math.random() * 200) + 50,
         city: city,
         mobile: mobile,
         timing: timing,
@@ -866,7 +828,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   const sortOptions = [
     { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
     { key: 'distance', label: 'Nearest First', icon: 'location-outline' },
-    { key: 'rating', label: 'Highest Rated', icon: 'star-outline' },
   ];
 
   const filteredAndSortedShops = useMemo(() => {
@@ -899,8 +860,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
           return a.name.localeCompare(b.name);
         case 'distance':
           return (a.distanceKm as number) - (b.distanceKm as number);
-        case 'rating':
-          return b.rating - a.rating;
         default:
           return 0;
       }

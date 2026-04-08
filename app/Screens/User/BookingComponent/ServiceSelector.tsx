@@ -120,10 +120,10 @@ export const ServicesSelector = ({
                 </View>
               </View>
               
-              <View style={[styles.addButton, isSelected && styles.addButtonSelected]}>
+              <View style={[styles.plusButton, isSelected && styles.plusButtonSelected]}>
                 <Ionicons 
                   name={isSelected ? "checkmark" : "add"} 
-                  size={12} 
+                  size={14} 
                   color={isSelected ? "#FFFFFF" : "#2563EB"} 
                 />
               </View>
@@ -218,9 +218,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    padding: 14,
+    padding: 10,
     width: '100%',
-    gap: 16,
+    gap: 12,
   },
   selectedCard: {
     backgroundColor: '#EFF6FF',
@@ -230,10 +230,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   serviceName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: 'row',
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   price: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#1F2937',
   },
   selectedPrice: {
@@ -273,17 +273,22 @@ const styles = StyleSheet.create({
   },
 
   // Add Button
-  addButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+  plusButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,
+    borderColor: '#2563EB',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  addButtonSelected: {
+  plusButtonSelected: {
     backgroundColor: '#2563EB',
     borderColor: '#2563EB',
   },

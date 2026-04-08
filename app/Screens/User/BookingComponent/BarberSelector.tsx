@@ -127,15 +127,15 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
   },
 
   subtitle: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#64748B',
-    marginTop: 4,
+    marginTop: 2,
   },
 
   scrollContent: {
@@ -144,11 +144,11 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: 110,
+    width: 90,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 3,
+    marginBottom: 8,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
 
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
 
   initial: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
     color: '#64748B',
   },
@@ -193,21 +193,21 @@ const styles = StyleSheet.create({
 
   anyBadge: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
+    bottom: -2,
+    right: -2,
     backgroundColor: '#10B981',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
 
   name: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#1E293B',
     textAlign: 'center',
   },
