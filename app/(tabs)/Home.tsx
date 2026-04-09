@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import PlatformOffers from '../Components/Home/PlatformOffers';
 import {
   ActivityIndicator,
   Alert,
@@ -221,72 +222,14 @@ const SectionHeader = ({
   </View>
 );
 
-// ─── Offer Card ────────────────────────────────────────────────────────────────
-const homeOffers = [
-  {
-    id: '1',
-    title: '20% OFF First Visit',
-    description: 'New customers get 20% off on all services',
-    code: 'FIRST20',
-    validUntil: '2025-10-31',
-    gradient: ['#667EEA', '#764BA2'] as [string, string],
-    icon: '🎉',
-  },
-  {
-    id: '2',
-    title: 'Free Beard Trim',
-    description: 'Get free beard trim with any haircut',
-    code: 'BEARDTRIM',
-    validUntil: '2025-09-30',
-    gradient: ['#F093FB', '#F5576C'] as [string, string],
-    icon: '✂️',
-  },
-];
+// Home Offers section removed in favor of PlatformOffers component
 
-const renderHomeOfferCard = ({ item }: { item: (typeof homeOffers)[0] }) => (
-  <TouchableOpacity activeOpacity={0.9} style={{ width: width * 0.76, marginRight: 12 }}>
-    <LinearGradient
-      colors={item.gradient}
-      style={{ borderRadius: 16, padding: 16 }}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFF', marginBottom: 4, letterSpacing: -0.3 }}>
-            {item.title}
-          </Text>
-          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.88)', marginBottom: 10, lineHeight: 16 }}>
-            {item.description}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.22)',
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 8,
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF', letterSpacing: 0.5 }}>
-                {item.code}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.78)' }}>
-              Until {item.validUntil}
-            </Text>
-          </View>
-        </View>
-        <Text style={{ fontSize: 36, marginLeft: 10 }}>{item.icon}</Text>
-      </View>
-    </LinearGradient>
-  </TouchableOpacity>
-);
 
 // ─── Main Home Screen ──────────────────────────────────────────────────────────
 const Home = () => {
   const { category, setCategory, theme: rawTheme } = useAppTheme();
   const theme = {
+    ...rawTheme,
     headerBackground: rawTheme?.headerBackground ?? '#1D4ED8',
     headerText: rawTheme?.headerText ?? '#FFFFFF',
     subText: rawTheme?.subText ?? 'rgba(255,255,255,0.8)',
@@ -294,7 +237,6 @@ const Home = () => {
     primary: rawTheme?.primary ?? '#2563EB',
     background: rawTheme?.background ?? '#F8FAFC',
     text: rawTheme?.text ?? '#0F172A',
-    ...rawTheme,
   };
   const { tabBarOffset } = useTabBar();
   const lastScrollY = useSharedValue(0);
@@ -522,6 +464,7 @@ const Home = () => {
   };
 
   const handleLogout = () => {
+    console.log('[Home] handleLogout called');
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -589,6 +532,12 @@ const Home = () => {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  // Reset service filters when category changes
+  useEffect(() => {
+    setSelectedService(null);
+    setFilteredShops([]);
+  }, [category]);
+
   const transformShopData = (apiShops: any[]) =>
     apiShops.map((shop) => {
       let imageUrl = shop.ProfileImage;
@@ -610,7 +559,21 @@ const Home = () => {
       };
     });
 
-  const activeShops = selectedService && selectedService !== 'All' ? filteredShops : shops;
+  const activeShops = (() => {
+    const audienceValue = category === 'womens' ? 'women' : category;
+    
+    // If a specific service filter is active, use filteredShops
+    // Otherwise, use proximity-based 'shops' filtered by audience
+    const baseList = (selectedService && selectedService !== 'All') ? filteredShops : shops;
+    
+    return baseList.filter(shop => {
+      // Show if no targetAudience specified (backward compatibility) 
+      // or if it includes the current category
+      if (!shop.targetAudience || !Array.isArray(shop.targetAudience)) return true;
+      return shop.targetAudience.includes(audienceValue);
+    });
+  })();
+
   const transformedActiveShops = transformShopData(activeShops);
   const getPopularShops = () =>
     transformShopData([...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999)));
@@ -873,7 +836,11 @@ const Home = () => {
               </View>
             ) : (
               <FlatList
-                data={searchData}
+                data={searchData.filter(item => {
+                  const audienceValue = category === 'womens' ? 'women' : category;
+                  if (!item.targetAudience || !Array.isArray(item.targetAudience)) return true;
+                  return item.targetAudience.includes(audienceValue);
+                })}
                 keyExtractor={(item) => item._id}
                 renderItem={({ item }) => {
                   let shopName = item.ShopName?.trim() || 'Unknown Shop';
@@ -946,19 +913,19 @@ const Home = () => {
                     <Text style={{ marginTop: 16, fontSize: 16, textAlign: 'center', color: '#6B7280' }}>
                       No salons found for "{searchQuery}"
                     </Text>
+                    <Text style={{ fontSize: 15, fontWeight: '600', textAlign: 'center', color: '#1E293B', marginBottom: 6 }}>
+                      No results found
+                    </Text>
+                    <Text style={{ fontSize: 13, textAlign: 'center', color: '#64748B' }}>
+                      Couldn't find any salons for "{searchQuery}"
+                    </Text>
                   </View>
-                  <Text style={{ fontSize: 15, fontWeight: '600', textAlign: 'center', color: '#1E293B', marginBottom: 6 }}>
-                    No results found
-                  </Text>
-                  <Text style={{ fontSize: 13, textAlign: 'center', color: '#64748B' }}>
-                    Couldn't find any salons for "{searchQuery}"
-                  </Text>
-                </View>
-              )}
+                )}
               scrollEnabled={false}
             />
-          )
-        ) : (
+          )}
+        </>
+      ) : (
           <>
             <WeatherOverlay />
 
@@ -1054,17 +1021,7 @@ const Home = () => {
                 <TrendingStyles styles={trendingDesigns} />
 
                 {showOffers && (
-                  <View style={{ marginBottom: 20 }}>
-                    <SectionHeader title="Special Offers 🎁" seeAllLabel="All Offers →" />
-                    <FlatList
-                      data={homeOffers}
-                      renderItem={renderHomeOfferCard}
-                      keyExtractor={(item) => item.id}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ paddingHorizontal: 14 }}
-                    />
-                  </View>
+                  <PlatformOffers />
                 )}
 
                 {activeShops.length > 5 && (

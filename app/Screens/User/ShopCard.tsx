@@ -61,7 +61,6 @@ const ShopCard: React.FC<ShopCardProps> = ({ shop, onPress }) => {
           <Text style={styles.shopName} numberOfLines={1}>
             {shopName}
           </Text>
-          <View style={styles.statusIndicator} />
         </View>
 
         {/* Location Section */}
@@ -147,16 +146,6 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     flex: 1,
     letterSpacing: -0.25,
-  },
-  statusIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
   detailRow: {
     flexDirection: 'row',

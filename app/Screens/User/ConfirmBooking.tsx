@@ -130,7 +130,7 @@ export default function ConfirmBooking() {
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => router.push({
-              pathname: '/Screens/User/BookingDetails',
+              pathname: '/Screens/User/Bookings',
               params: { bookingId: String(bookingId) },
             })}
           >

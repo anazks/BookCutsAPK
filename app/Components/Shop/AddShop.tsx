@@ -79,7 +79,7 @@ const states = ['Kerala', 'Tamil Nadu'];
 export default function AddShop({ onShopAdded }) {
   const router = useRouter();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     ShopName: '',
     City: '',
     Mobile: '',
@@ -87,6 +87,7 @@ export default function AddShop({ onShopAdded }) {
     District: '',
     Pincode: '',
     ExactLocation: '',
+    targetAudience: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -114,6 +115,23 @@ export default function AddShop({ onShopAdded }) {
     setShowDistrictModal(false);
   };
 
+  const toggleTargetAudience = (audience) => {
+    setFormData((prev) => {
+      const current = prev.targetAudience || [];
+      let updated;
+
+      if (audience === 'all') {
+        // If all 3 are selected, clear all. Otherwise, select all 3.
+        updated = current.length === 3 ? [] : ['men', 'women', 'kids'];
+      } else {
+        updated = current.includes(audience)
+          ? current.filter((item) => item !== audience)
+          : [...current, audience];
+      }
+      return { ...prev, targetAudience: updated };
+    });
+  };
+
   const handleSubmit = async () => {
     if (loading) return;
 
@@ -125,9 +143,10 @@ export default function AddShop({ onShopAdded }) {
       !formData.State ||
       !formData.District ||
       !formData.Pincode.trim() ||
-      !formData.ExactLocation.trim()
+      !formData.ExactLocation.trim() ||
+      !formData.targetAudience.length
     ) {
-      Alert.alert('Error', 'All fields are required');
+      Alert.alert('Error', 'All fields are required, including at least one target audience');
       return;
     }
 
@@ -156,6 +175,7 @@ export default function AddShop({ onShopAdded }) {
         District: formData.District,
         Pincode: formData.Pincode.trim(),
         ExactLocation: formData.ExactLocation.trim(),
+        targetAudience: formData.targetAudience,
       };
 
       // Debug: log exactly what is being sent
@@ -201,6 +221,7 @@ export default function AddShop({ onShopAdded }) {
         District: '',
         Pincode: '',
         ExactLocation: '',
+        targetAudience: [],
       });
       setDistricts([]);
     } catch (error) {
@@ -348,6 +369,40 @@ export default function AddShop({ onShopAdded }) {
                 maxLength={6}
                 editable={!loading}
               />
+            </View>
+
+            {/* Target Audience (Professional Field) */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Category / Target Audience *</Text>
+              <View style={styles.chipsContainer}>
+                {['men', 'women', 'kids', 'all'].map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.chip,
+                      (option === 'all'
+                        ? formData.targetAudience.length === 3
+                        : formData.targetAudience.includes(option)) && styles.chipSelected,
+                    ]}
+                    onPress={() => toggleTargetAudience(option)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        (option === 'all'
+                          ? formData.targetAudience.length === 3
+                          : formData.targetAudience.includes(option)) && styles.chipTextSelected,
+                      ]}
+                    >
+                      {option === 'all' ? 'Unisex / All' : option.charAt(0).toUpperCase() + option.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {formData.targetAudience.length === 0 && (
+                <Text style={styles.helperText}>Select at least one category</Text>
+              )}
             </View>
 
             {/* Mobile */}
@@ -560,5 +615,40 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: 16,
     color: '#334155',
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 4,
+  },
+  chip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipSelected: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  chipTextSelected: {
+    color: '#FFFFFF',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });

@@ -16,16 +16,14 @@ import { useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_WIDTH = width * 0.92;
-const TAB_COUNT = 5;
+const TAB_COUNT = 3;
 const TAB_WIDTH = TAB_BAR_WIDTH / TAB_COUNT;
 const BAR_HEIGHT = 64;
 
 const tabConfig: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { icon: 'home', label: 'Home' },
   BookNow: { icon: 'calendar', label: 'Book' },
-  Settings: { icon: 'person', label: 'Profile' },
-  explore: { icon: 'person-circle', label: 'Explore' }, // Using profile icon as requested
-  Profile: { icon: 'settings', label: 'Settings' }
+  explore: { icon: 'person-circle', label: 'Explore' }
 };
 
 /* ─── Tab icon ───────────────────────────────────────────────────── */
@@ -130,69 +128,33 @@ const CustomTabBar = ({ state, navigation, tabBarOffset }: any) => {
 
 /* ─── Root Layout ─── */
 export default function TabLayout() {
-  const navigation = useNavigation();
   const tabBarOffset = useSharedValue(0);
-
-  const handleSwipe = (direction: 'left' | 'right') => {
-    const navState = navigation.getState() as any;
-    if (!navState) return;
-    const { index: currentIndex, routes } = navState;
-
-    if (direction === 'left' && currentIndex < routes.length - 1) {
-      // @ts-ignore
-      navigation.navigate(routes[currentIndex + 1].name);
-    } else if (direction === 'right' && currentIndex > 0) {
-      // @ts-ignore
-      navigation.navigate(routes[currentIndex - 1].name);
-    }
-  };
-
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-30, 30])
-    .onEnd((event) => {
-      'worklet';
-      const { translationX, velocityX } = event;
-      
-      if (Math.abs(translationX) > 80 || Math.abs(velocityX) > 800) {
-        if (translationX > 0) {
-          runOnJS(handleSwipe)('right');
-        } else {
-          runOnJS(handleSwipe)('left');
-        }
-      }
-    });
 
   return (
     <TabBarContext.Provider value={{ tabBarOffset }}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <GestureDetector gesture={swipeGesture}>
-          <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-            <Tabs
-              tabBar={(props) => <CustomTabBar tabBarOffset={tabBarOffset} {...props} />}
-            screenOptions={{
-              headerShown: false,
-              tabBarHideOnKeyboard: true,
-              tabBarStyle: {
-                position: 'absolute',
-                backgroundColor: 'transparent',
-                elevation: 0,
-                borderTopWidth: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 0,
-              },
-            }}
-          >
-            <Tabs.Screen name="Home" />
-            <Tabs.Screen name="BookNow" />
-            <Tabs.Screen name="Settings" />
-            <Tabs.Screen name="explore" />
-            <Tabs.Screen name="Profile" />
-          </Tabs>
-        </View>
-      </GestureDetector>
-    </GestureHandlerRootView>
+      <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+        <Tabs
+          tabBar={(props) => <CustomTabBar tabBarOffset={tabBarOffset} {...props} />}
+          screenOptions={{
+            headerShown: false,
+            tabBarHideOnKeyboard: true,
+            tabBarStyle: {
+              position: 'absolute',
+              backgroundColor: 'transparent',
+              elevation: 0,
+              borderTopWidth: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 0,
+            },
+          }}
+        >
+          <Tabs.Screen name="Home" />
+          <Tabs.Screen name="BookNow" />
+          <Tabs.Screen name="explore" />
+        </Tabs>
+      </View>
     </TabBarContext.Provider>
   );
 }

@@ -378,15 +378,6 @@ export const completeBooking = async (bookingId: string) => {
   }
 };
 
-export const createPremiumOrder = async (shopId: string) => {
-  try {
-    const response = await Axios.post('/shop/premium/order', { shopId });
-    return response.data;
-  } catch (error: any) {
-    throw error?.response?.data || { message: "Failed to create premium order" };
-  }
-};
-
 export const verifyPremiumPayment = async (data: {
   shopId: string;
   razorpay_order_id: string;
@@ -400,3 +391,58 @@ export const verifyPremiumPayment = async (data: {
     throw error?.response?.data || { message: "Failed to verify premium payment" };
   }
 };
+
+// ── Offer System API ──
+
+export interface Offer {
+  _id: string;
+  title: string;
+  description: string;
+  offerLevel: 'platform' | 'shop';
+  offerType: 'discount' | 'bundle';
+  discountValue?: number;
+  discountType?: 'percentage' | 'flat';
+  shopId?: string;
+  validUntil: string;
+  isActive: boolean;
+}
+
+export const getPlatformOffers = async () => {
+  try {
+    const response = await Axios.get('/offers/platform');
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to fetch platform offers" };
+  }
+};
+
+export const getShopOffers = async (shopId: string) => {
+  try {
+    const response = await Axios.get(`/offers/shop/${shopId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to fetch shop offers" };
+  }
+};
+
+export const createOffer = async (data: Partial<Offer>) => {
+  try {
+    const response = await Axios.post('/offers', data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to create offer" };
+  }
+};
+
+export const createBookingOrderWithOffer = async (data: {
+  amount: number;
+  shopId: string;
+  offerId?: string;
+}) => {
+  try {
+    const response = await Axios.post('/booking/create-order', data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to create booking order" };
+  }
+};

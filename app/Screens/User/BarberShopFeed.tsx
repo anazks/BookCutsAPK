@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getShopById } from '../../api/Service/Shop';
+import { getShopById, getShopOffers, Offer } from '../../api/Service/Shop';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -29,43 +29,9 @@ const BarberShopFeed = () => {
   const offerScrollRef = useRef<any>(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
 
-  // Static offers data
-  const offers = [
-    {
-      id: '1',
-      title: '20% OFF First Visit',
-      description: 'New customers get 20% off on all services',
-      code: 'FIRST20',
-      validUntil: '2025-10-31',
-      gradient: ['#1877F2', '#FF8E8E'],
-    },
-    {
-      id: '2',
-      title: 'Free Beard Trim',
-      description: 'Get free beard trim with any haircut service',
-      code: 'BEARDTRIM',
-      validUntil: '2025-09-30',
-      gradient: ['#4ECDC4', '#44A08D'],
-    },
-    {
-      id: '3',
-      title: 'Weekend Special',
-      description: '15% off on weekend bookings',
-      code: 'WEEKEND15',
-      validUntil: '2025-12-31',
-      gradient: ['#A8E6CF', '#7FDBDA'],
-    },
-    {
-      id: '4',
-      title: 'Student Discount',
-      description: '25% off for students with valid ID',
-      code: 'STUDENT25',
-      validUntil: '2025-12-31',
-      gradient: ['#FFD93D', '#FF9A00'],
-    }
-  ];
+  const [shopOffers, setShopOffers] = useState<Offer[]>([]);
 
-  // Fetch shop data from API
+
   const fetchShopData = async () => {
     if (!shop_id) {
       setError('Shop ID not provided');
@@ -74,13 +40,20 @@ const BarberShopFeed = () => {
     }
     try {
       setLoading(true);
-      const response = await getShopById(shop_id);
-      console.log(JSON.stringify(response, null, 2))
-      if (response && response.success && response.data && response.data.length > 0) {
-        setShopData(response.data[0]);
+      const [shopRes, offersRes] = await Promise.all([
+        getShopById(shop_id as string),
+        getShopOffers(shop_id as string)
+      ]);
+
+      if (shopRes && shopRes.success && shopRes.data && shopRes.data.length > 0) {
+        setShopData(shopRes.data[0]);
         setError(null);
       } else {
         setError('Failed to fetch shop data');
+      }
+
+      if (offersRes && offersRes.success && offersRes.data) {
+        setShopOffers(offersRes.data);
       }
     } catch (error) {
       console.error('Error fetching shop data:', error);
@@ -92,9 +65,11 @@ const BarberShopFeed = () => {
 
   // Auto-scroll offers banner
   useEffect(() => {
+    if (shopOffers.length <= 1) return;
+    
     const interval = setInterval(() => {
-      if (offerScrollRef.current && offers.length > 0) {
-        const nextIndex = (currentOfferIndex + 1) % offers.length;
+      if (offerScrollRef.current) {
+        const nextIndex = (currentOfferIndex + 1) % shopOffers.length;
         try {
           offerScrollRef.current.scrollToIndex({
             index: nextIndex,
@@ -105,9 +80,9 @@ const BarberShopFeed = () => {
           console.log('Auto-scroll error:', error);
         }
       }
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [currentOfferIndex, offers.length]);
+  }, [currentOfferIndex, shopOffers.length]);
 
   // Fetch shop data on component mount
   useEffect(() => {
@@ -188,57 +163,106 @@ const BarberShopFeed = () => {
     );
   };
 
-  const renderOfferCard = ({ item }) => (
-    <View style={[styles.offerCard, { backgroundColor: item.gradient[0] }]}>
-      <View style={styles.offerContent}>
-        <Text style={styles.offerTitle}>{item.title}</Text>
-        <Text style={styles.offerDescription}>{item.description}</Text>
-        <View style={styles.offerCodeContainer}>
-          <Text style={styles.offerCode}>Code: {item.code}</Text>
+  const getGradient = (index: number): [string, string] => {
+    const gradients: [string, string][] = [
+      ['#667EEA', '#764BA2'],
+      ['#F093FB', '#F5576C'],
+      ['#43E97B', '#38F9D7'],
+      ['#FA709A', '#FEE140'],
+      ['#5EE7DF', '#B490FF'],
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  const renderOfferCard = ({ item, index }: { item: Offer; index: number }) => {
+    const validDate = new Date(item.validUntil).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+    });
+
+    return (
+      <View style={[styles.offerCard, { backgroundColor: getGradient(index)[0] }]}>
+        <LinearGradient
+          colors={getGradient(index)}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <View style={styles.offerContent}>
+          <Text style={styles.offerTitle}>{item.title}</Text>
+          <Text style={styles.offerDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+          {!!item.discountValue && (
+            <View style={styles.offerCodeContainer}>
+              <Text style={styles.offerCode}>
+                {item.discountType === 'percentage' ? `${item.discountValue}%` : `₹${item.discountValue}`} OFF
+              </Text>
+            </View>
+          )}
+          <Text style={styles.offerValidity}>Valid until {validDate}</Text>
         </View>
-        <Text style={styles.offerValidity}>Valid until {item.validUntil}</Text>
+        <View style={styles.offerIcon}>
+          <Ionicons name="gift" size={24} color="#FFF" />
+        </View>
       </View>
-      <View style={styles.offerIcon}>
-        <Ionicons name="gift" size={24} color="#FFF" />
-      </View>
-    </View>
-  );
+    );
+  };
 
   // Render header section (Modern Hero Image layout)
-  const renderHeader = () => (
-    <View style={styles.headerHeroSection}>
-      {shopData?.ProfileImage ? (
-        <Image source={{ uri: shopData.ProfileImage }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#1877F2' }]} />
-      )}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFillObject} />
+  const renderHeader = () => {
+    const audience = shopData?.targetAudience || [];
+    const lowerAudience = audience.map((a: string) => a.toLowerCase());
+    
+    let audienceLabel = '';
+    let audienceIcon = 'people';
+    let badgeColor = '#FFF';
 
-      <TouchableOpacity style={styles.heroBackButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color="#FFF" />
-      </TouchableOpacity>
+    if (lowerAudience.includes('men') && lowerAudience.includes('women')) {
+      audienceLabel = 'Unisex';
+      audienceIcon = 'male-female';
+    } else if (lowerAudience.length > 0) {
+      audienceLabel = audience.map((a: string) => a.charAt(0).toUpperCase() + a.slice(1)).join(' • ');
+      if (lowerAudience.includes('men')) audienceIcon = 'man';
+      else if (lowerAudience.includes('women')) audienceIcon = 'woman';
+      else if (lowerAudience.includes('kids')) audienceIcon = 'happy';
+    }
 
-      <View style={styles.heroContentContainer}>
-        <Text style={styles.shopNameHero}>{shopData?.ShopName || 'Shop Name'}</Text>
-        <View style={styles.shopMetaRowHero}>
-          <View style={styles.statusBadgeHero}>
-            <View style={styles.openDotHero} />
-            <Text style={styles.openTextHero}>Open Now</Text>
+    return (
+      <View style={styles.headerHeroSection}>
+        {shopData?.ProfileImage ? (
+          <Image source={{ uri: shopData.ProfileImage }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#1877F2' }]} />
+        )}
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFillObject} />
+
+        <TouchableOpacity style={styles.heroBackButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+
+        <View style={styles.heroContentContainer}>
+          <Text style={styles.shopNameHero}>{shopData?.ShopName || 'Shop Name'}</Text>
+          <View style={styles.shopDetailsRowHero}>
+            <Text style={styles.locationTextHero} numberOfLines={2}>
+              <Ionicons name="location" size={14} color="#FFF" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
+            </Text>
+            {shopData?.Timing && (
+              <Text style={styles.timingTextHero}>
+                <Ionicons name="time" size={14} color="#FFF" /> {shopData.Timing}
+              </Text>
+            )}
+            {audienceLabel !== '' && (
+              <View style={styles.audienceBadgeHero}>
+                <Ionicons name={audienceIcon as any} size={12} color="#FFF" />
+                <Text style={styles.audienceTextHero}>{audienceLabel}</Text>
+              </View>
+            )}
           </View>
         </View>
-        <View style={styles.shopDetailsRowHero}>
-          <Text style={styles.locationTextHero} numberOfLines={2}>
-            <Ionicons name="location" size={14} color="#FFF" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
-          </Text>
-          {shopData?.Timing && (
-            <Text style={styles.timingTextHero}>
-              <Ionicons name="time" size={14} color="#FFF" /> {shopData.Timing}
-            </Text>
-          )}
-        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   // Render Top Trends Section (Static mock for now since media api is unstructured)
   const shopTrends = [
@@ -268,23 +292,26 @@ const BarberShopFeed = () => {
     </View>
   );
 
-  // Render offers section
-  const renderOffers = () => (
-    <View style={styles.offersBannerContainer}>
-      <Text style={styles.offersBannerTitle}>Special Offers</Text>
-      <FlatList
-        ref={offerScrollRef}
-        data={offers}
-        renderItem={renderOfferCard}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.offersContainer}
-        snapToInterval={screenWidth * 0.8 + 12}
-        decelerationRate="fast"
-      />
-    </View>
-  );
+  const renderOffers = () => {
+    if (shopOffers.length === 0) return null;
+
+    return (
+      <View style={styles.offersBannerContainer}>
+        <Text style={styles.offersBannerTitle}>Special Offers</Text>
+        <FlatList
+          ref={offerScrollRef}
+          data={shopOffers}
+          renderItem={renderOfferCard}
+          keyExtractor={(item) => item._id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.offersContainer}
+          snapToInterval={screenWidth * 0.8 + 12}
+          decelerationRate="fast"
+        />
+      </View>
+    );
+  };
 
   // Render empty feed state
   const renderEmptyFeed = () => (
@@ -508,27 +535,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  statusBadgeHero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(24, 119, 242, 0.9)',
-  },
-  openDotHero: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-    backgroundColor: '#FFF',
-  },
-  openTextHero: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFF',
-    textTransform: 'uppercase',
-  },
   shopDetailsRowHero: {
     flexDirection: 'column',
     gap: 6,
@@ -543,6 +549,25 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.95)',
     fontSize: 12,
     fontWeight: '600',
+  },
+  audienceBadgeHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  audienceTextHero: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 4,
+    letterSpacing: 0.5,
   },
   // Sub Section Styles (Trends)
   trendsContainer: {
@@ -593,7 +618,7 @@ const styles = StyleSheet.create({
   offerCard: {
     width: screenWidth * 0.8,
     marginRight: 12,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -602,6 +627,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    overflow: 'hidden',
   },
   offerContent: {
     flex: 1,

@@ -49,10 +49,16 @@ const InnerGradientLayout = ({ colorScheme }: { colorScheme: 'light' | 'dark' })
         }}
       />
       <ThemeProvider value={navTheme}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: 'transparent' },
+            gestureEnabled: false, // Professional: Disable swipe-back to login/index
+          }}
+        >
           <Stack.Screen name="index" />
-          <Stack.Screen name="Home" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="(tabs)/Home" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="Home" />
+          <Stack.Screen name="(tabs)/Home" />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

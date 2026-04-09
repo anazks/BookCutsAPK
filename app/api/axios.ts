@@ -34,7 +34,7 @@ axiosInstance.interceptors.request.use(
         JSON.stringify(
           {
             method: config.method?.toUpperCase(),
-            url: config.baseURL + config.url,
+            url: (config.baseURL || '') + (config.url || ''),
             headers: config.headers,
             dataType: config.data instanceof FormData ? 'FormData' : 'JSON',
             payload: config.data

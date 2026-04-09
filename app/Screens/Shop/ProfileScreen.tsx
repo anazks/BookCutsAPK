@@ -646,6 +646,22 @@ const ProfileScreen = () => {
   <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
 </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.detailRow}
+            onPress={() => router.push('/Screens/Shop/OfferManagement')}
+          >
+            <View style={styles.detailIconBox}>
+              <Ionicons name="pricetag-outline" size={18} color="#10B981" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.detailLabel}>Offers & Promotions</Text>
+              <Text style={[styles.detailValue, { color: '#10B981' }]}>
+                Manage Shop Offers
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <View style={styles.detailIconBox}>
               <Ionicons name="log-out-outline" size={18} color={COLORS.darkText} />

@@ -151,24 +151,6 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
               </Text>
             </View>
           )}
-        </View>
-
-          {/* Open/Closed pill */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 9,
-              right: 9,
-              backgroundColor: isOpen ? 'rgba(16,185,129,0.9)' : 'rgba(100,116,139,0.85)',
-              paddingHorizontal: 7,
-              paddingVertical: 3,
-              borderRadius: 6,
-            }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '700', letterSpacing: 0.4 }}>
-              {isOpen ? 'OPEN' : 'CLOSED'}
-            </Text>
-          </View>
 
           {/* Distance badge - bottom right over gradient */}
           {item.distance && (
