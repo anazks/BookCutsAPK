@@ -81,10 +81,10 @@ export default function ServiceFilter({
 
       {/* ── Section header ── */}
       <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
+        {/* <View style={styles.headerLeft}>
           <View style={styles.headerDot} />
           <Text style={styles.headerTitle}>Services</Text>
-        </View>
+        </View> */}
         {selectedItem && selectedItem.id !== 'all' && (
           <Text style={[styles.headerSub, { color: selectedItem.accent }]}>
             {selectedItem.name}

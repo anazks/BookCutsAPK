@@ -27,7 +27,7 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
-import Logo from '../../../assets/images/logo_black.png';
+import Logo from '@/assets/images/logo_black.png';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,7 +47,10 @@ export default function Login() {
 
   useEffect(() => {
     GoogleSignin.configure({
+      // Production ID: 
       webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      // Development ID:
+      // webClientId: '293758521018-en9762n993a249rik4r3snavhblsa7s7.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
@@ -78,6 +81,7 @@ export default function Login() {
 
         await AsyncStorage.setItem('accessToken', response.token);
         await AsyncStorage.setItem('authProvider', 'google');
+        await AsyncStorage.setItem('userCategory', 'user');
 
         if (response.user?.id) {
           await AsyncStorage.setItem('userId', response.user.id);
@@ -152,7 +156,8 @@ export default function Login() {
         console.log('🟢 BREADCRUMB 1: Login success block reached!');
 
         await AsyncStorage.setItem('accessToken', response.token);
-        await AsyncStorage.setItem('authProvider', 'google');
+        await AsyncStorage.setItem('authProvider', 'local');
+        await AsyncStorage.setItem('userCategory', 'user');
 
         if (response.user?.id) {
           await AsyncStorage.setItem('userId', response.user.id);
@@ -178,12 +183,7 @@ export default function Login() {
           console.error('🔴 ERROR IN PUSH TOKEN BLOCK:', tokenError);
         }
 
-        Alert.alert('Success', 'Login successful!', [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/Home'),
-          },
-        ]);
+        router.replace('/(tabs)/Home');
       } else {
         Alert.alert('Login Error', response.message || 'Login failed. Please try again.');
       }

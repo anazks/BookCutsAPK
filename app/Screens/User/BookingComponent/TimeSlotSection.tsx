@@ -30,29 +30,11 @@ export const TimeSlotsSection = memo(
     loading,
     onTimeSelect,
   }: TimeSlotsSectionProps) => {
-    const [selectedFilter, setSelectedFilter] = useState<'morning' | 'afternoon' | 'evening' | 'all'>('all');
+    const [isReloading, setIsReloading] = useState(false);
     const hasSlots = scheduleData?.freeSlots?.length > 0;
 
-    // Filter slots by time of day
-    const filterSlotsByTime = (slots: any[]) => {
-      if (selectedFilter === 'all' || !slots) return slots;
-      
-      return slots.filter((slot: any) => {
-        const hour = new Date(slot.startTime).getHours();
-        if (selectedFilter === 'morning') return hour >= 6 && hour < 12;
-        if (selectedFilter === 'afternoon') return hour >= 12 && hour < 17;
-        if (selectedFilter === 'evening') return hour >= 17 && hour < 22;
-        return true;
-      });
-    };
 
-    // Get time of day greeting
-    const getTimeGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return 'Good Morning';
-      if (hour < 17) return 'Good Afternoon';
-      return 'Good Evening';
-    };
+
 
     // Format date in a friendly way
     const formatFriendlyDate = (date: Date) => {
@@ -73,18 +55,14 @@ export const TimeSlotsSection = memo(
       }
     };
 
-    // Get slot count text
-    const getSlotCountText = () => {
-      if (!scheduleData?.freeSlots) return '';
-      const count = scheduleData.freeSlots.length;
-      if (count === 0) return 'No slots available';
-      if (count === 1) return '1 slot available';
-      return `${count} slots available`;
-    };
+
 
     const memoizedHandleTimeSelect = useCallback(
       (timeInfo: any) => {
+        setIsReloading(true);
         onTimeSelect(timeInfo);
+        // Simulate a brief reload effect
+        setTimeout(() => setIsReloading(false), 600);
       },
       [onTimeSelect]
     );
@@ -121,61 +99,10 @@ export const TimeSlotsSection = memo(
           )}
         </View>
 
-        {/* Quick Stats */}
-        {hasSlots && !loading && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-              <Text style={styles.statText}>{getSlotCountText()}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Ionicons name="hourglass-outline" size={14} color="#6B7280" />
-              <Text style={styles.statText}>{totalDuration} min total</Text>
-            </View>
-          </View>
-        )}
+
 
         {/* Time Filter Chips */}
-        {hasSlots && !loading && (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterContainer}
-          >
-            {[
-              { id: 'all', label: 'All Times', icon: 'time-outline' },
-              { id: 'morning', label: 'Morning', icon: 'sunny-outline', time: '6am-12pm' },
-              { id: 'afternoon', label: 'Afternoon', icon: 'partly-sunny-outline', time: '12pm-5pm' },
-              { id: 'evening', label: 'Evening', icon: 'moon-outline', time: '5pm-10pm' },
-            ].map((filter) => (
-              <TouchableOpacity
-                key={filter.id}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === filter.id && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter(filter.id as any)}
-                activeOpacity={0.7}
-              >
-                <Ionicons 
-                  name={filter.icon as any} 
-                  size={14} 
-                  color={selectedFilter === filter.id ? '#FFFFFF' : '#6B7280'} 
-                />
-                <Text style={[
-                  styles.filterChipText,
-                  selectedFilter === filter.id && styles.filterChipTextActive,
-                ]}>
-                  {filter.label}
-                </Text>
-                {filter.time && selectedFilter !== filter.id && (
-                  <Text style={styles.filterChipTime}>{filter.time}</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+
 
         {/* Main Content */}
         {loading ? (
@@ -192,10 +119,7 @@ export const TimeSlotsSection = memo(
           <View style={styles.timelineContainer}>
             <BarberScheduleTimeline
               totalDuration={totalDuration}
-              scheduleData={{
-                ...scheduleData,
-                freeSlots: filterSlotsByTime(scheduleData.freeSlots),
-              }}
+              scheduleData={scheduleData}
               availableDurations={[30, 60, 90, 120]}
               title="Choose Your Time Slot"
               date={selectedDate.toLocaleDateString('en-US', {
@@ -206,6 +130,12 @@ export const TimeSlotsSection = memo(
               })}
               onTimeSelect={memoizedHandleTimeSelect}
             />
+            
+            {isReloading && (
+              <View style={styles.selectionOverlay}>
+                <ActivityIndicator size="small" color="#2563EB" />
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.noSlotsContainer}>
@@ -251,14 +181,7 @@ export const TimeSlotsSection = memo(
         )}
 
         {/* Quick Tips */}
-        {!loading && hasSlots && (
-          <View style={styles.tipsContainer}>
-            <Ionicons name="bulb-outline" size={14} color="#F59E0B" />
-            <Text style={styles.tipsText}>
-              Slots are first-come, first-served. Book now to secure your preferred time.
-            </Text>
-          </View>
-        )}
+
       </View>
     );
   }
@@ -536,6 +459,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#92400E',
     lineHeight: 16,
+  },
+  // Selection Overlay
+  selectionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    zIndex: 10,
   },
 });
 

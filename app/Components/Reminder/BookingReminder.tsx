@@ -6,6 +6,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -126,6 +127,32 @@ export default function BookingReminder() {
     const end = timeFormatter.format(endTime);
 
     return `${start} – ${end}`;
+  };
+
+  const handleDirections = () => {
+    const shop = bookingData?.shopDetails;
+    if (!shop) return;
+
+    const address = shop.ExactLocation || shop.City || "";
+    if (!address) {
+      Alert.alert('Error', 'Shop address not available.');
+      return;
+    }
+
+    const url = Platform.select({
+      ios: `maps:0,0?q=${encodeURIComponent(address)}`,
+      android: `geo:0,0?q=${encodeURIComponent(address)}`,
+      default: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+    });
+
+    Linking.canOpenURL(url).then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+        Linking.openURL(fallbackUrl);
+      }
+    });
   };
 
   // Fetch upcoming booking
@@ -372,13 +399,12 @@ export default function BookingReminder() {
                 </View>
 
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity style={[styles.actionButton, styles.primaryBtn]}>
-                    <Ionicons name="time" size={20} color="white" />
-                    <Text style={styles.primaryBtnText}>Reschedule</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionButton, styles.secondaryBtn]}>
-                    <Ionicons name="navigate" size={20} color="#4F46E5" />
-                    <Text style={styles.secondaryBtnText}>Directions</Text>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.primaryBtn]}
+                    onPress={handleDirections}
+                  >
+                    <Ionicons name="navigate" size={20} color="white" />
+                    <Text style={styles.primaryBtnText}>Get Directions</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -392,13 +418,7 @@ export default function BookingReminder() {
                   <ReminderItem text="Cancel at least 24 hours in advance to avoid fees" />
                 </View>
 
-                <View style={styles.helpCard}>
-                  <FontAwesome5 name="question-circle" size={32} color="#4F46E5" />
-                  <View style={styles.helpContent}>
-                    <Text style={styles.helpTitle}>Need Help?</Text>
-                    <Text style={styles.helpText}>Contact us for any changes or questions</Text>
-                  </View>
-                </View>
+
               </ScrollView>
             </View>
           </Animated.View>

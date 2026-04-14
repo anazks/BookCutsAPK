@@ -137,7 +137,7 @@ export default function PayoutScreen() {
 
         <View style={styles.weeklyPayoutBadge}>
           <MaterialIcons name="info-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.weeklyPayoutText}>Payouts are credited weekly</Text>
+          <Text style={styles.weeklyPayoutText}>Payouts are credited monthly</Text>
         </View>
       </View>
 
@@ -189,6 +189,18 @@ export default function PayoutScreen() {
                     <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
                       <MaterialIcons name={config.icon as any} size={14} color={config.color} />
                       <Text style={[styles.statusText, { color: config.color }]}>{item.status}</Text>
+                    </View>
+                  </View>
+
+                  {/* Breakdown Section */}
+                  <View style={styles.payoutBreakdown}>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>Service Amount</Text>
+                      <Text style={styles.breakdownValue}>₹{item.serviceAmount || 0}</Text>
+                    </View>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>Bonus Earned</Text>
+                      <Text style={[styles.breakdownValue, { color: COLORS.success }]}>+₹{item.bonusAmount || 0}</Text>
                     </View>
                   </View>
                   
@@ -377,6 +389,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  payoutBreakdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  breakdownItem: {
+    flex: 1,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  breakdownValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textMain,
   },
   errorText: {
     fontSize: 11,

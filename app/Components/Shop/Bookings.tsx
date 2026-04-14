@@ -57,6 +57,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: string; l
   pending: { color: COLORS.warning, bg: COLORS.warningBg, icon: 'schedule', label: 'Pending' },
   cancelled: { color: COLORS.danger, bg: COLORS.dangerBg, icon: 'cancel', label: 'Cancelled' },
   rescheduled: { color: COLORS.purple, bg: COLORS.purpleBg, icon: 'update', label: 'Rescheduled' },
+  upcoming: { color: COLORS.purple, bg: COLORS.purpleBg, icon: 'event-upcoming', label: 'Upcoming' },
 };
 
 // ─── Helper: format ISO time ──────────────────────────────
@@ -87,6 +88,7 @@ export default function Bookings() {
     completed: 0,
     confirmed: 0,
     pending: 0,
+    upcoming: 0,
   });
 
   // ── Map raw API booking → UI model ────────────────────
@@ -132,12 +134,15 @@ export default function Bookings() {
       rawStartTime,
       duration: `${b.totalDuration || 0} mins`,
       price: parseFloat(b.totalPrice) || 0,
+      salonServiceCharge: parseFloat(b.salonServiceCharge) || 0,
+      salonBonus: parseFloat(b.salonBonus) || 0,
       amountPaid: parseFloat(b.amountPaid) || 0,
       remainingAmount: parseFloat(b.remainingAmount) || 0,
       status: b.bookingStatus?.toLowerCase() || 'pending',
       staff,
       paymentStatus: b.paymentStatus?.toLowerCase() || 'pending',
       paymentType: b.paymentType || 'full',
+      collectedBy: b.collectedBy || 'online',
       bookingTimestamp: new Date(b.bookingTimestamp || b.createdAt),
     };
   };
@@ -182,7 +187,7 @@ export default function Bookings() {
         } else if (response?.success && (!response.data || response.data.length === 0)) {
           if (pageNum === 1) {
             setBookings([]);
-            setSummary({ total: 0, completed: 0, confirmed: 0, pending: 0 });
+            setSummary({ total: 0, completed: 0, confirmed: 0, pending: 0, upcoming: 0 });
           }
           setHasMore(false);
         } else {
@@ -271,6 +276,7 @@ export default function Bookings() {
   const filters = [
     { key: 'all', label: 'All', icon: 'apps' },
     { key: 'completed', label: 'Completed', icon: 'check-circle' },
+    { key: 'upcoming', label: 'Upcoming', icon: 'event-upcoming' },
     { key: 'confirmed', label: 'Confirmed', icon: 'verified' },
     { key: 'pending', label: 'Pending', icon: 'schedule' },
     { key: 'cancelled', label: 'Cancelled', icon: 'cancel' },
@@ -388,16 +394,28 @@ export default function Bookings() {
               </View>
             </View>
             <View style={styles.priceBlock}>
-              <Text style={styles.priceText}>₹{item.price.toLocaleString('en-IN')}</Text>
-              {item.paymentStatus === 'paid' ? (
-                <View style={styles.paymentPillPaid}>
-                  <Text style={styles.paymentPillTextPaid}>PAID</Text>
-                </View>
-              ) : (
-                <View style={styles.paymentPillUnpaid}>
-                  <Text style={styles.paymentPillTextUnpaid}>UNPAID</Text>
-                </View>
-              )}
+              <Text style={[styles.priceText, item.paymentStatus === 'partial' && { color: COLORS.warning }]}>
+                {item.paymentStatus === 'partial' ? `₹${item.remainingAmount}` : `₹${item.price}`}
+              </Text>
+              <Text style={styles.priceSubText}>
+                {item.paymentStatus === 'partial' ? 'To Collect' : 'Total'}
+              </Text>
+              
+              <View style={styles.paymentBadgeContainer}>
+                {item.paymentStatus === 'paid' ? (
+                  <View style={styles.paymentPillPaid}>
+                    <Text style={styles.paymentPillTextPaid}>PAID</Text>
+                  </View>
+                ) : item.paymentStatus === 'partial' ? (
+                  <View style={styles.paymentPillPartial}>
+                    <Text style={styles.paymentPillTextPartial}>PARTIAL</Text>
+                  </View>
+                ) : (
+                  <View style={styles.paymentPillUnpaid}>
+                    <Text style={styles.paymentPillTextUnpaid}>UNPAID</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 
@@ -430,6 +448,35 @@ export default function Bookings() {
                 <View style={styles.serviceFooter}>
                   <Text style={styles.serviceTotalText}>Total Duration: {item.duration}</Text>
                 </View>
+              </View>
+
+              {/* Payment Summary Section (New) */}
+              <View style={styles.paymentSummaryContainer}>
+                <Text style={styles.servicesTitle}>PAYMENT SUMMARY</Text>
+                <View style={styles.paymentSummaryRow}>
+                  <Text style={styles.paymentSummaryLabel}>Service Charge</Text>
+                  <Text style={styles.paymentSummaryValue}>₹{item.salonServiceCharge}</Text>
+                </View>
+                {item.salonBonus > 0 && (
+                  <View style={styles.paymentSummaryRow}>
+                    <Text style={styles.paymentSummaryLabel}>Salon Bonus</Text>
+                    <Text style={styles.paymentSummaryValue}>+₹{item.salonBonus}</Text>
+                  </View>
+                )}
+                <View style={[styles.paymentSummaryRow, styles.paymentSummaryTotalRow]}>
+                  <Text style={styles.paymentSummaryTotalLabel}>
+                    {item.paymentStatus === 'paid' ? 'Total Settled' : 'Balance to Collect'}
+                  </Text>
+                  <Text style={[styles.paymentSummaryTotalValue, item.paymentStatus !== 'paid' && { color: COLORS.warning }]}>
+                    ₹{item.remainingAmount}
+                  </Text>
+                </View>
+                {item.paymentStatus !== 'paid' && (
+                  <View style={styles.paymentInstruction}>
+                    <MaterialIcons name="info-outline" size={12} color={COLORS.warning} />
+                    <Text style={styles.paymentInstructionText}>Please collect remaining balance at the salon.</Text>
+                  </View>
+                )}
               </View>
 
               {/* Action Buttons */}
@@ -644,11 +691,26 @@ const styles = StyleSheet.create({
   barberText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' },
   
   priceBlock: { alignItems: 'flex-end', justifyContent: 'center' },
-  priceText: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
+  priceText: { fontSize: 17, fontWeight: '800', color: COLORS.text, marginBottom: 0 },
+  priceSubText: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
+  paymentBadgeContainer: { marginTop: 2 },
   paymentPillPaid: { backgroundColor: COLORS.successBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   paymentPillTextPaid: { fontSize: 9, fontWeight: '800', color: COLORS.success, letterSpacing: 0.5 },
-  paymentPillUnpaid: { backgroundColor: COLORS.warningBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  paymentPillTextUnpaid: { fontSize: 9, fontWeight: '800', color: COLORS.warning, letterSpacing: 0.5 },
+  paymentPillPartial: { backgroundColor: COLORS.warningBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  paymentPillTextPartial: { fontSize: 9, fontWeight: '800', color: COLORS.warning, letterSpacing: 0.5 },
+  paymentPillUnpaid: { backgroundColor: COLORS.dangerBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  paymentPillTextUnpaid: { fontSize: 9, fontWeight: '800', color: COLORS.danger, letterSpacing: 0.5 },
+
+  // Payment Summary (Expanded)
+  paymentSummaryContainer: { backgroundColor: COLORS.bg, borderRadius: 12, padding: 14, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: COLORS.warning },
+  paymentSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  paymentSummaryLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  paymentSummaryValue: { fontSize: 13, color: COLORS.text, fontWeight: '600' },
+  paymentSummaryTotalRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
+  paymentSummaryTotalLabel: { fontSize: 13, fontWeight: '700', color: COLORS.text },
+  paymentSummaryTotalValue: { fontSize: 15, fontWeight: '800', color: COLORS.text },
+  paymentInstruction: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(245,158,11,0.05)', padding: 8, borderRadius: 6 },
+  paymentInstructionText: { fontSize: 11, color: COLORS.warning, fontWeight: '600' },
 
   // Collapsed View
   collapsedSummary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.bg, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },

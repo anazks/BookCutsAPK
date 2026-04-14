@@ -23,7 +23,7 @@ import {
   View,
 } from 'react-native';
 
-import Logo from '../../../assets/images/logo_black.png';
+import Logo from '@/assets/images/logo_black.png';
 import { LoginShopUser } from '../../api/Service/Shop';
 import { userGoogleSignin, savePushToken } from '../../api/Service/User';
 
@@ -37,10 +37,12 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
-  // Configure Google Sign-In
   useEffect(() => {
     GoogleSignin.configure({
+      // Production ID: 
       webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      // Development ID:
+      // webClientId: '293758521018-en9762n993a249rik4r3snavhblsa7s7.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
@@ -64,7 +66,7 @@ export default function Login() {
 
       const response = await userGoogleSignin({
         idToken,
-        role: 'shopOwner',
+        role: 'shop',
       });
 
       console.log('GOOGLE LOGIN RESPONSE:', response);
@@ -72,6 +74,7 @@ export default function Login() {
       if (response.success && response.token) {
         await AsyncStorage.setItem('accessToken', response.token);
         await AsyncStorage.setItem('authProvider', 'google');
+        await AsyncStorage.setItem('userCategory', 'shop');
 
         if (response.user?.shopId) {
           await AsyncStorage.setItem('shopId', response.user.shopId);
@@ -130,6 +133,7 @@ export default function Login() {
       if (response.success && response.token) {
         await AsyncStorage.setItem('accessToken', response.token);
         await AsyncStorage.setItem('authProvider', 'local');
+        await AsyncStorage.setItem('userCategory', 'shop');
 
         if (response.user?.shopId) {
           await AsyncStorage.setItem('shopId', response.user.shopId);

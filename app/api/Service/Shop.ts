@@ -445,4 +445,22 @@ export const createBookingOrderWithOffer = async (data: {
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to create booking order" };
   }
+};
+
+export const deleteMediaAPI = async (mediaId: string) => {
+  try {
+    const response = await Axios.delete(`/shop/deleteMedia/${mediaId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to delete media" };
+  }
+};
+
+export const updateMediaDetailsAPI = async (mediaId: string, data: { title: string; description?: string }) => {
+  try {
+    const response = await Axios.put(`/shop/updateMedia/${mediaId}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to update media details" };
+  }
 };

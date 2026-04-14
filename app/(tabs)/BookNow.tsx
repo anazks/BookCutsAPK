@@ -29,6 +29,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllShops } from '../api/Service/Shop';
+import { getCustomization } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 
@@ -117,7 +118,7 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
             </View>
 
             <View style={styles.priceBookRow}>
-              <Text style={styles.priceText}>{item.price}</Text>
+              <View />
               <TouchableOpacity
                 style={[styles.bookButton, { backgroundColor: colors.primary }]}
                 onPress={(e) => {
@@ -137,11 +138,15 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
 };
 
 const MOCK_CATEGORIES = [
-  { id: '1', name: 'Haircut', image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=150&q=80' },
-  { id: '2', name: 'Hair Wash', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=150&q=80' },
-  { id: '3', name: 'Hair Color', image: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=150&q=80' },
-  { id: '4', name: 'Hair Spa', image: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=150&q=80' },
-  { id: '5', name: 'Styling', image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=150&q=80' },
+  { id: '1', name: 'Haircut', image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=300&q=80' },
+  { id: '2', name: 'Beard Trim', image: 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=300&q=80' },
+  { id: '3', name: 'Hair Wash', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=300&q=80' },
+  { id: '4', name: 'Hair Color', image: 'https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=300&q=80' },
+  { id: '5', name: 'Hair Spa', image: 'https://images.unsplash.com/photo-1522337360788-8b13df772ad2?auto=format&fit=crop&w=300&q=80' },
+  { id: '6', name: 'Facial', image: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc2069?auto=format&fit=crop&w=300&q=80' },
+  { id: '7', name: 'Shaving', image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=300&q=80' },
+  { id: '8', name: 'Grooming', image: 'https://images.unsplash.com/photo-1621605815841-28d944683b92?auto=format&fit=crop&w=300&q=80' },
+  { id: '9', name: 'Styling', image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=300&q=80' },
 ];
 
 const KM_RANGES = ['All', '<5 km', '5-10 km', '10-20 km', '20+ km'];
@@ -373,31 +378,39 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       width: 60,
     },
     categoryImageContainer: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.background,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: '#FFFFFF',
       overflow: 'hidden',
       borderWidth: 2,
-      borderColor: 'transparent',
+      borderColor: '#E2E8F0',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
     },
     categoryImageSelected: {
       borderColor: colors.primary,
+      transform: [{ scale: 1.05 }],
+      backgroundColor: colors.primaryLight,
     },
     categoryImage: {
       width: '100%',
       height: '100%',
     },
     categoryName: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.text.secondary,
-      marginTop: 6,
+      marginTop: 8,
       textAlign: 'center',
-      fontWeight: '500',
+      fontWeight: '600',
+      letterSpacing: 0.2,
     },
     categoryNameSelected: {
       color: colors.primary,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     kmFilterSection: {
       paddingVertical: 16,
@@ -445,11 +458,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: colors.border,
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
     },
     shopImageContainer: {
       height: 120,
@@ -696,6 +704,36 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [backgroundCustomization, setBackgroundCustomization] = useState<any>(null);
+
+  const fetchCustomization = async () => {
+    try {
+      const response = await getCustomization('booking');
+      if (response && response.success) {
+        setBackgroundCustomization(response.customization);
+      }
+    } catch (error) {
+      console.error('Error fetching booking customization:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomization();
+  }, []);
+
+  // Randomized Filter Logic
+  const [randomizedShops, setRandomizedShops] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (selectedCategory === 'All' || selectedCategory === 'Haircut') {
+      setRandomizedShops(null);
+    } else {
+      // Pick dynamic few shops for other filters (random 5-8 shops)
+      const currentFiltered = shopsWithDistance.filter(s => s.city === selectedCity || selectedCity === 'All');
+      const shuffled = [...currentFiltered].sort(() => Math.random() - 0.5);
+      setRandomizedShops(shuffled.slice(0, Math.floor(Math.random() * 4) + 5));
+    }
+  }, [selectedCategory, selectedCity, shopsWithDistance]);
 
   const handleCardPress = (shop: any) => {
     router.push({
@@ -831,6 +869,11 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   ];
 
   const filteredAndSortedShops = useMemo(() => {
+    // If we have a randomized set for a specific category, use that
+    if (randomizedShops) {
+      return randomizedShops;
+    }
+
     let filtered = shopsWithDistance.filter((shop: any) => {
       const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
       const searchMatch = !searchQuery ||
@@ -846,8 +889,9 @@ const BookNow = ({ navigation }: { navigation: any }) => {
         else if (selectedKmRange === '20+ km') kmMatch = dist > 20;
       }
 
+      // Haircut is special - it shows all shops
       let categoryMatch = true;
-      if (selectedCategory !== 'All') {
+      if (selectedCategory !== 'All' && selectedCategory !== 'Haircut') {
         categoryMatch = shop.serviceType === selectedCategory;
       }
 
@@ -866,7 +910,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     });
 
     return filtered;
-  }, [selectedCity, sortBy, shopsWithDistance, searchQuery, selectedKmRange, selectedCategory]);
+  }, [selectedCity, sortBy, shopsWithDistance, searchQuery, selectedKmRange, selectedCategory, randomizedShops]);
 
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
@@ -1057,7 +1101,13 @@ const BookNow = ({ navigation }: { navigation: any }) => {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              data={PROMO_BANNERS}
+              data={backgroundCustomization?.backgroundImage 
+                ? [
+                    { id: 'dynamic', type: 'animated-image', url: backgroundCustomization.backgroundImage },
+                    ...PROMO_BANNERS
+                  ]
+                : PROMO_BANNERS
+              }
               keyExtractor={item => item.id}
               snapToAlignment="center"
               decelerationRate="fast"
@@ -1141,7 +1191,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
                       onPress={() => setSelectedCategory(selectedCategory === cat.name ? 'All' : cat.name)}
                     >
                       <View style={[styles.categoryImageContainer, selectedCategory === cat.name && styles.categoryImageSelected]}>
-                        <Image source={{ uri: cat.image }} style={styles.categoryImage} />
+                        <Image source={{ uri: cat.image }} style={styles.categoryImage} resizeMode="cover" />
                       </View>
                       <Text style={[styles.categoryName, selectedCategory === cat.name && styles.categoryNameSelected]}>{cat.name}</Text>
                     </TouchableOpacity>

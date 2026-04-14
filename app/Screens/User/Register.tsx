@@ -1,3 +1,4 @@
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -35,6 +36,7 @@ export default function Register() {
     lastName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     referralCode: '',
   });
   const [errors, setErrors] = useState({});
@@ -57,6 +59,12 @@ export default function Register() {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -259,6 +267,39 @@ export default function Register() {
               </View>
               {errors.password && (
                 <Text style={styles.errorMessage}>{errors.password}</Text>
+              )}
+            </View>
+
+            {/* Confirm Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  errors.confirmPassword && styles.inputError,
+                ]}
+              >
+                <MaterialIcons
+                  name="lock-outline"
+                  size={22}
+                  color={PRIMARY_COLOR}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Repeat your password"
+                  placeholderTextColor="#a0aec0"
+                  secureTextEntry={!showPassword}
+                  value={formData.confirmPassword}
+                  onChangeText={(text) => handleInputChange('confirmPassword', text)}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={50}
+                  editable={!loading}
+                />
+              </View>
+              {errors.confirmPassword && (
+                <Text style={styles.errorMessage}>{errors.confirmPassword}</Text>
               )}
             </View>
 

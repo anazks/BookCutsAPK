@@ -50,9 +50,7 @@ export default function VerifyOtp() {
 
       if (verifyResponse.success && verifyResponse.token) {
         await AsyncStorage.setItem('accessToken', verifyResponse.token);
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.push('/(tabs)/Home') }
-        ]);
+        router.push('/(tabs)/Home');
       } else {
         Alert.alert('Verification Error', verifyResponse.message || 'Invalid OTP. Please try again.');
       }

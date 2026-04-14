@@ -14,25 +14,26 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { fetchPayoutAccounts, savePayoutAccounts } from '../../api/Service/Shop';
 
 // ── Design Tokens ───────────────────────────────────────
 const COLORS = {
-  background: '#F1F5F9',
+  background: '#F8FAFC', // Lighter slate background
   white: '#FFFFFF',
-  primary: '#2563EB', // Standard Blue
+  primary: '#2563EB', // Professional Blue
+  primaryLight: '#EBF2FF',
   secondary: '#475569',
-  textMain: '#0F172A',
+  textMain: '#1E293B',
   textMuted: '#64748B',
   border: '#E2E8F0',
   success: '#10B981',
   error: '#EF4444',
-  warning: '#F59E0B',
+  cardGradient: ['#1E293B', '#334155'], // Dark Slate Professional look
 };
 
-const BORDER_RADIUS = 12; // Standard rounding
+const BORDER_RADIUS = 16;
 
 // ── Types ──────────────────────────────────────────────
 interface UserInfo {
@@ -45,7 +46,6 @@ interface BankDetails {
   accountHolderName: string;
   accountNumber: string;
   ifsc: string;
-  kycStatus: string;
   razorpayContactId?: string;
   razorpayFundAccountId?: string;
   user?: UserInfo;
@@ -55,7 +55,6 @@ const initialForm: BankDetails = {
   accountHolderName: '',
   accountNumber: '',
   ifsc: '',
-  kycStatus: 'PENDING',
   user: {
     email: '',
     mobileNo: '',
@@ -66,10 +65,16 @@ export default function BankDetailsComponent() {
   const router = useRouter();
   const [bankData, setBankData] = useState<BankDetails | null>(null);
   const [form, setForm] = useState<BankDetails>(initialForm);
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
+  
+  // Visibility States
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [showConfirmAccountNumber, setShowConfirmAccountNumber] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -77,8 +82,6 @@ export default function BankDetailsComponent() {
       setError(null);
       const res = await fetchPayoutAccounts();
       
-      console.log('--- Bank Details API Response ---', JSON.stringify(res, null, 2));
-
       let item = null;
       if (res?.account) {
         item = res.account;
@@ -89,12 +92,12 @@ export default function BankDetailsComponent() {
       }
 
       if (item && (item.accountNumber || item.AccountNumber)) {
+        console.log('[BankDetails] Raw account number from API:', item.accountNumber || item.AccountNumber);
         const normalized: BankDetails = {
           shopOwnerId: item.shopOwnerId || item.ShopOwnerId || '',
           accountHolderName: item.accountHolderName || item.AccountHolderName || '',
           accountNumber: item.accountNumber || item.AccountNumber || '',
           ifsc: item.ifsc || item.ifceCode || item.IFSC || '',
-          kycStatus: item.kycStatus || item.KycStatus || 'PENDING',
           razorpayContactId: item.razorpayContactId || '',
           razorpayFundAccountId: item.razorpayFundAccountId || '',
           user: {
@@ -104,9 +107,11 @@ export default function BankDetailsComponent() {
         };
         setBankData(normalized);
         setForm(normalized);
+        setConfirmAccountNumber(normalized.accountNumber);
       } else {
         setBankData(null);
         setForm(initialForm);
+        setConfirmAccountNumber('');
       }
     } catch (err: any) {
       console.error('[fetchPayoutAccounts] Error:', err);
@@ -123,8 +128,21 @@ export default function BankDetailsComponent() {
   }, [loadData]);
 
   const handleSubmit = async () => {
+    // Standard Validation
     if (!form.accountHolderName || !form.accountNumber || !form.ifsc) {
-      Alert.alert('Missing Info', 'Please provide Account Holder, Number, and IFSC.');
+      Alert.alert('Incomplete Form', 'Please fill in all mandatory bank details.');
+      return;
+    }
+
+    // Security check: Confirm Account Number
+    if (form.accountNumber !== confirmAccountNumber) {
+      Alert.alert('Verification Failed', 'Account numbers do not match. Please double-check.');
+      return;
+    }
+
+    // Basic length check
+    if (form.accountNumber.length < 9) {
+      Alert.alert('Invalid Account', 'Please enter a valid account number.');
       return;
     }
 
@@ -132,28 +150,58 @@ export default function BankDetailsComponent() {
       setSubmitting(true);
       const res = await savePayoutAccounts(form);
       if (res?.success) {
-        Alert.alert('Success', 'Bank details updated.');
+        Alert.alert('Success', 'Your banking credentials have been secured.');
         setIsEditing(false);
         loadData();
       }
     } catch (err: any) {
-      Alert.alert('Save Failed', err.message || 'Please try again.');
+      Alert.alert('Update Failed', err.message || 'We could not save your details. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const s = status?.toUpperCase();
-    if (s === 'VERIFIED') return COLORS.success;
-    if (s === 'REJECTED') return COLORS.error;
-    return COLORS.warning;
-  };
+  const renderInputField = (
+    label: string, 
+    value: string, 
+    onChange: (t: string) => void, 
+    placeholder: string, 
+    keyType: 'default' | 'numeric' = 'default',
+    secure: boolean = false,
+    onToggleSecure?: () => void,
+    isSecureVisible?: boolean
+  ) => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={styles.textInput}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textMuted}
+          value={value}
+          onChangeText={onChange}
+          keyboardType={keyType}
+          secureTextEntry={secure && !isSecureVisible}
+          autoCapitalize={label === 'IFSC Code' ? 'characters' : 'none'}
+        />
+        {secure && (
+          <TouchableOpacity onPress={onToggleSecure} style={styles.eyeIcon}>
+            <Ionicons 
+              name={isSecureVisible ? "eye-off" : "eye"} 
+              size={20} 
+              color={COLORS.textMuted} 
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Securing your connection...</Text>
       </View>
     );
   }
@@ -165,163 +213,193 @@ export default function BankDetailsComponent() {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
+          <Ionicons name="chevron-back" size={28} color={COLORS.textMain} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Payout Settings</Text>
+        <Text style={styles.topBarTitle}>Bank Accounts</Text>
         <View style={{ width: 44 }} />
       </View>
 
       <ScrollView 
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
         {bankData && !isEditing ? (
           <View>
-            {/* Elegant Details Card */}
-            <View style={styles.mainCard}>
-              <View style={styles.cardHeader}>
+            {/* Professional Bank Card Display */}
+            <View style={styles.bankCard}>
+              <View style={styles.cardTop}>
                 <View>
-                  <Text style={styles.labelMuted}>PRIMARY ACCOUNT</Text>
-                  <Text style={styles.accountHolderDisplay}>{bankData.accountHolderName}</Text>
+                  <Text style={styles.cardBrand}>PRIMARY ACCOUNT</Text>
+                  <Text style={styles.cardHolderName}>{bankData.accountHolderName}</Text>
                 </View>
-                <View style={[styles.statusPill, { backgroundColor: getStatusColor(bankData.kycStatus) + '15' }]}>
-                  <Text style={[styles.statusPillText, { color: getStatusColor(bankData.kycStatus) }]}>
-                    {bankData.kycStatus}
-                  </Text>
-                </View>
+                <FontAwesome name="bank" size={24} color={COLORS.white} opacity={0.8} />
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={[styles.infoRow, { marginTop: 16 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>ACCOUNT NUMBER</Text>
-                  <Text style={styles.valueStrong}>{bankData.accountNumber}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>IFSC CODE</Text>
-                  <Text style={styles.valueStrong}>{bankData.ifsc}</Text>
-                </View>
+              <View style={styles.cardMiddle}>
+                <Text style={styles.cardLabel}>ACCOUNT NUMBER</Text>
+                <Text 
+                  style={styles.cardAccountNumber}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {showAccountNumber 
+                    ? bankData.accountNumber 
+                    : `•••• •••• •••• ${bankData.accountNumber.toString().slice(-4)}`
+                  }
+                </Text>
               </View>
 
-              <View style={[styles.infoRow, { marginTop: 16 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>EMAIL</Text>
-                  <Text style={styles.valueText}>{bankData.user?.email || 'N/A'}</Text>
+              <View style={styles.cardBottom}>
+                <View>
+                  <Text style={styles.cardLabel}>IFSC CODE</Text>
+                  <Text style={styles.cardValue}>{bankData.ifsc}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>MOBILE</Text>
-                  <Text style={styles.valueText}>{bankData.user?.mobileNo || 'N/A'}</Text>
-                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowAccountNumber(!showAccountNumber)}
+                  style={styles.eyeBtnSmall}
+                >
+                  <Ionicons 
+                    name={showAccountNumber ? "eye-off" : "eye"} 
+                    size={16} 
+                    color={COLORS.white} 
+                  />
+                  <Text style={styles.eyeBtnText}>{showAccountNumber ? 'Hide' : 'Show'}</Text>
+                </TouchableOpacity>
               </View>
-
-              <View style={[styles.infoRow, { marginTop: 16 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>CONTACT ID</Text>
-                  <Text style={styles.valueText}>{bankData.razorpayContactId || 'N/A'}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.labelMuted}>FUND ACCOUNT ID</Text>
-                  <Text style={styles.valueText}>{bankData.razorpayFundAccountId || 'N/A'}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity 
-                style={styles.primaryBtn} 
-                onPress={() => setIsEditing(true)}
-              >
-                <MaterialIcons name="edit" size={18} color={COLORS.white} />
-                <Text style={styles.primaryBtnText}>Update Banking Info</Text>
-              </TouchableOpacity>
             </View>
 
-            <View style={styles.hintBox}>
-              <MaterialIcons name="security" size={18} color={COLORS.textMuted} />
-              <Text style={styles.hintText}>
-                Payouts are automatically transferred to this verified account.
+            {/* Account Details Checklist */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.sectionHeader}>Account Details</Text>
+              
+              <View style={styles.detailItem}>
+                <MaterialIcons name="alternate-email" size={20} color={COLORS.textMuted} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={styles.detailLabel}>Email Address</Text>
+                  <Text style={styles.detailValue}>{bankData.user?.email || 'Not linkded'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.detailItem}>
+                <MaterialIcons name="phone-android" size={20} color={COLORS.textMuted} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={styles.detailLabel}>Mobile Number</Text>
+                  <Text style={styles.detailValue}>{bankData.user?.mobileNo || 'Not linked'}</Text>
+                </View>
+              </View>
+
+              {bankData.razorpayContactId && (
+                <View style={styles.detailItem}>
+                  <MaterialIcons name="verified-user" size={20} color={COLORS.success} />
+                  <View style={styles.detailTextContainer}>
+                    <Text style={styles.detailLabel}>Gateway ID</Text>
+                    <Text style={styles.detailValue}>{bankData.razorpayContactId}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => setIsEditing(true)}
+            >
+              <MaterialIcons name="security" size={20} color={COLORS.white} />
+              <Text style={styles.editBtnText}>Manage Account Details</Text>
+            </TouchableOpacity>
+
+            <View style={styles.securityHint}>
+              <Ionicons name="lock-closed" size={14} color={COLORS.textMuted} />
+              <Text style={styles.securityHintText}>
+                Your data is encrypted and used only for automated payouts.
               </Text>
             </View>
           </View>
         ) : (
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View style={styles.formCard}>
-              <Text style={styles.formTitle}>{bankData ? 'Edit Account' : 'Add Bank Account'}</Text>
+              <View style={styles.formHeader}>
+                <Text style={styles.formTitle}>
+                  {bankData ? 'Update Account' : 'Secure Integration'}
+                </Text>
+                <Text style={styles.formSubtitle}>
+                  Ensure details match your passbook to avoid payout failures.
+                </Text>
+              </View>
               
-              <View style={styles.inputField}>
-                <Text style={styles.inputLabel}>Account Holder Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter as per bank record"
-                  value={form.accountHolderName}
-                  onChangeText={(t) => setForm({...form, accountHolderName: t})}
-                />
-              </View>
+              {renderInputField(
+                "Account Holder Name",
+                form.accountHolderName,
+                (t) => setForm({...form, accountHolderName: t}),
+                "As per bank records"
+              )}
 
-              <View style={styles.inputField}>
-                <Text style={styles.inputLabel}>Account Number</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter 11-16 digit number"
-                  keyboardType="numeric"
-                  value={form.accountNumber}
-                  onChangeText={(t) => setForm({...form, accountNumber: t})}
-                />
-              </View>
+              {renderInputField(
+                "Account Number",
+                form.accountNumber,
+                (t) => setForm({...form, accountNumber: t}),
+                "11-16 digit bank number",
+                "numeric",
+                true,
+                () => setShowAccountNumber(!showAccountNumber),
+                showAccountNumber
+              )}
 
-              <View style={styles.inputField}>
-                <Text style={styles.inputLabel}>IFSC Code</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. SBIN0001234"
-                  autoCapitalize="characters"
-                  value={form.ifsc}
-                  onChangeText={(t) => setForm({...form, ifsc: t.toUpperCase()})}
-                />
-              </View>
+              {renderInputField(
+                "Confirm Account Number",
+                confirmAccountNumber,
+                (t) => setConfirmAccountNumber(t),
+                "Re-enter account number",
+                "numeric",
+                true,
+                () => setShowConfirmAccountNumber(!showConfirmAccountNumber),
+                showConfirmAccountNumber
+              )}
 
-              <Text style={styles.sectionDivider}>Contact Verification</Text>
+              {renderInputField(
+                "IFSC Code",
+                form.ifsc,
+                (t) => setForm({...form, ifsc: t.toUpperCase()}),
+                "e.g. SBIN0001234"
+              )}
 
-              <View style={styles.inputField}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Primary contact email"
-                  keyboardType="email-address"
-                  value={form.user?.email}
-                  onChangeText={(t) => setForm({...form, user: {...form.user!, email: t}})}
-                />
-              </View>
+              <View style={styles.horizontalDivider} />
+              <Text style={styles.sectionHeaderSmall}>Contact Verification</Text>
 
-              <View style={styles.inputField}>
-                <Text style={styles.inputLabel}>Mobile Number</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="10-digit mobile number"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={form.user?.mobileNo}
-                  onChangeText={(t) => setForm({...form, user: {...form.user!, mobileNo: t}})}
-                />
-              </View>
+              {renderInputField(
+                "Email Address",
+                form.user?.email || '',
+                (t) => setForm({...form, user: {...form.user!, email: t}}),
+                "For payout notifications",
+                "default"
+              )}
 
-              <View style={styles.btnRow}>
+              {renderInputField(
+                "Mobile Number",
+                form.user?.mobileNo || '',
+                (t) => setForm({...form, user: {...form.user!, mobileNo: t}}),
+                "10-digit primary mobile",
+                "numeric"
+              )}
+
+              <View style={styles.actionRow}>
                 {isEditing && (
                   <TouchableOpacity 
-                    style={styles.secondaryBtn} 
+                    style={styles.cancelBtn} 
                     onPress={() => setIsEditing(false)}
                   >
-                    <Text style={styles.secondaryBtnText}>Cancel</Text>
+                    <Text style={styles.cancelBtnText}>Back</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity 
-                  style={[styles.confirmBtn, submitting && { opacity: 0.7 }]} 
+                  style={[styles.saveBtn, submitting && { opacity: 0.7 }]} 
                   onPress={handleSubmit}
                   disabled={submitting}
                 >
                   {submitting ? (
                     <ActivityIndicator color={COLORS.white} />
                   ) : (
-                    <Text style={styles.confirmBtnText}>Save Details</Text>
+                    <Text style={styles.saveBtnText}>Verify & Save</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -345,23 +423,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background,
   },
+  loadingText: {
+    marginTop: 12,
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
+  },
   topBar: {
-    height: 56,
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   topBarTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.textMain,
+    letterSpacing: -0.5,
   },
   iconBtn: {
-    padding: 10,
+    padding: 8,
   },
   scrollContent: {
     padding: 20,
@@ -369,162 +452,246 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   
-  // Data Screen Styles
-  mainCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS,
-    padding: 20,
+  // Bank Card UI
+  bankCard: {
+    backgroundColor: '#0F172A', // Deep navy/slate
+    borderRadius: 24,
+    padding: 24,
+    height: 220,
+    justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+    marginBottom: 24,
   },
-  cardHeader: {
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
   },
-  labelMuted: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  accountHolderDisplay: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textMain,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusPillText: {
+  cardBrand: {
+    color: COLORS.white,
     fontSize: 10,
     fontWeight: '800',
+    letterSpacing: 1,
+    opacity: 0.6,
+    marginBottom: 4,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
+  cardHolderName: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: '700',
   },
-  infoRow: {
+  cardMiddle: {
+    marginVertical: 10,
+  },
+  cardLabel: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.5,
+    marginBottom: 6,
+  },
+  cardAccountNumber: {
+    color: COLORS.white,
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: 1,
+    minHeight: 30,
+    width: '100%',
+  },
+  cardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  valueStrong: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textMain,
-  },
-  valueText: {
-    fontSize: 14,
-    color: COLORS.secondary,
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.primary,
-    height: 52,
-    borderRadius: BORDER_RADIUS,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 8,
-  },
-  primaryBtnText: {
+  cardValue: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  hintBox: {
+  eyeBtnSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    paddingHorizontal: 10,
-    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
   },
-  hintText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    flex: 1,
+  eyeBtnText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
 
-  // Form Screen Styles
-  formCard: {
+  // Details Section
+  detailsSection: {
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  formTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.textMain,
     marginBottom: 24,
-  },
-  inputField: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.secondary,
-    marginBottom: 8,
-  },
-  textInput: {
-    height: 48,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 15,
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.textMain,
-    backgroundColor: '#FAFAFA',
+    marginBottom: 20,
   },
-  sectionDivider: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    marginTop: 8,
-    marginBottom: 16,
-    letterSpacing: 1,
-  },
-  btnRow: {
+  detailItem: {
     flexDirection: 'row',
-    marginTop: 24,
-    gap: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 16,
   },
-  confirmBtn: {
-    flex: 2,
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textMain,
+  },
+  editBtn: {
     backgroundColor: COLORS.primary,
-    height: 52,
+    height: 56,
     borderRadius: BORDER_RADIUS,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  confirmBtnText: {
+  editBtnText: {
     color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
   },
-  secondaryBtn: {
-    flex: 1,
+  securityHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 8,
+  },
+  securityHintText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: '400',
+  },
+
+  // Form UI
+  formCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 5,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  formHeader: {
+    marginBottom: 24,
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: COLORS.textMain,
+    letterSpacing: -0.5,
+  },
+  formSubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textMain,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+  },
+  textInput: {
+    flex: 1,
     height: 52,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: COLORS.textMain,
+    fontWeight: '500',
+  },
+  eyeIcon: {
+    paddingHorizontal: 16,
+  },
+  horizontalDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 10,
+  },
+  sectionHeaderSmall: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textMuted,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 16,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 12,
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    height: 56,
     borderRadius: BORDER_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryBtnText: {
+  saveBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cancelBtn: {
+    paddingHorizontal: 24,
+    height: 56,
+    borderRadius: BORDER_RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  cancelBtnText: {
     color: COLORS.secondary,
     fontSize: 16,
     fontWeight: '600',

@@ -48,6 +48,17 @@ export default function TabLayouts() {
         }}
       />
 
+      {/* Business Tab */}
+      <Tabs.Screen
+        name="Business"
+        options={{
+          title: "Business",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase" size={size} color={color} />
+          ),
+        }}
+      />
+
       {/* Settings Tab */}
       <Tabs.Screen
         name="Settings"

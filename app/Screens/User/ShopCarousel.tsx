@@ -63,10 +63,11 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
   };
 
   const handleLoadMore = useCallback(() => {
-    if (!hasMore || isLoadingMore || onEndReachedCalled.current) return;
+    if (!hasMore || isLoadingMore || !onEndReached || onEndReachedCalled.current) return;
     onEndReachedCalled.current = true;
-    onEndReached?.();
-    setTimeout(() => { onEndReachedCalled.current = false; }, 800);
+    onEndReached();
+    // Reset the flag after a short delay to allow next threshold trigger
+    setTimeout(() => { onEndReachedCalled.current = false; }, 1500);
   }, [hasMore, isLoadingMore, onEndReached]);
 
   const renderShopItem = ({ item }: { item: ShopItem }) => {
@@ -82,11 +83,6 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: '#E2E8F0',
-          shadowColor: '#1E40AF',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.07,
-          shadowRadius: 8,
-          elevation: 3,
         }}
         onPress={() => handleShopPress(item)}
         activeOpacity={0.82}

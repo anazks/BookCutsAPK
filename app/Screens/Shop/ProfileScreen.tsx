@@ -238,69 +238,17 @@ const previewStyles = StyleSheet.create({
   },
 });
 
-// ── Edit Image Modal (for showcase images) ──
-const EditImageModal = ({
-  visible,
-  onClose,
-  title,
-  onChangeTitle,
-  description,
-  onChangeDescription,
-  onSave,
-}) => (
-  <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-    <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-      <View style={styles.editModalCard}>
-        <Text style={styles.profileModalTitle}>Edit Image Details</Text>
-
-        <Text style={styles.detailLabel}>Title</Text>
-        <TextInput
-          style={styles.textInput}
-          value={title}
-          onChangeText={onChangeTitle}
-          placeholder="Enter title"
-          autoFocus
-        />
-
-        <Text style={styles.detailLabel}>Description</Text>
-        <TextInput
-          style={[styles.textInput, styles.descriptionInput]}
-          value={description}
-          onChangeText={onChangeDescription}
-          placeholder="Enter description"
-          multiline
-          numberOfLines={4}
-        />
-
-        <View style={styles.modalButtons}>
-          <TouchableOpacity style={styles.saveButton} onPress={onSave}>
-            <Text style={styles.buttonTextWhite}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
-  </Modal>
-);
-
 // ── MAIN COMPONENT ──
 const ProfileScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
   const [isProfilePreviewVisible, setIsProfilePreviewVisible] = useState(false);
   const [selectedProfileImageUri, setSelectedProfileImageUri] = useState<string | null>(null);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [shopData, setShopData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileImage, setProfileImage] = useState(null);
   const [shopId, setShopId] = useState(null);
   const [uploadingProfile, setUploadingProfile] = useState(false);
-  const [editingImage, setEditingImage] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
   const [hasShop, setHasShop] = useState(true);
 
   useEffect(() => {
@@ -487,14 +435,6 @@ const ProfileScreen = () => {
     else if (source === 'gallery') pickImageFromGallery();
   };
 
-  const handleUpdateImage = async () => {
-    // TODO: Implement showcase image update logic
-  };
-
-  const handleDeleteImage = async (imageId) => {
-    // TODO: Implement showcase image delete logic
-  };
-
   const handleImagePress = (image) => {
     Alert.alert('Image', `Selected: ${image.title || image.description || 'Untitled'}`);
   };
@@ -576,12 +516,6 @@ const ProfileScreen = () => {
         {/* Shop Details */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Shop Details</Text>
-          <DetailRow
-            icon={shopData?.IsPremium ? 'star' : 'ribbon-outline'}
-            label="Membership Status"
-            value={shopData?.IsPremium ? 'Premium Member' : 'Standard User'}
-            color={shopData?.IsPremium ? '#E59400' : COLORS.mediumGray}
-          />
           <DetailRow icon="time-outline" label="Timing" value={shopData?.Timing || 'Not set'} />
           <DetailRow
             icon="pin-outline"
@@ -593,72 +527,23 @@ const ProfileScreen = () => {
             <DetailRow icon="globe-outline" label="Website" value={shopData.website} />
           )}
 
-
-           <TouchableOpacity
+          <TouchableOpacity
             style={styles.detailRow}
-            onPress={() => router.push('/Screens/User/PayoutScreen')}
+            onPress={() =>
+              Linking.openURL('https://www.bookmycuts.com/privacy ')
+            }
           >
             <View style={styles.detailIconBox}>
-              <Ionicons name="card-outline" size={18} color={COLORS.primary} />
+              <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary} />
             </View>
+
             <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>earnings</Text>
+              <Text style={styles.detailLabel}>Privacy Policy</Text>
               <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                {shopData?.bankDetails ? 'View / Edit' : 'payout'}
+                View Policy
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.detailRow}
-            onPress={() => router.push('/Screens/Shop/BankDetailsComponent')}
-          >
-            <View style={styles.detailIconBox}>
-              <MaterialIcons name="payments" size={18} color={COLORS.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Bank Details</Text>
-              <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                {shopData?.bankDetails ? 'View / Edit' : 'Add Bank Details'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-  style={styles.detailRow}
-  onPress={() =>
-    Linking.openURL('https://www.bookmycuts.com/privacy ')
-  }
->
-  <View style={styles.detailIconBox}>
-    <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary} />
-  </View>
-
-  <View style={{ flex: 1 }}>
-    <Text style={styles.detailLabel}>Privacy Policy</Text>
-    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-      View Policy
-    </Text>
-  </View>
-
-  <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
-</TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.detailRow}
-            onPress={() => router.push('/Screens/Shop/OfferManagement')}
-          >
-            <View style={styles.detailIconBox}>
-              <Ionicons name="pricetag-outline" size={18} color="#10B981" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>Offers & Promotions</Text>
-              <Text style={[styles.detailValue, { color: '#10B981' }]}>
-                Manage Shop Offers
-              </Text>
-            </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
           </TouchableOpacity>
 
@@ -672,44 +557,7 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Showcase Images */}
-        <View style={[styles.sectionCard, { paddingBottom: 10 }]}>
-          <Text style={styles.sectionTitle}>Shop & Work Showcase</Text>
-
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
-            <MaterialIcons name="add-a-photo" size={20} color="white" />
-            <Text style={styles.addButtonText}>Add New Showcase Image</Text>
-          </TouchableOpacity>
-
-          <View style={styles.imagesContainer}>
-            {shopData?.media?.length > 0 ? (
-              shopData.media.map((image) => (
-                <TouchableOpacity
-                  key={image._id}
-                  style={styles.imageWrapper}
-                  onPress={() => handleImagePress(image)}
-                >
-                  <Image source={{ uri: image.url }} style={styles.imageThumbnail} />
-                  <Text style={styles.imageDescription} numberOfLines={1}>
-                    {image.description || image.title}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={styles.noImagesText}>
-                Show your work! Click 'Add New Image' to upload.
-              </Text>
-            )}
-          </View>
-        </View>
-
         {/* Modals */}
-        <ImageUploadModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-          onSave={handleMediaUploadSuccess}
-        />
-
         <ProfileImageModal
           visible={isProfileModalVisible}
           onClose={() => setIsProfileModalVisible(false)}
@@ -732,21 +580,6 @@ const ProfileScreen = () => {
             }
           }}
           uploading={uploadingProfile}
-        />
-
-        <EditImageModal
-          visible={isEditModalVisible}
-          onClose={() => {
-            setIsEditModalVisible(false);
-            setEditingImage(null);
-            setEditTitle('');
-            setEditDescription('');
-          }}
-          title={editTitle}
-          onChangeTitle={setEditTitle}
-          description={editDescription}
-          onChangeDescription={setEditDescription}
-          onSave={handleUpdateImage}
         />
 
         <View style={{ height: 40 }} />

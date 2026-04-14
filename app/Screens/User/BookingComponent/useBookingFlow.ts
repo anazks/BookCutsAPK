@@ -435,9 +435,9 @@ export const useBookingFlow = () => {
 
         setFreeGaps(schedule);
 
-        if (schedule.freeSlots.length > 0 && !selectedStartTime) {
-          setSelectedStartTime(schedule.freeSlots[0].from);
-        } else if (schedule.freeSlots.length === 0) {
+        if (schedule.freeSlots.length > 0) {
+          setSelectedStartTime(prev => prev || schedule.freeSlots[0].from);
+        } else {
           setSelectedStartTime(null);
         }
       } else {
@@ -451,7 +451,7 @@ export const useBookingFlow = () => {
     } finally {
       setLoadingSlots(false);
     }
-  }, [selectedDate, selectedBarber?.id, shop_id, selectedStartTime]);
+  }, [selectedDate, selectedBarber?.id, shop_id]);
 
   const fetchAllSlots = useCallback(async () => {
     if (!selectedDate || selectedBarber?.id !== null || !shop_id) {
@@ -482,9 +482,9 @@ export const useBookingFlow = () => {
           .map((slot: any) => slot.from)
           .sort((a: string, b: string) => timeToMinutes(a) - timeToMinutes(b));
 
-        if (startTimes.length > 0 && !selectedStartTime) {
-          setSelectedStartTime(startTimes[0]);
-        } else if (startTimes.length === 0) {
+        if (startTimes.length > 0) {
+          setSelectedStartTime(prev => prev || startTimes[0]);
+        } else {
           setSelectedStartTime(null);
         }
       } else {
@@ -498,7 +498,7 @@ export const useBookingFlow = () => {
     } finally {
       setLoadingSlots(false);
     }
-  }, [selectedDate, selectedBarber?.id, shop_id, selectedStartTime]);
+  }, [selectedDate, selectedBarber?.id, shop_id]);
 
   // Auto-fetch slots when date or barber changes
   useEffect(() => {

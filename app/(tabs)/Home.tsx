@@ -49,7 +49,8 @@ import ShopCarousel from '../Screens/User/ShopCarousel';
 const { width } = Dimensions.get('window');
 
 // ─── Top Brands Carousel ───────────────────────────────────────────────────────
-const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
+const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string }) => {
+  const brandColor = category === 'womens' ? '#E11D48' : category === 'kids' ? '#D97706' : '#3B82F6';
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -96,8 +97,8 @@ const TopBrandsCarousel = ({ shops }: { shops: any[] }) => {
                 alignItems: 'center',
                 overflow: 'hidden',
                 borderWidth: 2,
-                borderColor: '#3B82F6',
-                shadowColor: '#3B82F6',
+                borderColor: brandColor,
+                shadowColor: brandColor,
                 shadowOffset: { width: 0, height: 3 },
                 shadowOpacity: 0.18,
                 shadowRadius: 6,
@@ -368,14 +369,17 @@ const Home = () => {
   const getNearByCities = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
     try {
       const lat = Number(latitude.toFixed(4));
-      const lon = Number(longitude.toFixed(4));
-      const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lon}&radius=120`;
+      const lng = Number(longitude.toFixed(4));
+      const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lng}&radius=120`;
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 5000);
+      let cityList: any[] = [];
+      
       try {
         const res = await fetch(url, { signal: ctrl.signal });
         clearTimeout(tid);
         const text = await res.text();
+        
         if (text && text.trim() !== '' && text.trim() !== '[["%s"]]') {
           const data = JSON.parse(text);
           if (Array.isArray(data) && data.length > 0 && data[0][1] !== '%s') {
@@ -389,20 +393,30 @@ const Home = () => {
                 Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2;
               return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             };
-            const list = data
+            
+            cityList = data
               .map((i: any) => ({ name: i[1], lat: Number(i[8]), lon: Number(i[10]) }))
-              .sort((a: any, b: any) => dist(lat, lon, a.lat, a.lon) - dist(lat, lon, b.lat, b.lon));
-            setCities(list);
-            return list;
+              .sort((a: any, b: any) => dist(lat, lng, a.lat, a.lon) - dist(lat, lng, b.lat, b.lon));
           }
         }
       } catch (e: any) {
         clearTimeout(tid);
+        console.log('⚠️ Geobytes failed, trying fallback API...');
       }
-      const fallback = await getNearbyCitiesFallback(lat, lon);
-      if (fallback?.length > 0) { setCities(fallback); return fallback; }
+
+      // If Geobytes didn't return anything, use the fallback
+      if (cityList.length === 0) {
+        const fallback = await getNearbyCitiesFallback(lat, lng);
+        cityList = Array.isArray(fallback) ? fallback : fallback?.data || fallback?.cities || [];
+      }
+
+      if (cityList.length > 0) {
+        setCities(cityList);
+        return cityList;
+      }
       return [];
-    } catch {
+    } catch (err) {
+      console.error('❌ Home.tsx: Fatal Error in getNearByCities:', err);
       return [];
     }
   };
@@ -502,8 +516,23 @@ const Home = () => {
     setSelectedService(serviceName);
     if (serviceName === 'All' || !serviceName) { setFilteredShops([]); return; }
     if (!shops.length) { setFilteredShops([]); return; }
+
+    setFilterLoading(true);
+
+    // MOCK: For Women and Kids, simulate a functional filter by randomly selecting shops
+    // This gives a responsive "alive" feel to the frontend as requested
+    if (category === 'womens' || category === 'kids') {
+      setTimeout(() => {
+        const shuffled = [...shops].sort(() => 0.5 - Math.random());
+        // Select between 40% and 80% of the shops randomly
+        const sampleSize = Math.max(1, Math.floor(shuffled.length * (0.4 + Math.random() * 0.4)));
+        setFilteredShops(shuffled.slice(0, sampleSize));
+        setFilterLoading(false);
+      }, 300); // Tiny delay to feel natural
+      return;
+    }
+
     try {
-      setFilterLoading(true);
       const ids = shops.map((s) => s._id).filter(Boolean);
       const r = await filterShopsByService({ shopIds: ids, serviceName });
       if (r?.success && r.shops) setFilteredShops(r.shops);
@@ -583,12 +612,17 @@ const Home = () => {
     { id: '2', name: 'Pompadour', popularity: '87%', image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500' },
     { id: '3', name: 'Undercut', popularity: '89%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
   ];
-
   const categoryConfig = {
     men: { activeBg: '#EFF6FF', text: '#2563EB', icon: 'man' as const },
     womens: { activeBg: '#FFF1F2', text: '#E11D48', icon: 'woman' as const },
     kids: { activeBg: '#FFFBEB', text: '#D97706', icon: 'happy' as const },
   };
+
+  const headerColors = category === 'womens' 
+    ? ['#9D174D', '#E11D48', '#FB7185'] 
+    : category === 'kids' 
+      ? ['#B45309', '#D97706', '#FBBF24'] 
+      : ['#1D4ED8', '#2563EB', '#3B82F6'];
 
   if (loading && shops.length === 0) return <HomeSkeleton />;
 
@@ -610,7 +644,7 @@ const Home = () => {
           />
         ) : (
           <LinearGradient
-            colors={['#1D4ED8', '#2563EB', '#3B82F6']}
+            colors={headerColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ position: 'absolute', width: '100%', height: '100%' }}
@@ -1008,15 +1042,20 @@ const Home = () => {
               </View>
             ) : (
               <>
-                <TopBrandsCarousel shops={transformedActiveShops} />
+                <TopBrandsCarousel shops={transformedActiveShops} category={category} />
 
                 {activeShops.length > 0 && (
                   <ShopCarousel
                     title="Nearby Salons"
-                    shops={getPopularShops().slice(0, 5)}
+                    shops={transformedActiveShops}
                     onViewAll={() => router.push('/(tabs)/BookNow')}
+                    onEndReached={loadMoreShops}
+                    isLoadingMore={loadingMore}
+                    hasMore={hasMoreShops}
                   />
                 )}
+
+                <PaisAdd />
 
                 <TrendingStyles styles={trendingDesigns} />
 
@@ -1033,7 +1072,6 @@ const Home = () => {
                 )}
 
                 <TransparentInfoCard />
-                <PaisAdd />
               </>
             )}
           </>

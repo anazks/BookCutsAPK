@@ -63,8 +63,8 @@ export const forgotPassword = async (data) => {
     try {
         const resposne = await Axios.post('/auth/forgot-password',data)
         return resposne.data
-    } catch (error) {
-        console.log(error)
+    } catch (error: any) {
+        throw error?.response?.data || { message: "Failed to send OTP" };
     }
 }
 
@@ -72,8 +72,8 @@ export const verifyForgotOtp = async (data) => {
     try {
         const response = await Axios.post('auth/verify-forgot-otp',data)
         return response.data
-    } catch (error) {
-        console.log(error)
+    } catch (error: any) {
+        throw error?.response?.data || { message: "OTP verification failed" };
     }
 }
 
@@ -81,35 +81,32 @@ export const resetPassword = async (data) => {
     try {
         const response = await Axios.post('auth/reset-password',data)
         return response.data
-    } catch (error) {
-        console.log(error)
+    } catch (error: any) {
+        throw error?.response?.data || { message: "Password reset failed" };
     }
 }
 
 export const userGoogleSignin = async (data) => {
     try {
-        const response = await Axios.post('auth/user/google-sigin',data)
+        const response = await Axios.post('auth/user/google-signin',data)
         return response.data
-    } catch (error) {
-        console.log(error)
+    } catch (error: any) {
+        throw error?.response?.data || { message: "Google Sign-In connection failed." };
     }
 }
 
-export const getNearbyCitiesFallback = async (lat: number, lon: number) => {
+export const getNearbyCitiesFallback = async (lat: number, lng: number) => {
   try {
-    const response = await Axios.get('/cities/nearby', {   // ← better endpoint name
-      params: { lat, lon },
+    console.log(`🔍 Fetching fallback cities for: ${lat}, ${lng}...`);
+    const response = await Axios.get('/auth/cities', {
+      params: { lat, lng },
     });
-
-    return response.data;   // ← usually you want this
-  } catch (error) {
-    console.error('Error fetching nearby cities:', error);
     
-    // Option A: throw so caller can handle it
+    console.log('✅ Fallback Cities Raw Response:', JSON.stringify(response.data, null, 2));
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error fetching nearby cities fallback:', error.response?.data || error.message);
     throw error;
-
-    // Option B: return null / empty array + handle in UI
-    // return { success: false, data: [], error: 'Failed to load cities' };
   }
 };
 
@@ -142,9 +139,11 @@ export const getNotifications = async () => {
   }
 };
 
-export const getCustomization = async () => {
+export const getCustomization = async (screen?: string) => {
   try {
-    const response = await Axios.get('/auth/customization');
+    const response = await Axios.get('/auth/customization', {
+      params: screen ? { screen } : {}
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching customization:', error);

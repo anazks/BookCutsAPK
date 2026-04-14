@@ -272,7 +272,10 @@ export default function PayNow() {
           setIsProcessing(false);
 
           if (error.code === 0) {
-            Alert.alert('Payment Status', 'Payment incomplete...');
+            Alert.alert(
+              'Payment Cancelled',
+              'You have cancelled the payment process. No money was deducted, and your booking remains incomplete.'
+            );
           } else if (error.code === 1) {
             Alert.alert('Payment Failed', error.description || 'Payment could not be completed');
           } else if (error.code === 2) {

@@ -77,24 +77,7 @@ const BarberCard = memo(
         onPress={() => onSelect(barber)}
         activeOpacity={0.85}
       >
-        <View style={[
-          styles.avatar,
-          isSelected && styles.avatarSelected,
-          isAny && styles.avatarAny,
-        ]}>
-          <Text style={[
-            styles.initial,
-            isSelected && styles.initialSelected,
-          ]}>
-            {barber.name.charAt(0).toUpperCase()}
-          </Text>
 
-          {isAny && (
-            <View style={styles.anyBadge}>
-              <Ionicons name="people" size={14} color="#FFFFFF" />
-            </View>
-          )}
-        </View>
 
         <Text style={styles.name} numberOfLines={1}>
           {barber.name}
@@ -104,12 +87,6 @@ const BarberCard = memo(
           <Text style={styles.location} numberOfLines={1}>
             {barber.nativePlace}
           </Text>
-        )}
-
-        {isSelected && (
-          <View style={styles.checkmark}>
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-          </View>
         )}
       </TouchableOpacity>
     );
@@ -144,66 +121,23 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: 90,
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   cardSelected: {
     borderColor: '#3B82F6',
-    borderWidth: 2.5,
+    borderWidth: 2,
     backgroundColor: '#F0F9FF',
   },
 
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
 
-  avatarSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
-  },
-
-  avatarAny: {
-    backgroundColor: '#8B5CF6',
-  },
-
-  initial: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-
-  initialSelected: {
-    color: '#3B82F6',
-  },
-
-  anyBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#10B981',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
 
   name: {
     fontSize: 12,
@@ -217,14 +151,5 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginTop: 2,
-  },
-
-  checkmark: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 2,
   },
 });
