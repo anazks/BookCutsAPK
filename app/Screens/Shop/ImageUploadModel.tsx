@@ -15,11 +15,10 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { uploadShopMedia } from '../../api/Service/Shop';
 
 const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#FF6B6B';
-const BASE_URL = 'https://bookmycutsapp.onrender.com/api';
 
 interface ImageUploadModalProps {
   visible: boolean;
@@ -86,18 +85,12 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onClose, o
 
       console.log('Uploading image:', { shopId, title: title.trim(), filename, mimeType });
 
-      const response = await axios.post(`${BASE_URL}/shop/uploadMedia/${shopId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await uploadShopMedia(shopId, formData);
 
-      if (response.status === 200) {
+      if (response) {
         Alert.alert('Success', 'Image uploaded successfully!');
         onSave?.();
         handleClose();
-      } else {
-        throw new Error(`Unexpected response status: ${response.status}`);
       }
     } catch (err: any) {
       console.error('Upload error:', err);

@@ -1,4 +1,5 @@
 import Axios from '../axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
@@ -463,4 +464,67 @@ export const updateMediaDetailsAPI = async (mediaId: string, data: { title: stri
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to update media details" };
   }
-};
+};
+
+export const uploadShopMedia = async (shopId: string, formData: FormData) => {
+  try {
+    console.log('📤 Uploading media for shop:', shopId);
+    
+    // Using the centralized Axios instance so we hit the active BASE_URL 
+    // and automatically attach the auth tokens from the interceptor.
+    const response = await Axios.post(`/shop/uploadMedia/${shopId}`, formData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, 
+    });
+
+    console.log('✅ Media upload successful:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Media upload error:', error);
+    
+    if (error.response) {
+      // Backend returned an error response (e.g., 400, 404, 500)
+      console.error('Error response data:', error.response.data);
+      throw error?.response?.data || { message: 'Upload failed' };
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('No response received:', error.request);
+      throw { message: 'No response from server. Check your connection.' };
+    } else {
+      // Something happened while setting up the request
+      throw { message: error.message || 'Upload failed. Please try again.' };
+    }
+  }
+};
+
+export const uploadShopProfileImage = async (shopId: string, formData: FormData) => {
+  try {
+    console.log('📤 Uploading profile image for shop:', shopId);
+    
+    const response = await Axios.post(`/shop/addProfileImage/${shopId}`, formData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, 
+    });
+
+    console.log('✅ Profile image upload successful:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Profile image upload error:', error);
+    
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      throw error?.response?.data || { message: 'Upload failed' };
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      throw { message: 'No response from server. Check your connection.' };
+    } else {
+      throw { message: error.message || 'Upload failed. Please try again.' };
+    }
+  }
+};

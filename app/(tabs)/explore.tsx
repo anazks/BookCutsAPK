@@ -11,6 +11,7 @@ import Animated, { useAnimatedScrollHandler, useSharedValue, withTiming } from '
 import { getmyProfile } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
+import TransparentInfoCard from '../Components/Home/TransparentInfoCard';
 
 
 interface UserData {
@@ -125,28 +126,17 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      {/* Hero Header */}
-      <View style={[styles.heroHeader, { backgroundColor: theme.headerBackground }]}>
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarRing}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {userData?.firstName?.[0]}{userData?.lastName?.[0]}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.onlineIndicator, { borderColor: theme.headerBackground }]} />
-          <Text style={styles.heroName}>
-            {userData?.firstName} {userData?.lastName}
-          </Text>
-          <Text style={styles.heroEmail}>{userData?.email}</Text>
-          {userData?.city ? (
-            <View style={styles.locationPill}>
-              <Ionicons name="location-sharp" size={12} color={theme.accent} />
-              <Text style={styles.locationPillText}>{userData.city}</Text>
-            </View>
-          ) : null}
+      {/* Small Profile Header */}
+      <View style={styles.topHeader}>
+        <View style={styles.topHeaderLeft}>
+          <Text style={styles.topHeaderGreeting}>Settings</Text>
+          <Text style={styles.topHeaderEmail}>{userData?.email || 'My Profile'}</Text>
         </View>
+        <TouchableOpacity style={styles.smallAvatar}>
+          <Text style={styles.smallAvatarText}>
+             {userData?.firstName?.[0]}{userData?.lastName?.[0]}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <Animated.ScrollView
@@ -157,11 +147,9 @@ export default function Profile() {
         showsVerticalScrollIndicator={false}
       >
         {/* Menu Section */}
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
-
+        <View style={styles.gridContainer}>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={styles.gridCard}
             onPress={() =>
               router.push({
                 pathname: '/Screens/User/Bookings',
@@ -169,17 +157,14 @@ export default function Profile() {
               })
             }
           >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
-                <Ionicons name="calendar-outline" size={20} color={theme.accent} />
-              </View>
-              <Text style={styles.menuText}>Bookings</Text>
+            <View style={[styles.gridIconContainer, { backgroundColor: '#1877F215' }]}>
+              <Ionicons name="calendar-outline" size={20} color="#1877F2" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+            <Text style={styles.gridCardText}>Bookings</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={styles.gridCard}
             onPress={() =>
               router.push({
                 pathname: '/Screens/User/ReferralDetails',
@@ -187,60 +172,64 @@ export default function Profile() {
               })
             }
           >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
-                <Ionicons name="gift-outline" size={20} color={theme.accent} />
-              </View>
-              <Text style={styles.menuText}>Refer & Reward</Text>
+            <View style={[styles.gridIconContainer, { backgroundColor: '#EAB30815' }]}>
+              <Ionicons name="gift-outline" size={20} color="#EAB308" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+            <Text style={styles.gridCardText}>Refer & Reward</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={styles.gridCard}
             onPress={() => router.push('/Screens/User/Payment')}
           >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
-                <Ionicons name="wallet-outline" size={20} color={theme.accent} />
-              </View>
-              <Text style={styles.menuText}>Payment Methods</Text>
+            <View style={[styles.gridIconContainer, { backgroundColor: '#10B98115' }]}>
+              <Ionicons name="wallet-outline" size={20} color="#10B981" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+            <Text style={styles.gridCardText}>Payments</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={styles.gridCard}
             onPress={() => Linking.openURL('https://www.bookmycuts.com/privacy')}
           >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
-              </View>
-              <Text style={styles.menuText}>Privacy & Policy</Text>
+            <View style={[styles.gridIconContainer, { backgroundColor: '#8B5CF615' }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#8B5CF6" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+            <Text style={styles.gridCardText}>Privacy Policy</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuItem, { borderBottomWidth: 0 }]}
+            style={styles.gridCard}
             onPress={() => router.push('/Screens/User/Support')}
           >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: `${theme.accent}15` }]}>
-                <Ionicons name="help-circle-outline" size={20} color={theme.accent} />
-              </View>
-              <Text style={styles.menuText}>Help & Support</Text>
+            <View style={[styles.gridIconContainer, { backgroundColor: '#F9731615' }]}>
+              <Ionicons name="help-buoy-outline" size={20} color="#F97316" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+            <Text style={styles.gridCardText}>Help & Support</Text>
+          </TouchableOpacity>
+
+          {/* Dummy Option */}
+          <TouchableOpacity
+            style={styles.gridCard}
+            onPress={() => {}}
+          >
+            <View style={[styles.gridIconContainer, { backgroundColor: '#06B6D415' }]}>
+              <Ionicons name="notifications-outline" size={20} color="#06B6D4" />
+            </View>
+            <Text style={styles.gridCardText}>Notifications</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        {/* Footer info card */}
+        <TransparentInfoCard />
+
+        {/* Logout Section */}
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out" size={22} color="#EF4444" />
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
       </Animated.ScrollView>
     </View>
   );
@@ -249,180 +238,118 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F8F9FA',
   },
 
-  /* Hero Header */
-  heroHeader: {
-    backgroundColor: '#1877F2',
+  /* Top Profile Header */
+  topHeader: {
+    backgroundColor: '#FFFFFF',
     paddingTop: 50,
-    paddingBottom: 30,
+    paddingBottom: 16,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  avatarSection: {
-    alignItems: 'center',
-  },
-  avatarRing: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  avatar: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    right: '32%',
-    top: 68,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
-    borderWidth: 3,
-    borderColor: '#1877F2',
-  },
-  heroName: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  heroEmail: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.95)',
-    marginBottom: 12,
-  },
-  locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  locationPillText: {
-    fontSize: 13,
+  topHeaderLeft: {
+    flex: 1,
+  },
+  topHeaderGreeting: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 2,
+  },
+  topHeaderEmail: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  smallAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1877F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+  },
+  smallAvatarText: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#FFFFFF',
-    fontWeight: '500',
   },
 
   scrollView: {
     flex: 1
   },
   scrollContent: {
-    paddingBottom: 100
+    flexGrow: 1, 
+    paddingBottom: 110 // Increased padding to clear bottom tab bar
   },
 
-  /* Menu Section */
-  menuSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 24,
-    borderRadius: 20,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8E8E93',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  menuItem: {
+  /* Grid Section */
+  gridContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    paddingTop: 16,
+    gap: 12,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  menuIconContainer: {
-    width: 44,
-    height: 44,
+  gridCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  gridIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginBottom: 6,
   },
-  menuText: {
-    fontSize: 16,
-    fontWeight: '400',
+  gridCardText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#1C1C1E',
-    flex: 1,
   },
 
   /* Logout */
+  logoutContainer: {
+    paddingHorizontal: 16,
+    marginTop: 'auto',
+    paddingBottom: 30,
+  },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 30,
-    paddingVertical: 16,
-    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
-    gap: 10,
+    borderColor: '#FECACA',
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '700',
     color: '#EF4444',
   },
 

@@ -152,36 +152,9 @@ const MOCK_CATEGORIES = [
 const KM_RANGES = ['All', '<5 km', '5-10 km', '10-20 km', '20+ km'];
 
 const AnimatedBannerItem = ({ item, styles }: { item: any, styles: any }) => {
-  const scale = useSharedValue(1);
-  
-  useEffect(() => {
-    if (item.type === 'animated-image') {
-      scale.value = withRepeat(
-        withSequence(
-          withTiming(1.08, { duration: 4000 }),
-          withTiming(1, { duration: 4000 })
-        ),
-        -1,
-        true
-      );
-    }
-  }, [item.type]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }]
-  }));
-
   return (
     <View style={styles.bannerContainer}>
-      {item.type === 'animated-image' ? (
-        <Reanimated.Image 
-          source={{ uri: item.url }} 
-          style={[styles.bannerImage, animatedStyle]} 
-          resizeMode="cover" 
-        />
-      ) : (
-        <Image source={{ uri: item.url }} style={styles.bannerImage} resizeMode="cover" />
-      )}
+      <Image source={{ uri: item.url }} style={styles.bannerImage} resizeMode="cover" />
       {item.type === 'video' && (
         <View style={styles.videoBadge}>
           <Ionicons name="play-circle" size={14} color="white" />
@@ -789,8 +762,13 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       } else {
         setError(result.message || 'Failed to fetch shops');
       }
-    } catch (error) {
-      setError('Network error occurred');
+    } catch (error: any) {
+      if (error?.message === 'No shops found') {
+        setAllShops([]);
+        setError(null);
+      } else {
+        setError(error?.message || 'Network error occurred');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1091,8 +1069,8 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   const activeFiltersCount = (selectedCity !== 'All' ? 1 : 0);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} translucent={false} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
 
       <Reanimated.FlatList
         ListHeaderComponent={

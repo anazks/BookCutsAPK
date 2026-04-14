@@ -63,33 +63,30 @@ const performLogout = async (navigation: any) => {
 // No Shop Screen Component
 // ────────────────────────────────────────────────
 const NoShopScreen = ({ navigation }: { navigation: any }) => (
-  <SafeAreaView style={styles.container}>
-    <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+  <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+    <StatusBar backgroundColor="#F8FAFC" barStyle="dark-content" />
+    <View style={{ padding: 24, alignItems: 'center' }}>
+      <Ionicons name="storefront-outline" size={64} color="#94A3B8" style={{ marginBottom: 16 }} />
+      <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A', marginBottom: 8, textAlign: 'center' }}>
+        No Business Profile Found
+      </Text>
+      <Text style={{ textAlign: 'center', color: '#64748B', marginBottom: 24, fontSize: 15, lineHeight: 22 }}>
+        Please complete your shop registration first to access the Business Center and manage your profile.
+      </Text>
+      <TouchableOpacity 
+        style={{ backgroundColor: '#4F46E5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, width: 220, alignItems: 'center', marginBottom: 16 }}
+        onPress={() => navigation.navigate('Components/Shop/AddShop')}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Create Shop</Text>
+      </TouchableOpacity>
 
-    <View style={styles.noShopContainer}>
-      <View style={styles.noShopCard}>
-        <MaterialIcons name="storefront" size={80} color="#CBD5E1" />
-        <Text style={styles.noShopTitle}>Setup Your Salon</Text>
-        <Text style={styles.noShopSubtitle}>
-          Create your shop profile to start managing barbers and services
-        </Text>
-
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate('Components/Shop/AddShop')}
-        >
-          <MaterialIcons name="add-business" size={24} color="white" />
-          <Text style={styles.buttonText}>Create Shop</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => performLogout(navigation)}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA', width: 220, justifyContent: 'center' }}
+        onPress={() => performLogout(navigation)}
+      >
+        <Ionicons name="log-out-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+        <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 15 }}>Logout</Text>
+      </TouchableOpacity>
     </View>
   </SafeAreaView>
 );
@@ -160,7 +157,7 @@ export default function Settings() {
           setHasShop(false);
         }
       } catch (err) {
-        console.error('Shop check failed:', err);
+        console.log('Shop check failed:', err);
         setHasShop(false);
       }
     };

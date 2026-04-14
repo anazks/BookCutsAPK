@@ -83,7 +83,7 @@ export default function BusinessScreen() {
         setShopData(response.data);
       }
     } catch (error) {
-      console.error('Error fetching business data:', error);
+      console.log('Error fetching business data:', error);
     } finally {
       setLoading(false);
     }
@@ -156,6 +156,28 @@ export default function BusinessScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
+    );
+  }
+
+  if (!shopData || Object.keys(shopData).length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]} edges={['top']}>
+        <View style={{ padding: 24, alignItems: 'center' }}>
+          <Ionicons name="storefront-outline" size={64} color={COLORS.lightGray} style={{ marginBottom: 16 }} />
+          <Text style={{ fontSize: 20, fontWeight: '600', color: COLORS.darkText, marginBottom: 8, textAlign: 'center' }}>
+            No Business Profile Found
+          </Text>
+          <Text style={{ textAlign: 'center', color: COLORS.mediumGray, marginBottom: 24, fontSize: 15, lineHeight: 22 }}>
+            Please complete your shop registration first to access the Business Center and manage your profile.
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, width: 220, alignItems: 'center' }}
+            onPress={() => router.push('/Components/Shop/AddShop')}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Create Shop</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 

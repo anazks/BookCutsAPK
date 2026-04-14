@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import ImageUploadModal from './ImageUploadModel'; // Adjust path as needed
-import { viewMyShop } from '../../api/Service/Shop';
+import { viewMyShop, uploadShopProfileImage } from '../../api/Service/Shop';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const API_BASE_URL = 'https://bookmycutsapp.onrender.com/api';
@@ -40,31 +40,31 @@ const COLORS = {
 
 // ── No Shop Found Screen ──
 const NoShopFoundScreen = ({ onAddShopPress }) => (
-  <View style={styles.noShopContainer}>
-    <View style={styles.noShopContent}>
-      <View style={styles.noShopIconContainer}>
-        <Ionicons name="storefront-outline" size={80} color={COLORS.borderGray} />
-      </View>
-      <Text style={styles.noShopTitle}>No Shop Found</Text>
-      <Text style={styles.noShopDescription}>
-        You haven't created a shop yet. Create your shop to start managing your business profile, showcase your work, and connect with customers.
+  <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ padding: 24, alignItems: 'center' }}>
+      <Ionicons name="storefront-outline" size={64} color={COLORS.lightGray} style={{ marginBottom: 16 }} />
+      <Text style={{ fontSize: 20, fontWeight: '600', color: COLORS.darkText, marginBottom: 8, textAlign: 'center' }}>
+        No Business Profile Found
       </Text>
-
-      <TouchableOpacity style={styles.addShopButton} onPress={onAddShopPress}>
-        <Ionicons name="add-circle" size={24} color="white" />
-        <Text style={styles.addShopButtonText}>Add Your Shop</Text>
+      <Text style={{ textAlign: 'center', color: COLORS.mediumGray, marginBottom: 24, fontSize: 15, lineHeight: 22 }}>
+        Please complete your shop registration first to access the Business Center and manage your profile.
+      </Text>
+      <TouchableOpacity 
+        style={{ backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, width: 220, alignItems: 'center', marginBottom: 16 }}
+        onPress={onAddShopPress}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Create Shop</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backToHomeButton} onPress={() => router.replace('/ShopOwner/shopOwnerHome')}>
-        <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
-        <Text style={styles.backToHomeButtonText}>Back to Home</Text>
+      <TouchableOpacity 
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}
+        onPress={() => router.replace('/ShopOwner/shopOwnerHome')}
+      >
+        <Ionicons name="arrow-back" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+        <Text style={{ color: COLORS.primary, fontWeight: '600', fontSize: 15 }}>Back to Home</Text>
       </TouchableOpacity>
-
-      <Text style={styles.noShopHelpText}>
-        Need help? Contact support at support@bookmycuts.com
-      </Text>
     </View>
-  </View>
+  </SafeAreaView>
 );
 
 // ── Reusable Detail Row ──
@@ -361,18 +361,9 @@ const ProfileScreen = () => {
         type: mimeType,
       } as any);
 
-      const response = await fetch(`${API_BASE_URL}/shop/addProfileImage/${currentShopId}`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const result = await uploadShopProfileImage(currentShopId, formData);
 
-      const result = await response.json();
-
-      if (response.ok && (result.success === true || result.success === 'true')) {
+      if (result.success === true || result.success === 'true') {
         const newProfileUrl = result.result?.shop?.ProfileImage || result.result?.url || imageUri;
         setProfileImage(newProfileUrl);
         Alert.alert('Success', 'Profile picture updated');
