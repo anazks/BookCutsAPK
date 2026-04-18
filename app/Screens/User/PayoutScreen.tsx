@@ -117,7 +117,7 @@ export default function PayoutScreen() {
       <View style={styles.header}>
         <View style={styles.mainBalanceContainer}>
           <Text style={styles.totalEarningsLabel}>Available to Withdraw</Text>
-          <Text style={styles.totalEarningsValue}>₹{data?.totalPendingAmount?.toLocaleString() || '0'}</Text>
+          <Text style={styles.totalEarningsValue}>₹{data?.totalEarnings?.toLocaleString() || '0'}</Text>
         </View>
 
         <View style={styles.statsGrid}>

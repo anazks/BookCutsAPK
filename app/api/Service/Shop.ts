@@ -379,6 +379,17 @@ export const completeBooking = async (bookingId: string) => {
   }
 };
 
+export const createPremiumOrder = async (shopId: string) => {
+  try {
+    const response = await Axios.post('/shop/premium/order', { shopId });
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to create premium order" };
+  }
+};
+
+
+
 export const verifyPremiumPayment = async (data: {
   shopId: string;
   razorpay_order_id: string;
@@ -432,6 +443,28 @@ export const createOffer = async (data: Partial<Offer>) => {
     return response.data;
   } catch (error: any) {
     throw error?.response?.data || { message: "Failed to create offer" };
+  }
+};
+
+// @desc  Update an existing offer
+// @route PUT /api/offers/:id
+export const editOfferAPI = async (offerId: string, data: Partial<Offer>) => {
+  try {
+    const response = await Axios.put(`/offers/${offerId}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to update offer" };
+  }
+};
+
+// @desc  Delete an offer
+// @route DELETE /api/offers/:id
+export const deleteOfferAPI = async (offerId: string) => {
+  try {
+    const response = await Axios.delete(`/offers/${offerId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to delete offer" };
   }
 };
 

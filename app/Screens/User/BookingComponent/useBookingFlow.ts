@@ -133,7 +133,8 @@ export const useBookingFlow = () => {
   );
 
   const priceDetails = useMemo<PriceDetails>(() => {
-    const base = selectedServices.reduce((sum, s) => sum + ((s.price || 0) + 20), 0);
+    const servicesTotal = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+    const base = servicesTotal > 0 ? servicesTotal + 20 : 0;
     const discount = discountInfo?.referralDiscount || 0;
     return {
       baseTotal: base,
@@ -199,7 +200,7 @@ export const useBookingFlow = () => {
 
     const serviceIds = selectedServices.map((s) => s.id).filter(Boolean);
 
-    const advanceAmount = Math.min(20, finalTotal * 0.2);
+    const advanceAmount = Math.min(20, finalTotal);
     const remainingAmount = finalTotal - advanceAmount;
 
     return {
@@ -267,7 +268,7 @@ export const useBookingFlow = () => {
                   params: {
                     bookingData: JSON.stringify(bookingData),
                     bookingId,
-                    advanceAmount: Math.min(20, finalTotal),
+                    advanceAmount: bookingData.amountToPay,
                     totalPrice: finalTotal,
                     barberName: selectedBarber?.name || 'Any Barber',
                     bookingDate: selectedDate?.toLocaleDateString(),

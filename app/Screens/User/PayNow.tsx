@@ -247,7 +247,7 @@ export default function PayNow() {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: "rzp_test_SXMOCCKV91lttJ",
+        key: "rzp_live_SUY56QCdYmPx1Q",
         amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: { name: customerName, email: customerEmail, contact: customerPhone },

@@ -80,6 +80,10 @@ export default function Login() {
           await AsyncStorage.setItem('shopId', response.user.shopId);
         }
 
+        if (response.user?._id) {
+          await AsyncStorage.setItem('shopOwnerId', response.user._id);
+        }
+
         try {
           const pushToken = await AsyncStorage.getItem('expoPushToken');
           if (pushToken) {
@@ -137,6 +141,10 @@ export default function Login() {
 
         if (response.user?.shopId) {
           await AsyncStorage.setItem('shopId', response.user.shopId);
+        }
+
+        if (response.user?._id) {
+          await AsyncStorage.setItem('shopOwnerId', response.user._id);
         }
 
         try {

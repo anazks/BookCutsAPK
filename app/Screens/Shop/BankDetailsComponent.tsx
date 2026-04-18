@@ -1,21 +1,22 @@
 // app/Screens/Shop/BankDetailsComponent.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Platform,
-  StatusBar,
-  SafeAreaView,
-  KeyboardAvoidingView,
+  View,
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { fetchPayoutAccounts, savePayoutAccounts } from '../../api/Service/Shop';
 
 // ── Design Tokens ───────────────────────────────────────
@@ -52,6 +53,7 @@ interface BankDetails {
 }
 
 const initialForm: BankDetails = {
+  shopOwnerId: '',
   accountHolderName: '',
   accountNumber: '',
   ifsc: '',
@@ -66,22 +68,28 @@ export default function BankDetailsComponent() {
   const [bankData, setBankData] = useState<BankDetails | null>(null);
   const [form, setForm] = useState<BankDetails>(initialForm);
   const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
-  
+
   // Visibility States
   const [showAccountNumber, setShowAccountNumber] = useState(false);
   const [showConfirmAccountNumber, setShowConfirmAccountNumber] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch shopOwnerId from storage
+      const storedShopOwnerId = await AsyncStorage.getItem('shopOwnerId');
+      console.log('[BankDetails] Stored shopOwnerId:', storedShopOwnerId);
+
       const res = await fetchPayoutAccounts();
-      
+
       let item = null;
       if (res?.account) {
         item = res.account;
@@ -106,15 +114,21 @@ export default function BankDetailsComponent() {
           }
         };
         setBankData(normalized);
-        setForm(normalized);
+        setForm({
+          ...normalized,
+          shopOwnerId: normalized.shopOwnerId || storedShopOwnerId || ''
+        });
         setConfirmAccountNumber(normalized.accountNumber);
       } else {
         setBankData(null);
-        setForm(initialForm);
+        setForm({
+          ...initialForm,
+          shopOwnerId: storedShopOwnerId || ''
+        });
         setConfirmAccountNumber('');
       }
     } catch (err: any) {
-      console.error('[fetchPayoutAccounts] Error:', err);
+      console.log('[fetchPayoutAccounts] Error:', err);
       if (err.statusCode !== 404) {
         setError(err.message || 'Unable to load accounts');
       }
@@ -127,73 +141,141 @@ export default function BankDetailsComponent() {
     loadData();
   }, [loadData]);
 
-  const handleSubmit = async () => {
-    // Standard Validation
-    if (!form.accountHolderName || !form.accountNumber || !form.ifsc) {
-      Alert.alert('Incomplete Form', 'Please fill in all mandatory bank details.');
-      return;
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.accountHolderName.trim()) {
+      newErrors.accountHolderName = 'Account holder name is required';
     }
 
-    // Security check: Confirm Account Number
+    if (!form.accountNumber) {
+      newErrors.accountNumber = 'Account number is required';
+    } else if (form.accountNumber.length < 9 || form.accountNumber.length > 18) {
+      newErrors.accountNumber = 'Invalid account number (9-18 digits)';
+    }
+
     if (form.accountNumber !== confirmAccountNumber) {
-      Alert.alert('Verification Failed', 'Account numbers do not match. Please double-check.');
-      return;
+      newErrors.confirmAccountNumber = 'Account numbers do not match';
     }
 
-    // Basic length check
-    if (form.accountNumber.length < 9) {
-      Alert.alert('Invalid Account', 'Please enter a valid account number.');
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!form.ifsc) {
+      newErrors.ifsc = 'IFSC code is required';
+    } else if (!ifscRegex.test(form.ifsc)) {
+      newErrors.ifsc = 'Invalid IFSC format (e.g. SBIN0001234)';
+    }
+
+    if (form.user?.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.user.email)) {
+        newErrors.email = 'Invalid email address';
+      }
+    }
+
+    if (form.user?.mobileNo) {
+      const mobileRegex = /^[0-9]{10}$/;
+      if (!mobileRegex.test(form.user.mobileNo)) {
+        newErrors.mobileNo = 'Invalid 10-digit mobile number';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       return;
     }
 
     try {
       setSubmitting(true);
-      const res = await savePayoutAccounts(form);
-      if (res?.success) {
-        Alert.alert('Success', 'Your banking credentials have been secured.');
-        setIsEditing(false);
-        loadData();
+      
+      // Safety check: Fetch shopOwnerId again if missing in state
+      let submissionData = { ...form };
+      if (!submissionData.shopOwnerId) {
+        const storedId = await AsyncStorage.getItem('shopOwnerId');
+        if (storedId) {
+          submissionData.shopOwnerId = storedId;
+        }
+      }
+
+      console.log('[BankDetails] Submitting form with payload:', JSON.stringify(submissionData, null, 2));
+      const res = await savePayoutAccounts(submissionData);
+      if (res?.account || res?.message) {
+        Alert.alert(
+          'Success',
+          'Your banking credentials have been secured.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       }
     } catch (err: any) {
-      Alert.alert('Update Failed', err.message || 'We could not save your details. Please try again.');
+      console.log('[savePayoutAccounts] Error:', err);
+      
+      // Handle the specific backend error format provided by user
+      if (err.response?.data?.field) {
+        const backendField = err.response.data.field;
+        const backendDesc = err.response.data.description;
+        
+        setErrors(prev => ({
+          ...prev,
+          [backendField]: backendDesc
+        }));
+      } else {
+        Alert.alert('Update Failed', err.message || 'We could not save your details. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   const renderInputField = (
-    label: string, 
-    value: string, 
-    onChange: (t: string) => void, 
-    placeholder: string, 
+    label: string,
+    value: string,
+    onChange: (t: string) => void,
+    placeholder: string,
     keyType: 'default' | 'numeric' = 'default',
+    errorKey?: string,
     secure: boolean = false,
     onToggleSecure?: () => void,
     isSecureVisible?: boolean
   ) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.inputWrapper}>
+      <View style={[
+        styles.inputWrapper,
+        errorKey && errors[errorKey] ? styles.inputWrapperError : null
+      ]}>
         <TextInput
           style={styles.textInput}
           placeholder={placeholder}
           placeholderTextColor={COLORS.textMuted}
           value={value}
-          onChangeText={onChange}
+          onChangeText={(t) => {
+            onChange(t);
+            if (errorKey && errors[errorKey]) {
+              const newErrors = { ...errors };
+              delete newErrors[errorKey];
+              setErrors(newErrors);
+            }
+          }}
           keyboardType={keyType}
           secureTextEntry={secure && !isSecureVisible}
           autoCapitalize={label === 'IFSC Code' ? 'characters' : 'none'}
         />
         {secure && (
           <TouchableOpacity onPress={onToggleSecure} style={styles.eyeIcon}>
-            <Ionicons 
-              name={isSecureVisible ? "eye-off" : "eye"} 
-              size={20} 
-              color={COLORS.textMuted} 
+            <Ionicons
+              name={isSecureVisible ? "eye-off" : "eye"}
+              size={20}
+              color={COLORS.textMuted}
             />
           </TouchableOpacity>
         )}
       </View>
+      {errorKey && errors[errorKey] && (
+        <Text style={styles.errorText}>{errors[errorKey]}</Text>
+      )}
     </View>
   );
 
@@ -209,7 +291,7 @@ export default function BankDetailsComponent() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
+
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
@@ -219,7 +301,7 @@ export default function BankDetailsComponent() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -238,13 +320,13 @@ export default function BankDetailsComponent() {
 
               <View style={styles.cardMiddle}>
                 <Text style={styles.cardLabel}>ACCOUNT NUMBER</Text>
-                <Text 
+                <Text
                   style={styles.cardAccountNumber}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
-                  {showAccountNumber 
-                    ? bankData.accountNumber 
+                  {showAccountNumber
+                    ? bankData.accountNumber
                     : `•••• •••• •••• ${bankData.accountNumber.toString().slice(-4)}`
                   }
                 </Text>
@@ -255,14 +337,14 @@ export default function BankDetailsComponent() {
                   <Text style={styles.cardLabel}>IFSC CODE</Text>
                   <Text style={styles.cardValue}>{bankData.ifsc}</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setShowAccountNumber(!showAccountNumber)}
                   style={styles.eyeBtnSmall}
                 >
-                  <Ionicons 
-                    name={showAccountNumber ? "eye-off" : "eye"} 
-                    size={16} 
-                    color={COLORS.white} 
+                  <Ionicons
+                    name={showAccountNumber ? "eye-off" : "eye"}
+                    size={16}
+                    color={COLORS.white}
                   />
                   <Text style={styles.eyeBtnText}>{showAccountNumber ? 'Hide' : 'Show'}</Text>
                 </TouchableOpacity>
@@ -272,7 +354,7 @@ export default function BankDetailsComponent() {
             {/* Account Details Checklist */}
             <View style={styles.detailsSection}>
               <Text style={styles.sectionHeader}>Account Details</Text>
-              
+
               <View style={styles.detailItem}>
                 <MaterialIcons name="alternate-email" size={20} color={COLORS.textMuted} />
                 <View style={styles.detailTextContainer}>
@@ -300,8 +382,8 @@ export default function BankDetailsComponent() {
               )}
             </View>
 
-            <TouchableOpacity 
-              style={styles.editBtn} 
+            <TouchableOpacity
+              style={styles.editBtn}
               onPress={() => setIsEditing(true)}
             >
               <MaterialIcons name="security" size={20} color={COLORS.white} />
@@ -326,20 +408,23 @@ export default function BankDetailsComponent() {
                   Ensure details match your passbook to avoid payout failures.
                 </Text>
               </View>
-              
+
               {renderInputField(
                 "Account Holder Name",
                 form.accountHolderName,
-                (t) => setForm({...form, accountHolderName: t}),
-                "As per bank records"
+                (t) => setForm({ ...form, accountHolderName: t }),
+                "As per bank records",
+                "default",
+                "accountHolderName"
               )}
 
               {renderInputField(
                 "Account Number",
                 form.accountNumber,
-                (t) => setForm({...form, accountNumber: t}),
+                (t) => setForm({ ...form, accountNumber: t }),
                 "11-16 digit bank number",
                 "numeric",
+                "accountNumber",
                 true,
                 () => setShowAccountNumber(!showAccountNumber),
                 showAccountNumber
@@ -351,6 +436,7 @@ export default function BankDetailsComponent() {
                 (t) => setConfirmAccountNumber(t),
                 "Re-enter account number",
                 "numeric",
+                "confirmAccountNumber",
                 true,
                 () => setShowConfirmAccountNumber(!showConfirmAccountNumber),
                 showConfirmAccountNumber
@@ -359,8 +445,10 @@ export default function BankDetailsComponent() {
               {renderInputField(
                 "IFSC Code",
                 form.ifsc,
-                (t) => setForm({...form, ifsc: t.toUpperCase()}),
-                "e.g. SBIN0001234"
+                (t) => setForm({ ...form, ifsc: t.toUpperCase() }),
+                "e.g. SBIN0001234",
+                "default",
+                "ifsc"
               )}
 
               <View style={styles.horizontalDivider} />
@@ -369,30 +457,32 @@ export default function BankDetailsComponent() {
               {renderInputField(
                 "Email Address",
                 form.user?.email || '',
-                (t) => setForm({...form, user: {...form.user!, email: t}}),
+                (t) => setForm({ ...form, user: { ...form.user!, email: t } }),
                 "For payout notifications",
-                "default"
+                "default",
+                "email"
               )}
 
               {renderInputField(
                 "Mobile Number",
                 form.user?.mobileNo || '',
-                (t) => setForm({...form, user: {...form.user!, mobileNo: t}}),
+                (t) => setForm({ ...form, user: { ...form.user!, mobileNo: t } }),
                 "10-digit primary mobile",
-                "numeric"
+                "numeric",
+                "mobileNo"
               )}
 
               <View style={styles.actionRow}>
                 {isEditing && (
-                  <TouchableOpacity 
-                    style={styles.cancelBtn} 
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
                     onPress={() => setIsEditing(false)}
                   >
                     <Text style={styles.cancelBtnText}>Back</Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity 
-                  style={[styles.saveBtn, submitting && { opacity: 0.7 }]} 
+                <TouchableOpacity
+                  style={[styles.saveBtn, submitting && { opacity: 0.7 }]}
                   onPress={handleSubmit}
                   disabled={submitting}
                 >
@@ -451,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flexGrow: 1,
   },
-  
+
   // Bank Card UI
   bankCard: {
     backgroundColor: '#0F172A', // Deep navy/slate
@@ -639,6 +729,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: '#F1F5F9',
+  },
+  inputWrapperError: {
+    borderColor: COLORS.error,
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   textInput: {
     flex: 1,

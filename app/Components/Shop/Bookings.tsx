@@ -395,10 +395,10 @@ export default function Bookings() {
             </View>
             <View style={styles.priceBlock}>
               <Text style={[styles.priceText, item.paymentStatus === 'partial' && { color: COLORS.warning }]}>
-                {item.paymentStatus === 'partial' ? `₹${item.remainingAmount}` : `₹${item.price}`}
+                {item.paymentStatus === 'partial' ? `₹${item.remainingAmount}` : `₹${item.salonServiceCharge}`}
               </Text>
               <Text style={styles.priceSubText}>
-                {item.paymentStatus === 'partial' ? 'To Collect' : 'Total'}
+                {item.paymentStatus === 'partial' ? 'To Collect' : 'Service Charge'}
               </Text>
               
               <View style={styles.paymentBadgeContainer}>
@@ -441,7 +441,6 @@ export default function Bookings() {
                     </View>
                     <View style={styles.serviceItemRight}>
                       <Text style={styles.serviceItemMins}>{srv.duration} min</Text>
-                      <Text style={styles.serviceItemPrice}>₹{srv.price}</Text>
                     </View>
                   </View>
                 ))}
@@ -465,7 +464,7 @@ export default function Bookings() {
                 )}
                 <View style={[styles.paymentSummaryRow, styles.paymentSummaryTotalRow]}>
                   <Text style={styles.paymentSummaryTotalLabel}>
-                    {item.paymentStatus === 'paid' ? 'Total Settled' : 'Balance to Collect'}
+                    {item.paymentStatus === 'paid' ? 'Settled Earnings' : 'Balance to Collect'}
                   </Text>
                   <Text style={[styles.paymentSummaryTotalValue, item.paymentStatus !== 'paid' && { color: COLORS.warning }]}>
                     ₹{item.remainingAmount}
