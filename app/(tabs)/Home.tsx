@@ -314,7 +314,7 @@ const Home = () => {
 
   const fetchCustomization = async () => {
     try {
-      const res = await getCustomization();
+      const res = await getCustomization('home');
       if (res?.success && res?.customization) {
         setCustomization({
           backgroundColor: res.customization.backgroundColor || '#1E40AF',

@@ -211,7 +211,12 @@ export default function Profile() {
           {/* Dummy Option */}
           <TouchableOpacity
             style={styles.gridCard}
-            onPress={() => {}}
+               onPress={() =>
+              router.push({
+                pathname: '/Screens/User/Notifications',
+                params: { referralCode: userData?.referralCode },
+              })
+            }
           >
             <View style={[styles.gridIconContainer, { backgroundColor: '#06B6D415' }]}>
               <Ionicons name="notifications-outline" size={20} color="#06B6D4" />

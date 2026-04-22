@@ -247,7 +247,7 @@ export default function PayNow() {
         name: 'BookmyCuts',
         description: `Booking Payment (${paymentType === 'advance' ? 'Advance' : 'Full'})`,
         order_id: orderResponse.id,
-        key: "rzp_live_SUY56QCdYmPx1Q",
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
         amount: Math.round(amount * 100),
         currency: 'INR',
         prefill: { name: customerName, email: customerEmail, contact: customerPhone },
@@ -260,7 +260,7 @@ export default function PayNow() {
       };
 
       console.log('--- RAZORPAY FRONTEND DEBUG ---');
-      console.log('Key ID (HARDCODED):', options.key);
+      console.log('Key ID (Env):', options.key);
       console.log('Options Key:', options.key);
       console.log('Order ID:', options.order_id);
       console.log('-------------------------------');
@@ -274,7 +274,19 @@ export default function PayNow() {
           if (error.code === 0) {
             Alert.alert(
               'Payment Cancelled',
-              'You have cancelled the payment process. No money was deducted, and your booking remains incomplete.'
+              'You have cancelled the payment process. No money was deducted, and your booking remains incomplete.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    const shopId = bookingData?.shopId;
+                    router.push({
+                      pathname: '/Screens/User/BarberShopFeed',
+                      params: { shop_id: shopId },
+                    });
+                  },
+                },
+              ]
             );
           } else if (error.code === 1) {
             Alert.alert('Payment Failed', error.description || 'Payment could not be completed');

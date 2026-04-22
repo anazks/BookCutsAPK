@@ -88,7 +88,7 @@ export const resetPassword = async (data) => {
 
 export const userGoogleSignin = async (data) => {
     try {
-        const response = await Axios.post('auth/user/google-signin',data)
+        const response = await Axios.post('/auth/user/google-signin',data)
         return response.data
     } catch (error: any) {
         throw error?.response?.data || { message: "Google Sign-In connection failed." };
@@ -145,8 +145,8 @@ export const getCustomization = async (screen?: string) => {
       params: screen ? { screen } : {}
     });
     return response.data;
-  } catch (error: any) {
-    console.error('Error fetching customization:', error);
+  } catch (error: any) { 
+    console.log('Error fetching customization:', error);
     return null;
   }
 };

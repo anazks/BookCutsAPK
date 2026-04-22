@@ -25,7 +25,7 @@ const PlatformOffers = () => {
         setOffers(response.data);
       }
     } catch (error) {
-      console.error('Error fetching platform offers:', error);
+      console.log('Error fetching platform offers:', error);
     } finally {
       setLoading(false);
     }
