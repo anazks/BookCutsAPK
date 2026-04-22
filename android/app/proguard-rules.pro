@@ -12,3 +12,7 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# Razorpay
+-keep class com.razorpay.** {*;}
+-dontwarn com.razorpay.**
