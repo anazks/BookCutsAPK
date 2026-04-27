@@ -27,7 +27,8 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
       "RECORD_AUDIO",
-      "android.permission.RECEIVE_BOOT_COMPLETED"
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.POST_NOTIFICATIONS"
     ]
     },
     "web": {

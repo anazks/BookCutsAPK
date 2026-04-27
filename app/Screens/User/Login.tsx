@@ -76,10 +76,16 @@ export default function Login() {
       console.log('GOOGLE LOGIN RESPONSE:', response);
 
 
-    if (response.success && response.token) {
+    if (response.success && (response.accessToken || response.token)) {
         console.log('🟢 BREADCRUMB 1: Login success block reached!');
 
-        await AsyncStorage.setItem('accessToken', response.token);
+        const accessToken = response.accessToken || response.token;
+        await AsyncStorage.setItem('accessToken', accessToken);
+        
+        if (response.refreshToken) {
+          await AsyncStorage.setItem('refreshToken', response.refreshToken);
+        }
+        
         await AsyncStorage.setItem('authProvider', 'google');
         await AsyncStorage.setItem('userCategory', 'user');
 
@@ -152,10 +158,16 @@ export default function Login() {
 
       console.log('LOGIN RESPONSE 👉', response);
 
-      if (response.success && response.token) {
+      if (response.success && (response.accessToken || response.token)) {
         console.log('🟢 BREADCRUMB 1: Login success block reached!');
 
-        await AsyncStorage.setItem('accessToken', response.token);
+        const accessToken = response.accessToken || response.token;
+        await AsyncStorage.setItem('accessToken', accessToken);
+        
+        if (response.refreshToken) {
+          await AsyncStorage.setItem('refreshToken', response.refreshToken);
+        }
+        
         await AsyncStorage.setItem('authProvider', 'local');
         await AsyncStorage.setItem('userCategory', 'user');
 

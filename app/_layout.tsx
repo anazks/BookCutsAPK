@@ -108,6 +108,13 @@ export default function RootLayout() {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
         });
+        
+        await Notifications.setNotificationChannelAsync('payment', {
+          name: 'Payment Updates',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
       }
 
       // 3. Permissions

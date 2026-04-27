@@ -150,3 +150,12 @@ export const getCustomization = async (screen?: string) => {
     return null;
   }
 };
+
+export const requestRefreshToken = async (refreshToken: string) => {
+    try {
+        const response = await Axios.post('/auth/refresh-token', { refreshToken });
+        return response.data;
+    } catch (error: any) {
+        throw error?.response?.data || { message: "Failed to refresh token" };
+    }
+};
