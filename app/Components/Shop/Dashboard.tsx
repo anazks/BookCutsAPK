@@ -6,14 +6,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window')
 
 export default function Dashboard({
+  hasShop = true,
   isPremium = false,
   premiumStartDate = null,
   premiumEndDate = null
 }: {
+  hasShop?: boolean;
   isPremium?: boolean;
   premiumStartDate?: string | null;
   premiumEndDate?: string | null;
@@ -258,9 +261,36 @@ export default function Dashboard({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Subscription Section */}
+        {/* Subscription / Create Shop Section */}
         <View style={styles.section}>
-          {subscriptionData.isSubscribed ? (
+          {!hasShop ? (
+            <View style={styles.subscriptionOfferCard}>
+              <View style={styles.offerHeader}>
+                <View style={styles.offerIcon}>
+                  <Text style={styles.offerIconText}>🏪</Text>
+                </View>
+                <View style={styles.offerContent}>
+                  <Text style={styles.offerTitle}>Create Your Business Profile</Text>
+                  <Text style={styles.offerDescription}>Get started by setting up your salon profile to attract customers</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.subscribeButton} 
+                onPress={() => router.push('/Components/Shop/AddShop')} 
+                activeOpacity={0.8}
+              >
+                <Text style={styles.subscribeButtonText}>Create Shop Now</Text>
+              </TouchableOpacity>
+
+              <View style={styles.benefitsList}>
+                <Text style={styles.benefitItem}>✓ Accept online bookings</Text>
+                <Text style={styles.benefitItem}>✓ Showcase your services</Text>
+                <Text style={styles.benefitItem}>✓ Grow your customer base</Text>
+                <Text style={[styles.benefitItem, { color: '#059669', fontWeight: '700' }]}>✓ ₹5 Bonus from BookMyCut per booking!</Text>
+              </View>
+            </View>
+          ) : subscriptionData.isSubscribed ? (
             <LinearGradient
               colors={['#1e1b4b', '#312e81', '#4338ca']}
               start={{ x: 0, y: 0 }}

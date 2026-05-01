@@ -10,10 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface ReferralDetailsProps {
-  referralCode?: string;
-}
+import { useLocalSearchParams } from 'expo-router';
 
 const STEPS = [
   { title: 'Share Your Code', desc: 'Send your code to friends via any platform.' },
@@ -23,7 +20,8 @@ const STEPS = [
   { title: 'Auto Applied', desc: 'Rewards apply automatically on your next booking.' },
 ];
 
-const ReferralDetails: React.FC<ReferralDetailsProps> = ({ referralCode }) => {
+const ReferralDetails = () => {
+  const { referralCode } = useLocalSearchParams<{ referralCode: string }>();
   // Fallback only shown when truly no code was passed
   const displayCode = referralCode || '-------';
 

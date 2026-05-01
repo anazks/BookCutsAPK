@@ -19,6 +19,7 @@ import {
 import { getMyProfile } from '../api/Service/ShoperOwner';
 import { viewMyShop } from '../api/Service/Shop';
 import Dashboard from '../Components/Shop/Dashboard';
+import ShopOwnerGuide from '../Components/Shop/ShopOwnerGuide';
 
 export default function ShopOwnerHome() {
   useFocusEffect(
@@ -43,6 +44,7 @@ export default function ShopOwnerHome() {
   });
   const [loading, setLoading] = useState(true);
   const [showAddShopModal, setShowAddShopModal] = useState(false);
+  const [hasShop, setHasShop] = useState(false);
   const [isPremium, setIsPremium] = useState(false); // To pass premium status down to Dashboard
   const [premiumStartDate, setPremiumStartDate] = useState<string | null>(null);
   const [premiumEndDate, setPremiumEndDate] = useState<string | null>(null);
@@ -63,12 +65,14 @@ export default function ShopOwnerHome() {
         const shopResponse = await viewMyShop();
         console.log("Shop data fetched in home:", JSON.stringify(shopResponse));
         if (shopResponse.success && shopResponse.data) {
+          setHasShop(true);
           setIsPremium(!!shopResponse.data.IsPremium);
           setPremiumStartDate(shopResponse.data.PremiumStartDate || null);
           setPremiumEndDate(shopResponse.data.PremiumEndDate || null);
         }
       } catch (error) {
         console.log("Error fetching shop data:", error);
+        setHasShop(false);
       } finally {
         setLoading(false);
       }
@@ -147,7 +151,12 @@ export default function ShopOwnerHome() {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
       >
+        {!hasShop && (
+          <ShopOwnerGuide onGetStarted={() => router.push('/Components/Shop/AddShop')} />
+        )}
+        
         <Dashboard 
+          hasShop={hasShop}
           isPremium={isPremium} 
           premiumStartDate={premiumStartDate}
           premiumEndDate={premiumEndDate}

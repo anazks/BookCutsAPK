@@ -255,3 +255,5 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
 });
+
+export default BookingFooter;

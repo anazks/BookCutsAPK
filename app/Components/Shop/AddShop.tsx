@@ -19,6 +19,9 @@ import {
 import { useRouter } from 'expo-router';
 import { addNewShop } from '../../api/Service/Shop';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import LocationPickerModal from './LocationPickerModal';
+import { Ionicons } from '@expo/vector-icons';
 
 // District data for Kerala and Tamil Nadu
 const stateDistricts = {
@@ -92,8 +95,30 @@ export default function AddShop({ onShopAdded }) {
 
   const [loading, setLoading] = useState(false);
   const [districts, setDistricts] = useState([]);
+  const [mapCoordinates, setMapCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const [showStateModal, setShowStateModal] = useState(false);
   const [showDistrictModal, setShowDistrictModal] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [initialMapCoords, setInitialMapCoords] = useState<{lat: number, lng: number}>({ lat: 10.8505, lng: 76.2711 });
+
+  const handleOpenMap = async () => {
+    setLoading(true);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setShowMapPicker(true);
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setInitialMapCoords({ lat: location.coords.latitude, lng: location.coords.longitude });
+      setShowMapPicker(true);
+    } catch (error) {
+      console.error(error);
+      setShowMapPicker(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -144,9 +169,10 @@ export default function AddShop({ onShopAdded }) {
       !formData.District ||
       !formData.Pincode.trim() ||
       !formData.ExactLocation.trim() ||
-      !formData.targetAudience.length
+      !formData.targetAudience.length ||
+      !mapCoordinates
     ) {
-      Alert.alert('Error', 'All fields are required, including at least one target audience');
+      Alert.alert('Error', 'All fields are required, including shop location on map and target audience');
       return;
     }
 
@@ -176,6 +202,10 @@ export default function AddShop({ onShopAdded }) {
         Pincode: formData.Pincode.trim(),
         ExactLocation: formData.ExactLocation.trim(),
         targetAudience: formData.targetAudience,
+        ExactLocationCoord: {
+          type: 'Point',
+          coordinates: [mapCoordinates?.lng, mapCoordinates?.lat], // [longitude, latitude]
+        },
       };
 
       // Debug: log exactly what is being sent
@@ -356,6 +386,43 @@ export default function AddShop({ onShopAdded }) {
               />
             </View>
 
+            {/* Shop Location Trigger */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Shop Location on Map *</Text>
+              <TouchableOpacity
+                style={[
+                  styles.mapTrigger,
+                  mapCoordinates && styles.mapTriggerActive,
+                ]}
+                onPress={handleOpenMap}
+                activeOpacity={0.7}
+              >
+                <View style={styles.triggerContent}>
+                  <View style={[styles.triggerIconBg, mapCoordinates && styles.triggerIconBgActive]}>
+                    <Ionicons 
+                      name={mapCoordinates ? 'location' : 'map-outline'} 
+                      size={24} 
+                      color={mapCoordinates ? '#4f46e5' : '#64748b'} 
+                    />
+                  </View>
+                  <View style={styles.triggerTextContainer}>
+                    <Text style={styles.triggerMainText}>
+                      {mapCoordinates ? 'Location Pinned' : 'Set Shop Location'}
+                    </Text>
+                    <Text style={styles.triggerSubText}>
+                      {mapCoordinates 
+                        ? `${mapCoordinates.lat.toFixed(5)}, ${mapCoordinates.lng.toFixed(5)}`
+                        : 'Tap to select exact point on map'}
+                    </Text>
+                  </View>
+                  <Text style={styles.triggerActionText}>{mapCoordinates ? 'Change' : 'Set'}</Text>
+                </View>
+              </TouchableOpacity>
+              {!mapCoordinates && (
+                <Text style={styles.helperText}>Required for customer distance calculation</Text>
+              )}
+            </View>
+
             {/* Pincode */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Pincode *</Text>
@@ -475,6 +542,16 @@ export default function AddShop({ onShopAdded }) {
                 </View>
               </TouchableOpacity>
             </Modal>
+            <LocationPickerModal
+              visible={showMapPicker}
+              onClose={() => setShowMapPicker(false)}
+              initialCoords={initialMapCoords}
+              onConfirm={(coords) => {
+                setMapCoordinates(coords);
+                setShowMapPicker(false);
+              }}
+            />
+
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -482,8 +559,26 @@ export default function AddShop({ onShopAdded }) {
   );
 }
 
-// ── Styles (unchanged) ──
 const styles = StyleSheet.create({
+  mapHeader: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  mapHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  mapConfirmContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -650,5 +745,55 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 6,
     fontStyle: 'italic',
+  },
+  mapTrigger: {
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mapTriggerActive: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#f5f3ff',
+  },
+  triggerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  triggerIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  triggerIconBgActive: {
+    backgroundColor: '#ede9fe',
+  },
+  triggerTextContainer: {
+    flex: 1,
+  },
+  triggerMainText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  triggerSubText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  triggerActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4f46e5',
   },
 });
