@@ -38,7 +38,7 @@
     },
     "plugins": [
       "expo-router",
-      [
+      [ 
         "expo-splash-screen",
         {
           "image": "./assets/images/scissors_icon.png",

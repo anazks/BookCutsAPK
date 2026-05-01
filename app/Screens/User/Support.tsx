@@ -29,7 +29,7 @@ export default function Support() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6B6B" barStyle="light-content" />
+      <StatusBar backgroundColor="#2196F3" barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -42,7 +42,7 @@ export default function Support() {
           <Text style={styles.sectionTitle}>Contact Us</Text>
           
           <View style={styles.contactCard}>
-            <Icon name="phone" size={24} color="#FF6B6B" style={styles.icon} />
+            <Icon name="phone" size={24} color="#2196F3" style={styles.icon} />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Call Us</Text>
               {contactNumbers.map((item) => (
@@ -59,7 +59,7 @@ export default function Support() {
           </View>
 
           <View style={styles.contactCard}>
-            <Icon name="email" size={24} color="#FF6B6B" style={styles.icon} />
+            <Icon name="email" size={24} color="#2196F3" style={styles.icon} />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Email Us</Text>
               <TouchableOpacity onPress={handleEmail}>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF'
   },
   header: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#2196F3',
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center'
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FF6B6B',
+    color: '#2196F3',
     marginBottom: 15
   },
   contactCard: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   contactValue: {
     fontSize: 14,
-    color: '#FF6B6B',
+    color: '#2196F3',
     fontWeight: '500'
   },
   faqItem: {

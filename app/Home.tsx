@@ -89,7 +89,7 @@ export default function GetStartedScreen() {
         >
           <TouchableOpacity 
             style={styles.getStartedButton}
-            onPress={() => router.push('/Screens/RoleSelectionScreen')}
+            onPress={() => router.push('/Screens/LanguageSelectionScreen')}
             activeOpacity={0.9}
           >
             <LinearGradient

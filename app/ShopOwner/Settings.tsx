@@ -812,7 +812,7 @@ const becomeBarber = async () => {
                   style={styles.input}
                   value={serviceDuration}
                   onChangeText={setServiceDuration}
-                  placeholder="e.g. 30 mins, 1 hour"
+                  placeholder="enter in minutes"
                 />
               </View>
             </View>

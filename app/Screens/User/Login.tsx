@@ -75,17 +75,15 @@ export default function Login() {
 
       console.log('GOOGLE LOGIN RESPONSE:', response);
 
+      const token = response.accessToken || response.token;
 
-    if (response.success && (response.accessToken || response.token)) {
+      if (response.success && token) {
         console.log('🟢 BREADCRUMB 1: Login success block reached!');
 
-        const accessToken = response.accessToken || response.token;
-        await AsyncStorage.setItem('accessToken', accessToken);
-        
+        await AsyncStorage.setItem('accessToken', token);
         if (response.refreshToken) {
           await AsyncStorage.setItem('refreshToken', response.refreshToken);
         }
-        
         await AsyncStorage.setItem('authProvider', 'google');
         await AsyncStorage.setItem('userCategory', 'user');
 
@@ -158,16 +156,15 @@ export default function Login() {
 
       console.log('LOGIN RESPONSE 👉', response);
 
-      if (response.success && (response.accessToken || response.token)) {
+      const token = response.accessToken || response.token;
+
+      if (response.success && token) {
         console.log('🟢 BREADCRUMB 1: Login success block reached!');
 
-        const accessToken = response.accessToken || response.token;
-        await AsyncStorage.setItem('accessToken', accessToken);
-        
+        await AsyncStorage.setItem('accessToken', token);
         if (response.refreshToken) {
           await AsyncStorage.setItem('refreshToken', response.refreshToken);
         }
-        
         await AsyncStorage.setItem('authProvider', 'local');
         await AsyncStorage.setItem('userCategory', 'user');
 
@@ -235,8 +232,8 @@ export default function Login() {
 
           {/* Welcome Text */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>Welcome back!</Text>
-            <Text style={styles.subtitleText}>Sign in to your account</Text>
+            <Text style={styles.welcomeText}>Ready for a fresh look?</Text>
+            <Text style={styles.subtitleText}>Sign in to book your next cut</Text>
           </View>
 
           {/* Form Section */}
@@ -572,12 +569,12 @@ const styles = StyleSheet.create({
   },
   signupText: {
     color: GRAY_TEXT,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '400',
   },
   signupLink: {
     color: PRIMARY,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   footer: {
@@ -586,7 +583,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 13,
     color: GRAY_TEXT,
     textAlign: 'center',
     lineHeight: 18,

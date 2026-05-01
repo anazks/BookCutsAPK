@@ -71,14 +71,13 @@ export default function Login() {
 
       console.log('GOOGLE LOGIN RESPONSE:', response);
 
-      if (response.success && (response.accessToken || response.token)) {
-        const accessToken = response.accessToken || response.token;
-        await AsyncStorage.setItem('accessToken', accessToken);
+      const token = response.accessToken || response.token;
 
+      if (response.success && token) {
+        await AsyncStorage.setItem('accessToken', token);
         if (response.refreshToken) {
           await AsyncStorage.setItem('refreshToken', response.refreshToken);
         }
-
         await AsyncStorage.setItem('authProvider', 'google');
         await AsyncStorage.setItem('userCategory', 'shop');
 
@@ -140,14 +139,13 @@ export default function Login() {
 
       console.log('LOGIN RESPONSE 👉', response);
 
-      if (response.success && (response.accessToken || response.token)) {
-        const accessToken = response.accessToken || response.token;
-        await AsyncStorage.setItem('accessToken', accessToken);
+      const token = response.accessToken || response.token;
 
+      if (response.success && token) {
+        await AsyncStorage.setItem('accessToken', token);
         if (response.refreshToken) {
           await AsyncStorage.setItem('refreshToken', response.refreshToken);
         }
-
         await AsyncStorage.setItem('authProvider', 'local');
         await AsyncStorage.setItem('userCategory', 'shop');
 
@@ -202,8 +200,8 @@ export default function Login() {
               />
             </View>
             <View style={styles.titleContainer}>
-              <Text style={styles.welcomeText}>Welcome Back!</Text>
-              <Text style={styles.subtitleText}>Sign in to manage your salon</Text>
+              <Text style={styles.welcomeText}>Grow your salon business</Text>
+              <Text style={styles.subtitleText}>Access your dashboard & appointments</Text>
             </View>
           </View>
 
@@ -547,12 +545,12 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: '#64748B',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '400',
   },
   linkText: {
     color: '#1877F2',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   policyContainer: {
@@ -560,7 +558,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   policyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,
