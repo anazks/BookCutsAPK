@@ -560,10 +560,37 @@ const becomeBarber = async () => {
                 {shopData.ShopName ? shopData.ShopName.charAt(0).toUpperCase() : 'S'}
               </Text>
             </View>
-            <Text style={styles.profileName}>{shopData.ShopName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.profileName}>{shopData.ShopName}</Text>
+              {shopData.isVerified && (
+                <MaterialIcons name="verified" size={20} color="#4F46E5" style={{ marginLeft: 6 }} />
+              )}
+            </View>
             <Text style={styles.profileSub}>{shopData.City} • {shopData.Mobile}</Text>
             <Text style={styles.profileTiming}>{shopData.Timing}</Text>
             {shopData.website ? <Text style={styles.profileLink}>{shopData.website}</Text> : null}
+          </View>
+        )}
+
+        {/* Status Messages */}
+        {shopData && (
+          <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+            {!shopData.isActive && (
+              <View style={styles.statusBannerWarning}>
+                <Ionicons name="alert-circle" size={20} color="#92400E" />
+                <Text style={styles.statusBannerTextWarning}>
+                  Add at least one service and one barber to activate your shop.
+                </Text>
+              </View>
+            )}
+            {!shopData.isVerified && (
+              <View style={styles.statusBannerInfo}>
+                <Ionicons name="information-circle" size={20} color="#1E40AF" />
+                <Text style={styles.statusBannerTextInfo}>
+                  Verification in process. After verification your shop will be listed to users.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -1242,21 +1269,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   
-  // Added Notice Styles
-  activationNotice: {
+  // Status Banners
+  statusBannerWarning: {
     flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
     padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#FEF3C7',
+    marginBottom: 8,
   },
-  activationText: {
+  statusBannerTextWarning: {
     flex: 1,
-    fontSize: 13,
+    marginLeft: 10,
+    fontSize: 14,
     color: '#92400E',
-    lineHeight: 18,
+    fontWeight: '500',
+  },
+  statusBannerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  statusBannerTextInfo: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '500',
   },
   becomeBarberButton: {
     flexDirection: 'row',

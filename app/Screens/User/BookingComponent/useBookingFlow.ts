@@ -152,8 +152,7 @@ export const useBookingFlow = () => {
   }, [shopDetails?.barbers]);
 
   const allServices = useMemo<Service[]>(() => {
-    if (!shopDetails?.services) return [];
-    return [{ id: null, name: 'hair cut', price: 150, duration: 30 }, ...shopDetails.services];
+    return shopDetails?.services || [];
   }, [shopDetails?.services]);
 
   // ── Handlers ──

@@ -3,13 +3,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
-export const getAllShops = async () => {
+export interface GetAllShopsParams {
+  page?: number;
+  limit?: number;
+  lat?: number;
+  lng?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+  city?: string;
+}
+
+export const getAllShops = async (params: GetAllShopsParams = {}) => {
   try {
-    const response = await Axios.get('/shop/ViewAllShop');
-    console.log("Response from getAllShops:", JSON.stringify(response, null, 2));
+    const response = await Axios.get('/shop/ViewAllShop', { params });
+    // console.log("Response from getAllShops:", JSON.stringify(response, null, 2));
     return response.data;
   } catch (error: any) {
-    throw error?.response?.data || { message: "Registration failed" };
+    throw error?.response?.data || { message: "Failed to fetch shops" };
   }
 };
 

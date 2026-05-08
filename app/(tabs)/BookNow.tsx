@@ -17,15 +17,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import Reanimated, { 
-  FadeInDown, 
-  FadeInRight, 
-  useAnimatedScrollHandler, 
-  useSharedValue, 
-  withTiming, 
-  withRepeat, 
-  useAnimatedStyle, 
-  withSequence 
+import Reanimated, {
+  FadeInDown,
+  FadeInRight,
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllShops } from '../api/Service/Shop';
@@ -38,17 +35,7 @@ const CARD_MARGIN = 16;
 const CARD_SPACING = 12;
 const CARD_WIDTH = (screenWidth - (CARD_MARGIN * 2) - CARD_SPACING) / 2;
 
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// calculateDistance removed because backend provides distanceText
 
 // Animated Card Component
 const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: { item: any; index?: number; onPress: () => void; onBook: (item: any) => void; colors: any; styles: any }) => {
@@ -104,12 +91,12 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
             <View style={styles.infoRow}>
               <Ionicons name="location-outline" size={12} color={colors.text.light} />
               <Text style={styles.infoText} numberOfLines={1}>{item.city}</Text>
-              {item.distance !== 'N/A' && (
+              {item.distanceText ? (
                 <>
                   <Text style={styles.dotSeparator}>•</Text>
-                  <Text style={styles.distanceText}>{item.distance}</Text>
+                  <Text style={styles.distanceText}>{item.distanceText}</Text>
                 </>
-              )}
+              ) : null}
             </View>
 
             <View style={styles.infoRow}>
@@ -666,17 +653,22 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   });
 
   const [selectedCity, setSelectedCity] = useState('All');
+  const [citiesList, setCitiesList] = useState<string[]>(['All']);
   const [selectedKmRange, setSelectedKmRange] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('distance');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [allShops, setAllShops] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<any>(null);
+  const [locationLoaded, setLocationLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [backgroundCustomization, setBackgroundCustomization] = useState<any>(null);
 
   const fetchCustomization = async () => {
@@ -702,11 +694,11 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       setRandomizedShops(null);
     } else {
       // Pick dynamic few shops for other filters (random 5-8 shops)
-      const currentFiltered = shopsWithDistance.filter(s => s.city === selectedCity || selectedCity === 'All');
+      const currentFiltered = allShops.filter(s => s.city === selectedCity || selectedCity === 'All');
       const shuffled = [...currentFiltered].sort(() => Math.random() - 0.5);
       setRandomizedShops(shuffled.slice(0, Math.floor(Math.random() * 4) + 5));
     }
-  }, [selectedCategory, selectedCity, shopsWithDistance]);
+  }, [selectedCategory, selectedCity, allShops]);
 
   const handleCardPress = (shop: any) => {
     router.push({
@@ -742,104 +734,102 @@ const BookNow = ({ navigation }: { navigation: any }) => {
         image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
         isOpen: Math.random() > 0.3,
         serviceType: ['Haircut', 'Beard Trim', 'Facial', 'Massage', 'Hair Color'][Math.floor(Math.random() * 5)],
+        distanceText: shop.distanceText,
+        distanceKm: shop.distance,
       };
     });
   };
 
-  const fetchShops = async (isRefreshing = false) => {
+  const fetchShops = async (pageNum = 1, isRefreshing = false) => {
     try {
       if (isRefreshing) {
         setRefreshing(true);
-      } else {
+      } else if (pageNum === 1) {
         setLoading(true);
+      } else {
+        setLoadingMore(true);
       }
       setError(null);
-      const result = await getAllShops();
+
+      const params: any = {
+        page: pageNum,
+        limit: 10,
+        sort: sortBy === 'name' ? 'name' : undefined,
+        order: 'asc',
+      };
+      if (selectedCity !== 'All') {
+        params.city = selectedCity;
+      }
+      if (userLocation) {
+        params.lat = userLocation.coords.latitude;
+        params.lng = userLocation.coords.longitude;
+      }
+
+      const result = await getAllShops(params);
 
       if (result && result.success) {
         const transformedData = result.data ? transformShopData(result.data) : [];
-        setAllShops(transformedData);
+        if (pageNum === 1) {
+          setAllShops(transformedData);
+        } else {
+          setAllShops(prev => [...prev, ...transformedData]);
+        }
+
+        if (result.cities) {
+          setCitiesList(['All', ...result.cities]);
+        }
+
+        if (result.pagination) {
+          setHasMore(result.pagination.hasNextPage);
+        } else {
+          setHasMore(transformedData.length === 10);
+        }
+        setPage(pageNum);
       } else {
-        setError(result.message || 'Failed to fetch shops');
+        if (pageNum === 1) setError(result.message || 'Failed to fetch shops');
       }
     } catch (error: any) {
       if (error?.message === 'No shops found') {
-        setAllShops([]);
+        if (pageNum === 1) setAllShops([]);
+        setHasMore(false);
         setError(null);
       } else {
-        setError(error?.message || 'Network error occurred');
+        if (pageNum === 1) setError(error?.message || 'Network error occurred');
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchShops();
-  }, []);
-
-  useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission to access location was denied');
-        return;
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({});
+          setUserLocation(location);
+        }
+      } catch (e) {
+        console.log('Location error:', e);
+      } finally {
+        setLocationLoaded(true);
       }
-
-      let location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location);
     })();
   }, []);
 
-  const getUniqueCities = useMemo(() => {
-    const cityMap = new Map();
-    allShops.forEach(shop => {
-      const trimmed = shop.city.trim();
-      if (trimmed) {
-        const lower = trimmed.toLowerCase();
-        if (!cityMap.has(lower)) {
-          cityMap.set(lower, trimmed);
-        }
-      }
-    });
-    return Array.from(cityMap.values()).sort();
-  }, [allShops]);
-
-  const cities = useMemo(() => ['All', ...getUniqueCities], [getUniqueCities]);
-
-  const shopsWithDistance = useMemo(() => {
-    if (!userLocation || !allShops.length) {
-      return allShops.map(shop => ({
-        ...shop,
-        distance: 'N/A',
-        distanceKm: Infinity
-      }));
+  useEffect(() => {
+    if (locationLoaded) {
+      fetchShops(1);
     }
+  }, [locationLoaded, selectedCity, sortBy]);
 
-    const userLat = userLocation.coords.latitude;
-    const userLon = userLocation.coords.longitude;
-
-    return allShops.map(shop => {
-      if (!shop.coordinates || shop.coordinates.length < 2) {
-        return {
-          ...shop,
-          distance: 'N/A',
-          distanceKm: Infinity
-        };
-      }
-
-      const shopLat = shop.coordinates[1];
-      const shopLon = shop.coordinates[0];
-      const distanceKm = calculateDistance(userLat, userLon, shopLat, shopLon);
-
-      return {
-        ...shop,
-        distance: `${distanceKm.toFixed(1)} km`,
-        distanceKm
-      };
-    });
-  }, [userLocation, allShops]);
+  const loadMore = () => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchShops(page + 1);
+    }
+  };
 
   const sortOptions = [
     { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
@@ -852,14 +842,14 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       return randomizedShops;
     }
 
-    let filtered = shopsWithDistance.filter((shop: any) => {
+    let filtered = allShops.filter((shop: any) => {
       const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
       const searchMatch = !searchQuery ||
         shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         shop.city.toLowerCase().includes(searchQuery.toLowerCase());
 
       let kmMatch = true;
-      if (selectedKmRange !== 'All' && (shop.distanceKm as number) !== Infinity) {
+      if (selectedKmRange !== 'All' && shop.distanceKm !== undefined) {
         const dist = shop.distanceKm as number;
         if (selectedKmRange === '<5 km') kmMatch = dist <= 5;
         else if (selectedKmRange === '5-10 km') kmMatch = dist > 5 && dist <= 10;
@@ -876,19 +866,11 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       return cityMatch && searchMatch && kmMatch && categoryMatch;
     });
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'distance':
-          return (a.distanceKm as number) - (b.distanceKm as number);
-        default:
-          return 0;
-      }
-    });
+    // We don't need to sort again since API handles it, but local filters might not be sorted correctly for subset? 
+    // Wait, API sorts the full set, so our subset is inherently sorted.
 
     return filtered;
-  }, [selectedCity, sortBy, shopsWithDistance, searchQuery, selectedKmRange, selectedCategory, randomizedShops]);
+  }, [selectedCity, sortBy, allShops, searchQuery, selectedKmRange, selectedCategory, randomizedShops]);
 
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
@@ -942,7 +924,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
             style={styles.modalScroll}
             showsVerticalScrollIndicator={false}
           >
-            {cities.map((city, index) => (
+            {citiesList.map((city, index) => (
               <TouchableOpacity
                 key={`${city}-${index}`}
                 style={[
@@ -1079,11 +1061,11 @@ const BookNow = ({ navigation }: { navigation: any }) => {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              data={backgroundCustomization?.backgroundImage 
+              data={backgroundCustomization?.backgroundImage
                 ? [
-                    { id: 'dynamic', type: 'animated-image', url: backgroundCustomization.backgroundImage },
-                    ...PROMO_BANNERS
-                  ]
+                  { id: 'dynamic', type: 'animated-image', url: backgroundCustomization.backgroundImage },
+                  ...PROMO_BANNERS
+                ]
                 : PROMO_BANNERS
               }
               keyExtractor={item => item.id}
@@ -1201,7 +1183,14 @@ const BookNow = ({ navigation }: { navigation: any }) => {
         ]}
         ListEmptyComponent={renderEmptyComponent}
         refreshing={refreshing}
-        onRefresh={() => fetchShops(true)}
+        onRefresh={() => fetchShops(1, true)}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+          ) : null
+        }
         columnWrapperStyle={styles.columnWrapper}
       />
 

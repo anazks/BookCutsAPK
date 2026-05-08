@@ -578,7 +578,7 @@ const Home = () => {
         id: shop._id,
         name: shop.ShopName?.trim() || 'Unknown Shop',
         location: shop.ExactLocation,
-        distance: `${(shop.distance / 1000).toFixed(1)} km`,
+        distance: `${Number(shop.distance || 0).toFixed(1)} km`,
         city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am – 8pm',
         mobile: shop.Mobile || '',

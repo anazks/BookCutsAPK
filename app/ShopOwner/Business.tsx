@@ -187,8 +187,33 @@ export default function BusinessScreen() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Business Center</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>Business Center</Text>
+            {shopData?.isVerified && (
+              <MaterialIcons name="verified" size={24} color={COLORS.primary} style={{ marginLeft: 8 }} />
+            )}
+          </View>
           <Text style={styles.headerSubtitle}>Manage your shop settings and growth</Text>
+        </View>
+
+        {/* Status Messages */}
+        <View style={{ marginBottom: 24 }}>
+          {shopData?.isActive === false && (
+            <View style={styles.statusBannerWarning}>
+              <Ionicons name="alert-circle" size={20} color="#92400E" />
+              <Text style={styles.statusBannerTextWarning}>
+                Add at least one service and one barber to activate your shop.
+              </Text>
+            </View>
+          )}
+          {shopData?.isVerified === false && (
+            <View style={styles.statusBannerInfo}>
+              <Ionicons name="information-circle" size={20} color="#1E40AF" />
+              <Text style={styles.statusBannerTextInfo}>
+                Verification in process. After verification your shop will be listed to users.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Premium Status Card */}
@@ -656,5 +681,39 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     lineHeight: 20,
+  },
+  // Status Banners
+  statusBannerWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    marginBottom: 8,
+  },
+  statusBannerTextWarning: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#92400E',
+    fontWeight: '500',
+  },
+  statusBannerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  statusBannerTextInfo: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '500',
   },
 });

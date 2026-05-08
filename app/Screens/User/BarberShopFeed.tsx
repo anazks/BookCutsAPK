@@ -8,6 +8,7 @@ import {
   Image,
   Linking,
   Modal,
+  Platform,
   Share,
   StyleSheet,
   Text,
@@ -209,6 +210,24 @@ const BarberShopFeed = () => {
     );
   };
 
+  const handleOpenMaps = () => {
+    if (shopData?.ExactLocationCoord?.coordinates) {
+      const [lng, lat] = shopData.ExactLocationCoord.coordinates;
+      const label = encodeURIComponent(shopData?.ShopName || 'Shop');
+      const url = Platform.select({
+        ios: `maps:0,0?q=${label}@${lat},${lng}`,
+        android: `geo:0,0?q=${lat},${lng}(${label})`
+      });
+      Linking.openURL(url as string).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      });
+    } else {
+      // Fallback if coordinates are missing
+      const address = encodeURIComponent(`${shopData?.ExactLocation || ''}, ${shopData?.City || ''}`);
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`);
+    }
+  };
+
   // Render header section (Modern Hero Image layout)
   const renderHeader = () => {
     const audience = shopData?.targetAudience || [];
@@ -244,9 +263,17 @@ const BarberShopFeed = () => {
         <View style={styles.heroContentContainer}>
           <Text style={styles.shopNameHero}>{shopData?.ShopName || 'Shop Name'}</Text>
           <View style={styles.shopDetailsRowHero}>
-            <Text style={styles.locationTextHero} numberOfLines={2}>
-              <Ionicons name="location" size={14} color="#FFF" /> {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
-            </Text>
+            <TouchableOpacity onPress={handleOpenMaps} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1, backgroundColor: 'rgba(0,0,0,0.3)', padding: 6, borderRadius: 8, alignSelf: 'flex-start' }}>
+              <Ionicons name="location" size={14} color="#FFF" style={{ marginTop: 2, marginRight: 4 }} />
+              <View style={{ flex: 1, paddingRight: 4 }}>
+                <Text style={styles.locationTextHero} numberOfLines={2}>
+                  {shopData?.ExactLocation}, {shopData?.City || 'Unknown City'}
+                </Text>
+                <Text style={{ color: '#4ADE80', fontSize: 11, fontWeight: '700', marginTop: 2 }}>
+                  Get Directions ↗
+                </Text>
+              </View>
+            </TouchableOpacity>
             {shopData?.Timing && (
               <Text style={styles.timingTextHero}>
                 <Ionicons name="time" size={14} color="#FFF" /> {shopData.Timing}

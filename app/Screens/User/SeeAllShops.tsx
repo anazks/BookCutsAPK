@@ -38,150 +38,124 @@ const colors = {
   border: '#E2E8F0',
 };
 
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// calculateDistance removed because backend provides distanceText
 
 const SeeAllShops = () => {
   const insets = useSafeAreaInsets();
   const [shops, setShops] = useState([]);
+  const [citiesList, setCitiesList] = useState(['All']);
   const [selectedCity, setSelectedCity] = useState('All');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('distance');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationLoaded, setLocationLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchAllShops = async () => {
+  const fetchAllShops = async (pageNum = 1) => {
     try {
-      setLoading(true);
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
       setError(null);
-      const result = await getAllShops();
-      console.log("All shops API response:", result);
+
+      const params: any = {
+        page: pageNum,
+        limit: 10,
+        sort: sortBy === 'name' ? 'name' : undefined,
+        order: 'asc',
+      };
+      if (selectedCity !== 'All') {
+        params.city = selectedCity;
+      }
+      if (userLocation) {
+        params.lat = userLocation.coords.latitude;
+        params.lng = userLocation.coords.longitude;
+      }
+
+      const result = await getAllShops(params);
+      // console.log("All shops API response:", result);
      
       if (result && result.success) {
         const shopsData = result.data || [];
-        setShops(shopsData);
-        setError(null);
+        if (pageNum === 1) {
+          setShops(shopsData);
+        } else {
+          setShops(prev => [...prev, ...shopsData]);
+        }
+        
+        if (result.cities) {
+          setCitiesList(['All', ...result.cities]);
+        }
+
+        if (result.pagination) {
+          setHasMore(result.pagination.hasNextPage);
+        } else {
+          setHasMore(shopsData.length === 10);
+        }
+        
+        setPage(pageNum);
       } else {
-        console.log("Error fetching all shops:", result);
-        setError("Failed to fetch all shops. Please try again.");
+        if (pageNum === 1) setError(result?.message || "Failed to fetch shops. Please try again.");
       }
     } catch (error) {
-      console.error("Error fetching all shops:", error);
-      setError("Failed to load shops. Please check your connection and try again.");
+      console.error("Error fetching shops:", error);
+      if (pageNum === 1) setError("Failed to load shops. Please check your connection and try again.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchAllShops();
-  }, []);
-
-  useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission to access location was denied');
-        return;
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({});
+          setUserLocation(location);
+        } else {
+          console.log('Permission to access location was denied');
+        }
+      } catch (e) {
+        console.log('Location error:', e);
+      } finally {
+        setLocationLoaded(true);
       }
-
-      let location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location);
     })();
   }, []);
 
-  // Get unique cities from the data (case-insensitive)
-  const getUniqueCities = useMemo(() => {
-    const cityMap = new Map();
-    shops.forEach(shop => {
-      const trimmed = shop.City?.trim();
-      if (trimmed) {
-        const lower = trimmed.toLowerCase();
-        if (!cityMap.has(lower)) {
-          cityMap.set(lower, trimmed);
-        }
-      }
-    });
-    return Array.from(cityMap.values()).sort();
-  }, [shops]);
-  
-  const cities = useMemo(() => ['All', ...getUniqueCities], [getUniqueCities]);
-
-  const shopsWithDistance = useMemo(() => {
-    if (!userLocation || !shops.length) {
-      return shops.map(shop => ({
-        ...shop,
-        distance: 'N/A',
-        distanceKm: Infinity
-      }));
+  useEffect(() => {
+    if (locationLoaded) {
+      fetchAllShops(1);
     }
+  }, [locationLoaded, selectedCity, sortBy]);
 
-    const userLat = userLocation.coords.latitude;
-    const userLon = userLocation.coords.longitude;
-
-    return shops.map(shop => {
-      const coordinates = shop.ExactLocationCoord?.coordinates;
-      if (!coordinates || coordinates.length < 2) {
-        return {
-          ...shop,
-          distance: 'N/A',
-          distanceKm: Infinity
-        };
-      }
-
-      const shopLat = coordinates[1];
-      const shopLon = coordinates[0];
-      const distanceKm = calculateDistance(userLat, userLon, shopLat, shopLon);
-
-      return {
-        ...shop,
-        distance: `${distanceKm.toFixed(1)} km`,
-        distanceKm
-      };
-    });
-  }, [userLocation, shops]);
+  const loadMore = () => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchAllShops(page + 1);
+    }
+  };
 
   const sortOptions = [
     { key: 'name', label: 'Name A-Z', icon: 'text-outline' },
     { key: 'distance', label: 'Nearest First', icon: 'location-outline' },
   ];
 
-  // Filter and sort shops
-  const filteredAndSortedShops = useMemo(() => {
-    let filtered = shopsWithDistance.filter(shop => {
-      const cityMatch = selectedCity === 'All' || shop.City === selectedCity;
-      const searchMatch = !searchQuery || 
+  // Local filter for search query only
+  const filteredShops = useMemo(() => {
+    if (!searchQuery) return shops;
+    return shops.filter(shop => {
+      const searchMatch = 
         shop.ShopName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
         shop.City?.toLowerCase().includes(searchQuery.toLowerCase());
-      return cityMatch && searchMatch;
+      return searchMatch;
     });
-
-    // Sort the filtered results
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.ShopName.localeCompare(b.ShopName);
-        case 'distance':
-          return a.distanceKm - b.distanceKm;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [selectedCity, sortBy, shopsWithDistance, searchQuery]);
+  }, [shops, searchQuery]);
 
   const handleShopPress = (shop) => {
     console.log('Shop pressed:', shop);
@@ -221,6 +195,7 @@ const SeeAllShops = () => {
               <Ionicons name="location" size={12} color={colors.text.secondary} />
               <Text style={styles.cityText} numberOfLines={1}>
                 {item.City || 'Unknown City'}
+                {item.distanceText ? ` • ${item.distanceText}` : ''}
               </Text>
             </View>
             <View style={styles.servicesBadge}>
@@ -263,7 +238,7 @@ const SeeAllShops = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.filterOptionsContainer}
           >
-            {cities.map((city, index) => (
+            {citiesList.map((city, index) => (
               <TouchableOpacity
                 key={`${city}-${index}`}
                 style={[
@@ -419,12 +394,12 @@ const SeeAllShops = () => {
       {/* Results Count */}
       <View style={styles.resultsCount}>
         <Text style={styles.resultsText}>
-          {filteredAndSortedShops.length} shop{filteredAndSortedShops.length !== 1 ? 's' : ''} found
+          {filteredShops.length} shop{filteredShops.length !== 1 ? 's' : ''} found
         </Text>
       </View>
 
       {/* Shop Grid */}
-      {filteredAndSortedShops.length === 0 ? (
+      {filteredShops.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="storefront-outline" size={64} color={colors.text.light} />
           <Text style={styles.emptyText}>
@@ -438,13 +413,20 @@ const SeeAllShops = () => {
         </View>
       ) : (
         <FlatList
-          data={filteredAndSortedShops}
+          data={filteredShops}
           renderItem={renderShopCard}
           keyExtractor={(item) => item._id}
           numColumns={2}
           contentContainerStyle={styles.gridContent}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+            ) : null
+          }
         />
       )}
 

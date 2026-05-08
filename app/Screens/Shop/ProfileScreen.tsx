@@ -501,7 +501,32 @@ const ProfileScreen = () => {
         <View style={styles.headerCard}>
           <Ionicons name="cut" size={50} color={COLORS.primary} />
           <Text style={styles.greetingText}>Welcome, Owner</Text>
-          <Text style={styles.ownerName}>{shopData?.ShopName || 'My Shop'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={styles.ownerName}>{shopData?.ShopName || 'My Shop'}</Text>
+            {shopData?.isVerified && (
+              <MaterialIcons name="verified" size={20} color={COLORS.primary} style={{ marginLeft: 6 }} />
+            )}
+          </View>
+        </View>
+
+        {/* Status Messages */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+          {shopData?.isActive === false && (
+            <View style={styles.statusBannerWarning}>
+              <Ionicons name="alert-circle" size={20} color="#92400E" />
+              <Text style={styles.statusBannerTextWarning}>
+                Add at least one service and one barber to activate your shop.
+              </Text>
+            </View>
+          )}
+          {shopData?.isVerified === false && (
+            <View style={styles.statusBannerInfo}>
+              <Ionicons name="information-circle" size={20} color="#1E40AF" />
+              <Text style={styles.statusBannerTextInfo}>
+                Verification in process. After verification your shop will be listed to users.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Shop Details */}
@@ -801,6 +826,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.mediumGray,
     fontWeight: '600',
+  },
+  // Status Banners
+  statusBannerWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    marginBottom: 8,
+  },
+  statusBannerTextWarning: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#92400E',
+    fontWeight: '500',
+  },
+  statusBannerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  statusBannerTextInfo: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '500',
   },
 
   // Edit Modal Inputs & Buttons
