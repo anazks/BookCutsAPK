@@ -2,6 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
+import WheelPicker from '@quidone/react-native-wheel-picker';
 import {
   Alert,
   FlatList,
@@ -48,10 +49,10 @@ const performLogout = async (navigation: any) => {
             }
             await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
     
-    // Reset navigation stack to Home to prevent back-swipe
+    // Reset navigation stack to Welcome to prevent back-swipe
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Home' }],
+      routes: [{ name: 'Welcome' }],
     });
   } catch (error) {
     console.error('Logout failed:', error);
@@ -91,6 +92,16 @@ const NoShopScreen = ({ navigation }: { navigation: any }) => (
   </SafeAreaView>
 );
 
+const hoursData = Array.from({ length: 13 }, (_, i) => ({
+  value: i,
+  label: `${i} hr${i !== 1 ? 's' : ''}`
+}));
+
+const minutesData = Array.from({ length: 60 }, (_, i) => ({
+  value: i,
+  label: `${i} min${i !== 1 ? 's' : ''}`
+}));
+
 // ────────────────────────────────────────────────
 // Main Settings Component
 // ────────────────────────────────────────────────
@@ -124,14 +135,29 @@ export default function Settings() {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [serviceName, setServiceName] = useState('');
   const [servicePrice, setServicePrice] = useState('');
-  const [serviceDuration, setServiceDuration] = useState('');
+  const [serviceDurationHours, setServiceDurationHours] = useState(0);
+  const [serviceDurationMinutes, setServiceDurationMinutes] = useState(30);
+  const [addingService, setAddingService] = useState(false);
 
   // Edit Service modal
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [editServiceName, setEditServiceName] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
-  const [editServiceDuration, setEditServiceDuration] = useState('');
+  const [editServiceDurationHours, setEditServiceDurationHours] = useState(0);
+  const [editServiceDurationMinutes, setEditServiceDurationMinutes] = useState(30);
+  const [updatingService, setUpdatingService] = useState(false);
+
+  const formatDuration = (totalMins: number | string) => {
+    const mins = parseInt(totalMins.toString(), 10);
+    if (isNaN(mins)) return totalMins;
+    const hrs = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    if (hrs > 0) {
+      return `${hrs} hr${hrs > 1 ? 's' : ''}${remainingMins > 0 ? ` ${remainingMins} min` : ''}`;
+    }
+    return `${remainingMins} min`;
+  };
 
   // ────────────────────────────────────────────────
   // Check shop existence on mount
@@ -360,52 +386,88 @@ const becomeBarber = async () => {
   // Add Service
   // ────────────────────────────────────────────────
   const addService = async () => {
-    if (!serviceName.trim() || !servicePrice || !serviceDuration.trim()) {
+    if (!serviceName.trim() || !servicePrice) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
 
-    try {
-      const shopId = await AsyncStorage.getItem('shopId');
-      const payload = {
-        ServiceName: serviceName.trim(),
-        Rate: servicePrice,
-        duration: serviceDuration.trim(),
-        shopId,
-      };
-
-      const res = await AddService(payload);
-      const newService = res.data || res;
-
-      setServices((prev) => [...prev, newService]);
-
-      setServiceName('');
-      setServicePrice('');
-      setServiceDuration('');
-      setShowServiceModal(false);
-
-      Alert.alert('Success', 'Service added');
-    } catch (err) {
-      Alert.alert('Error', 'Failed to add service');
-      console.error(err);
+    const totalMinutes = (serviceDurationHours * 60) + serviceDurationMinutes;
+    if (totalMinutes === 0) {
+      Alert.alert('Error', 'Duration must be at least 5 minutes');
+      return;
     }
+
+    // Show confirmation before calling API
+    const durationLabel = serviceDurationHours > 0
+      ? `${serviceDurationHours} hr${serviceDurationHours > 1 ? 's' : ''}${serviceDurationMinutes > 0 ? ` ${serviceDurationMinutes} min` : ''}`
+      : `${serviceDurationMinutes} min`;
+
+    Alert.alert(
+      'Confirm Add Service',
+      `Are you sure you want to add this service?\n\n• Name: ${serviceName.trim()}\n• Price: ₹${servicePrice}\n• Duration: ${durationLabel}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add Service',
+          onPress: async () => {
+            setAddingService(true);
+            try {
+              const shopId = await AsyncStorage.getItem('shopId');
+              const payload = {
+                ServiceName: serviceName.trim(),
+                Rate: servicePrice,
+                duration: totalMinutes,
+                Duration: totalMinutes,
+                shopId,
+              };
+
+              const res = await AddService(payload);
+              const newService = res.data || res;
+
+              setServices((prev) => [...prev, newService]);
+
+              setServiceName('');
+              setServicePrice('');
+              setServiceDurationHours(0);
+              setServiceDurationMinutes(30);
+              setShowServiceModal(false);
+
+              Alert.alert('✅ Service Added', `"${newService.ServiceName || serviceName.trim()}" has been added successfully.`);
+            } catch (err) {
+              Alert.alert('Error', 'Failed to add service. Please try again.');
+              console.error(err);
+            } finally {
+              setAddingService(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ────────────────────────────────────────────────
   // Update Service
   // ────────────────────────────────────────────────
   const updateService = async () => {
-    if (!editServiceName.trim() || !editServicePrice || !editServiceDuration.trim()) {
+    if (!editServiceName.trim() || !editServicePrice) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
 
+    const totalMinutes = (editServiceDurationHours * 60) + editServiceDurationMinutes;
+    if (totalMinutes === 0) {
+      Alert.alert('Error', 'Duration must be at least 5 minutes');
+      return;
+    }
+
+    setUpdatingService(true);
     try {
       const shopId = await AsyncStorage.getItem('shopId');
       const payload = {
         ServiceName: editServiceName.trim(),
         Rate: editServicePrice,
-        Duration: editServiceDuration.trim(),
+        duration: totalMinutes,
+        Duration: totalMinutes,
         shopId,
       };
 
@@ -420,13 +482,16 @@ const becomeBarber = async () => {
       setEditingService(null);
       setEditServiceName('');
       setEditServicePrice('');
-      setEditServiceDuration('');
+      setEditServiceDurationHours(0);
+      setEditServiceDurationMinutes(30);
       setShowEditServiceModal(false);
 
-      Alert.alert('Success', 'Service updated');
+      Alert.alert('✅ Service Updated', `"${editServiceName.trim()}" has been updated successfully.`);
     } catch (err) {
-      Alert.alert('Error', 'Failed to update service');
+      Alert.alert('Error', 'Failed to update service. Please try again.');
       console.error(err);
+    } finally {
+      setUpdatingService(false);
     }
   };
 
@@ -491,7 +556,7 @@ const becomeBarber = async () => {
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemName}>{item.ServiceName}</Text>
-          <Text style={styles.itemDetail}>₹{item.Rate} • {item.Duration || item.duration}</Text>
+          <Text style={styles.itemDetail}>₹{item.Rate} • {formatDuration(item.Duration || item.duration)}</Text>
         </View>
       </View>
       <View style={styles.itemActions}>
@@ -499,7 +564,11 @@ const becomeBarber = async () => {
           setEditingService(item);
           setEditServiceName(item.ServiceName);
           setEditServicePrice(item.Rate.toString());
-          setEditServiceDuration((item.Duration || item.duration || '').toString());
+          const durationVal = parseInt((item.Duration || item.duration || '0').toString(), 10);
+          const hrs = isNaN(durationVal) ? 0 : Math.floor(durationVal / 60);
+          const mins = isNaN(durationVal) ? 0 : durationVal % 60;
+          setEditServiceDurationHours(hrs);
+          setEditServiceDurationMinutes(mins);
           setShowEditServiceModal(true);
         }}>
           <Ionicons name="create-outline" size={20} color="#94A3B8" />
@@ -803,7 +872,8 @@ const becomeBarber = async () => {
               <TouchableOpacity onPress={() => {
                 setServiceName('');
                 setServicePrice('');
-                setServiceDuration('');
+                setServiceDurationHours(0);
+                setServiceDurationMinutes(30);
                 setShowServiceModal(false);
               }}>
                 <Ionicons name="close" size={24} color="#64748B" />
@@ -835,12 +905,35 @@ const becomeBarber = async () => {
 
               <View style={styles.field}>
                 <Text style={styles.label}>Duration</Text>
-                <TextInput
-                  style={styles.input}
-                  value={serviceDuration}
-                  onChangeText={setServiceDuration}
-                  placeholder="enter in minutes"
-                />
+                <View style={styles.pickerHeadingRow}>
+                  <Text style={styles.pickerHeading}>Hours</Text>
+                  <Text style={styles.pickerHeading}>Minutes</Text>
+                </View>
+                <View style={styles.durationPickerContainer}>
+                  <View style={styles.pickerWrapper}>
+                    <WheelPicker
+                      data={hoursData}
+                      value={serviceDurationHours}
+                      onValueChanged={({ item }) => setServiceDurationHours(item.value)}
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelPickerText}
+                      itemHeight={40}
+                      visibleItemCount={3}
+                    />
+                  </View>
+                  <View style={styles.pickerDivider} />
+                  <View style={styles.pickerWrapper}>
+                    <WheelPicker
+                      data={minutesData}
+                      value={serviceDurationMinutes}
+                      onValueChanged={({ item }) => setServiceDurationMinutes(item.value)}
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelPickerText}
+                      itemHeight={40}
+                      visibleItemCount={3}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
 
@@ -850,14 +943,19 @@ const becomeBarber = async () => {
                 onPress={() => {
                   setServiceName('');
                   setServicePrice('');
-                  setServiceDuration('');
+                  setServiceDurationHours(0);
+                  setServiceDurationMinutes(30);
                   setShowServiceModal(false);
                 }}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={addService}>
-                <Text style={styles.confirmText}>Add</Text>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.confirmBtn, addingService && styles.confirmBtnDisabled]}
+                onPress={addService}
+                disabled={addingService}
+              >
+                <Text style={styles.confirmText}>{addingService ? 'Adding...' : 'Add Service'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -873,7 +971,8 @@ const becomeBarber = async () => {
               <TouchableOpacity onPress={() => {
                 setEditServiceName('');
                 setEditServicePrice('');
-                setEditServiceDuration('');
+                setEditServiceDurationHours(0);
+                setEditServiceDurationMinutes(30);
                 setEditingService(null);
                 setShowEditServiceModal(false);
               }}>
@@ -906,12 +1005,35 @@ const becomeBarber = async () => {
 
               <View style={styles.field}>
                 <Text style={styles.label}>Duration</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editServiceDuration}
-                  onChangeText={setEditServiceDuration}
-                  placeholder="e.g. 30 mins, 1 hour"
-                />
+                <View style={styles.pickerHeadingRow}>
+                  <Text style={styles.pickerHeading}>Hours</Text>
+                  <Text style={styles.pickerHeading}>Minutes</Text>
+                </View>
+                <View style={styles.durationPickerContainer}>
+                  <View style={styles.pickerWrapper}>
+                    <WheelPicker
+                      data={hoursData}
+                      value={editServiceDurationHours}
+                      onValueChanged={({ item }) => setEditServiceDurationHours(item.value)}
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelPickerText}
+                      itemHeight={40}
+                      visibleItemCount={3}
+                    />
+                  </View>
+                  <View style={styles.pickerDivider} />
+                  <View style={styles.pickerWrapper}>
+                    <WheelPicker
+                      data={minutesData}
+                      value={editServiceDurationMinutes}
+                      onValueChanged={({ item }) => setEditServiceDurationMinutes(item.value)}
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelPickerText}
+                      itemHeight={40}
+                      visibleItemCount={3}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
 
@@ -921,15 +1043,20 @@ const becomeBarber = async () => {
                 onPress={() => {
                   setEditServiceName('');
                   setEditServicePrice('');
-                  setEditServiceDuration('');
+                  setEditServiceDurationHours(0);
+                  setEditServiceDurationMinutes(30);
                   setEditingService(null);
                   setShowEditServiceModal(false);
                 }}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={updateService}>
-                <Text style={styles.confirmText}>Update</Text>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.confirmBtn, updatingService && styles.confirmBtnDisabled]}
+                onPress={updateService}
+                disabled={updatingService}
+              >
+                <Text style={styles.confirmText}>{updatingService ? 'Updating...' : 'Update'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1240,6 +1367,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
     backgroundColor: '#F8FAFC',
+  },
+  durationPickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    height: 120,
+  },
+  pickerWrapper: {
+    flex: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerDivider: {
+    width: 1,
+    height: 80,
+    backgroundColor: '#E2E8F0',
+  },
+  wheelPicker: {
+    width: '100%',
+  },
+  wheelPickerText: {
+    fontSize: 16,
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  pickerHeadingRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    marginBottom: 4,
+  },
+  pickerHeading: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  confirmBtnDisabled: {
+    backgroundColor: '#94A3B8',
   },
   modalActions: {
     flexDirection: 'row',

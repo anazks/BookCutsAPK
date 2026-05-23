@@ -112,9 +112,15 @@ export default function ConfirmBooking() {
           </View>
 
           {paymentType?.toString() === 'advance' && (
-            <Text style={styles.advanceNote}>
-              Remaining balance will be collected at the salon
-            </Text>
+            <View style={styles.paymentInstructionCard}>
+              <Ionicons name="alert-circle-outline" size={22} color="#2563EB" />
+              <View style={styles.paymentInstructionContent}>
+                <Text style={styles.paymentInstructionTitle}>Salon Payment Instructions</Text>
+                <Text style={styles.paymentInstructionBody}>
+                  You paid an advance of <Text style={{ fontWeight: '700' }}>{formatAmount(amount || '')}</Text>. Please pay the remaining balance of <Text style={{ fontWeight: '700' }}>{formatAmount(parseFloat(totalPrice || '0') - parseFloat(amount || '0'))}</Text> directly to the salon (via Cash or UPI) after your service is completed.
+                </Text>
+              </View>
+            </View>
           )}
         </View>
 
@@ -329,11 +335,30 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
 
-  advanceNote: {
+  paymentInstructionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  paymentInstructionContent: {
+    flex: 1,
+  },
+  paymentInstructionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  paymentInstructionBody: {
     fontSize: 13,
-    color: '#2563EB',
-    marginTop: 12,
-    textAlign: 'center',
+    color: '#64748B',
+    lineHeight: 18,
   },
 
   // Buttons

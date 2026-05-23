@@ -47,6 +47,6 @@ export default function Index() {
     // Default for clients
     return <Redirect href="/(tabs)/Home" />;
   } else {
-    return <Redirect href="/Home" />;
+    return <Redirect href="/Welcome" />;
   }
 }

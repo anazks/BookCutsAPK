@@ -27,11 +27,12 @@ const DetailRow = ({ label, value, icon }) => (
   </View>
 );
 
-const PaymentOption = ({ title, amount, isSelected, onPress, note, savings }) => (
+const PaymentOption = ({ title, amount, isSelected, onPress, note, savings, disabled }) => (
   <TouchableOpacity
     style={[styles.paymentOption, isSelected && styles.selectedOption]}
     onPress={onPress}
-    activeOpacity={0.7}
+    activeOpacity={disabled ? 1 : 0.7}
+    disabled={disabled}
   >
     <View style={styles.optionLeft}>
       <View style={[styles.radioRing, isSelected && styles.radioRingSelected]}>
@@ -73,7 +74,7 @@ export default function PayNow() {
   const params = useLocalSearchParams();
 
   const [bookingData, setBookingData] = useState(null);
-  const [paymentType, setPaymentType] = useState('full');
+  const [paymentType, setPaymentType] = useState('advance');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
@@ -411,26 +412,26 @@ export default function PayNow() {
         <View style={styles.paymentCard}>
           <View style={styles.paymentHeader}>
             <Ionicons name="wallet-outline" size={20} color="#1877F2" />
-            <Text style={styles.paymentTitle}>Select Payment Method</Text>
+            <Text style={styles.paymentTitle}>Payment Option</Text>
           </View>
 
           <View style={styles.paymentOptions}>
-            <PaymentOption
-              title="Pay Full Amount"
-              amount={totalPrice}
-              isSelected={paymentType === 'full'}
-              onPress={() => setPaymentType('full')}
-              note="One-time payment"
-            />
-
             <PaymentOption
               title="Pay Advance"
               amount={advanceAmount}
               isSelected={paymentType === 'advance'}
               onPress={() => setPaymentType('advance')}
+              disabled={true}
               note={`Pay ₹${remainingAmount} at salon`}
               savings={savingsAmount}
             />
+          </View>
+
+          <View style={styles.paymentInstructionBanner}>
+            <Ionicons name="information-circle" size={18} color="#1877F2" />
+            <Text style={styles.paymentInstructionBannerText}>
+              An advance payment of <Text style={{ fontWeight: '700' }}>₹{advanceAmount}</Text> is required online to secure your slot. The remaining balance of <Text style={{ fontWeight: '700' }}>₹{remainingAmount}</Text> must be paid directly at the salon after your service.
+            </Text>
           </View>
 
           <View style={styles.paymentFeatures}>
@@ -745,6 +746,23 @@ const styles = StyleSheet.create({
   paymentOptions: {
     gap: 12,
     marginBottom: 16,
+  },
+  paymentInstructionBanner: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 8,
+  },
+  paymentInstructionBannerText: {
+    fontSize: 13,
+    color: '#1E3A8A',
+    lineHeight: 18,
+    flex: 1,
   },
   paymentOption: {
     flexDirection: 'row',

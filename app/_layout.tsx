@@ -57,7 +57,7 @@ const InnerGradientLayout = ({ colorScheme }: { colorScheme: 'light' | 'dark' })
           }}
         >
           <Stack.Screen name="index" />
-          <Stack.Screen name="Home" />
+          <Stack.Screen name="Welcome" />
           <Stack.Screen name="(tabs)/Home" />
           <Stack.Screen name="+not-found" />
         </Stack>

@@ -1,6 +1,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
 
 // const BASE_URL = 'http://10.58.18.39:5000/api';
 const BASE_URL = "https://bookmycutsapp-1s3p.onrender.com/api"
@@ -147,6 +148,9 @@ axiosInstance.interceptors.response.use(
         
         // Log out the user by clearing storage
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user', 'role', 'shopId']);
+        
+        // Redirect to welcome screen immediately
+        router.replace('/Welcome');
         
         // We reject with the original error so that the caller knows it was an auth error
         return Promise.reject(error);
