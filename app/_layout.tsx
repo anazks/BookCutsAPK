@@ -14,6 +14,7 @@ import { savePushToken } from './api/Service/User';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeContext';
+import { LocationProvider } from './context/LocationContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
 
@@ -200,8 +201,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
-        <InnerGradientLayout colorScheme={colorScheme ?? 'light'} />
+        <LocationProvider>
+          <InnerGradientLayout colorScheme={colorScheme ?? 'light'} />
+        </LocationProvider>
       </AppThemeProvider>
     </GestureHandlerRootView>
   );
-}
+}

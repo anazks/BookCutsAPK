@@ -150,7 +150,7 @@ axiosInstance.interceptors.response.use(
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user', 'role', 'shopId']);
         
         // Redirect to welcome screen immediately
-        router.replace('/Welcome');
+        router.replace(' e');
         
         // We reject with the original error so that the caller knows it was an auth error
         return Promise.reject(error);

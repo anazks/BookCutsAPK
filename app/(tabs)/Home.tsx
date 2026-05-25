@@ -43,6 +43,7 @@ import BookingReminder from '../Components/Reminder/BookingReminder';
 import WeatherOverlay from '../Components/WeatherOverlay';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
+import { useLocation } from '../context/LocationContext';
 import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
 
@@ -286,11 +287,17 @@ const Home = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
 
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [selectedCity, setSelectedCity] = useState('India');
-  const [location, setLocation] = useState<any>(null);
-  const [address, setAddress] = useState<any>(null);
-  const [coordinates, setCoordinates] = useState({ latitude: 0, longitude: 0 });
-  const [cities, setCities] = useState<any[]>([]);
+  const {
+    location,
+    coordinates,
+    setCoordinates,
+    address,
+    selectedCity,
+    setSelectedCity,
+    citiesList: cities,
+    loading: locationLoading,
+    error: locationError,
+  } = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchData, setSearchData] = useState<any[]>([]);
@@ -340,86 +347,7 @@ const Home = () => {
     }, [])
   );
 
-  const getLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Allow location access in settings.');
-        setLoading(false);
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
-      setLocation(loc);
-      const geo = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
-      if (geo.length > 0) {
-        setAddress(geo[0]);
-        setSelectedCity(geo[0].city || geo[0].subregion || 'India');
-      }
-      setCoordinates({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    } catch (e) {
-      console.error(e);
-      setError('Failed to get location.');
-      setLoading(false);
-    }
-  };
 
-  const getNearByCities = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
-    try {
-      const lat = Number(latitude.toFixed(4));
-      const lng = Number(longitude.toFixed(4));
-      const url = `http://gd.geobytes.com/GetNearbyCities?latitude=${lat}&longitude=${lng}&radius=120`;
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 5000);
-      let cityList: any[] = [];
-      
-      try {
-        const res = await fetch(url, { signal: ctrl.signal });
-        clearTimeout(tid);
-        const text = await res.text();
-        
-        if (text && text.trim() !== '' && text.trim() !== '[["%s"]]') {
-          const data = JSON.parse(text);
-          if (Array.isArray(data) && data.length > 0 && data[0][1] !== '%s') {
-            const toRad = (d: number) => (d * Math.PI) / 180;
-            const dist = (la1: number, lo1: number, la2: number, lo2: number) => {
-              const R = 6371;
-              const dLa = toRad(la2 - la1);
-              const dLo = toRad(lo2 - lo1);
-              const a =
-                Math.sin(dLa / 2) ** 2 +
-                Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLo / 2) ** 2;
-              return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            };
-            
-            cityList = data
-              .map((i: any) => ({ name: i[1], lat: Number(i[8]), lon: Number(i[10]) }))
-              .sort((a: any, b: any) => dist(lat, lng, a.lat, a.lon) - dist(lat, lng, b.lat, b.lon));
-          }
-        }
-      } catch (e: any) {
-        clearTimeout(tid);
-        console.log('⚠️ Geobytes failed, trying fallback API...');
-      }
-
-      // If Geobytes didn't return anything, use the fallback
-      if (cityList.length === 0) {
-        const fallback = await getNearbyCitiesFallback(lat, lng);
-        cityList = Array.isArray(fallback) ? fallback : fallback?.data || fallback?.cities || [];
-      }
-
-      if (cityList.length > 0) {
-        setCities(cityList);
-        return cityList;
-      }
-      return [];
-    } catch (err) {
-      console.error('❌ Home.tsx: Fatal Error in getNearByCities:', err);
-      return [];
-    }
-  };
 
   const findNearestShopApi = async (
     page = 1,
@@ -541,14 +469,22 @@ const Home = () => {
     finally { setFilterLoading(false); }
   };
 
-  useEffect(() => { getLocation(); fetchCustomization(); }, []);
+  useEffect(() => { fetchCustomization(); }, []);
   useEffect(() => {
     if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
       findNearestShopApi(1, false);
       getProfile();
-      getNearByCities(coordinates);
     }
   }, [coordinates]);
+
+  useEffect(() => {
+    if (!locationLoading && (coordinates.latitude === 0 && coordinates.longitude === 0)) {
+      setLoading(false);
+      if (locationError) {
+        setError(locationError);
+      }
+    }
+  }, [locationLoading, locationError, coordinates]);
   useEffect(() => {
     if (searchQuery.trim() === '') { setSearchData([]); setIsSearching(false); return; }
     const t = setTimeout(() => {
@@ -618,11 +554,11 @@ const Home = () => {
     kids: { activeBg: '#FFFBEB', text: '#D97706', icon: 'happy' as const },
   };
 
-  const headerColors = category === 'womens' 
+  const headerColors = (category === 'womens' 
     ? ['#9D174D', '#E11D48', '#FB7185'] 
     : category === 'kids' 
       ? ['#B45309', '#D97706', '#FBBF24'] 
-      : ['#1D4ED8', '#2563EB', '#3B82F6'];
+      : ['#1D4ED8', '#2563EB', '#3B82F6']) as [string, string, ...string[]];
 
   if (loading && shops.length === 0) return <HomeSkeleton />;
 

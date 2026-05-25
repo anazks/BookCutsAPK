@@ -29,6 +29,7 @@ import { getAllShops } from '../api/Service/Shop';
 import { getCustomization } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
+import { useLocation } from '../context/LocationContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_MARGIN = 16;
@@ -39,7 +40,7 @@ const CARD_WIDTH = (screenWidth - (CARD_MARGIN * 2) - CARD_SPACING) / 2;
 
 // Animated Card Component
 const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: { item: any; index?: number; onPress: () => void; onBook: (item: any) => void; colors: any; styles: any }) => {
-  const scaleAnim = new Animated.Value(1);
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -59,7 +60,7 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
 
   return (
     <Reanimated.View
-      entering={FadeInDown.delay(index * 100).springify().damping(12)}
+      entering={FadeInDown.delay((index % 6) * 50).springify().damping(12)}
       style={styles.cardWrapper}
     >
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -652,7 +653,12 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     },
   });
 
-  const [selectedCity, setSelectedCity] = useState('All');
+  const {
+    location: userLocation,
+    selectedCity,
+    setSelectedCity,
+    loading: locationLoading,
+  } = useLocation();
   const [citiesList, setCitiesList] = useState<string[]>(['All']);
   const [selectedKmRange, setSelectedKmRange] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -661,8 +667,6 @@ const BookNow = ({ navigation }: { navigation: any }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [allShops, setAllShops] = useState<any[]>([]);
-  const [userLocation, setUserLocation] = useState<any>(null);
-  const [locationLoaded, setLocationLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -694,7 +698,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       setRandomizedShops(null);
     } else {
       // Pick dynamic few shops for other filters (random 5-8 shops)
-      const currentFiltered = allShops.filter(s => s.city === selectedCity || selectedCity === 'All');
+      const currentFiltered = allShops.filter(s => s.city === selectedCity || selectedCity === 'All' || selectedCity === 'India');
       const shuffled = [...currentFiltered].sort(() => Math.random() - 0.5);
       setRandomizedShops(shuffled.slice(0, Math.floor(Math.random() * 4) + 5));
     }
@@ -740,12 +744,14 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     });
   };
 
-  const fetchShops = async (pageNum = 1, isRefreshing = false) => {
+  const fetchShops = async (pageNum = 1, isRefreshing = false, isBackground = false) => {
     try {
       if (isRefreshing) {
         setRefreshing(true);
       } else if (pageNum === 1) {
-        setLoading(true);
+        if (!isBackground) {
+          setLoading(true);
+        }
       } else {
         setLoadingMore(true);
       }
@@ -757,7 +763,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
         sort: sortBy === 'name' ? 'name' : undefined,
         order: 'asc',
       };
-      if (selectedCity !== 'All') {
+      if (selectedCity !== 'All' && selectedCity !== 'India') {
         params.city = selectedCity;
       }
       if (userLocation) {
@@ -803,27 +809,35 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          let location = await Location.getCurrentPositionAsync({});
-          setUserLocation(location);
-        }
-      } catch (e) {
-        console.log('Location error:', e);
-      } finally {
-        setLocationLoaded(true);
-      }
-    })();
-  }, []);
+  const prevCityRef = React.useRef<string | null>(null);
+  const prevSortRef = React.useRef<string | null>(null);
+  const prevLocationRef = React.useRef<any>(null);
+  const hasLoadedRef = React.useRef<boolean>(false);
 
   useEffect(() => {
-    if (locationLoaded) {
-      fetchShops(1);
+    // Wait until location context is initialized or has resolved a specific city
+    const isLocationReady = !locationLoading || selectedCity !== 'India';
+    if (!isLocationReady) {
+      return;
     }
-  }, [locationLoaded, selectedCity, sortBy]);
+
+    const isInitialLoad = !hasLoadedRef.current;
+    const isCityChange = prevCityRef.current !== null && prevCityRef.current !== selectedCity;
+    const isSortChange = prevSortRef.current !== null && prevSortRef.current !== sortBy;
+
+    // Update refs for subsequent checks
+    prevCityRef.current = selectedCity;
+    prevSortRef.current = sortBy;
+    prevLocationRef.current = userLocation;
+    hasLoadedRef.current = true;
+
+    // Determine if we should show a full-screen loading state.
+    // We only show it for initial load, manual city change, or manual sort change.
+    // Silent background updates are used for background location updates to prevent flashing.
+    const showLoader = isInitialLoad || isCityChange || isSortChange;
+
+    fetchShops(1, false, !showLoader);
+  }, [selectedCity, sortBy, userLocation, locationLoading]);
 
   const loadMore = () => {
     if (!loading && !loadingMore && hasMore) {
@@ -843,7 +857,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     }
 
     let filtered = allShops.filter((shop: any) => {
-      const cityMatch = selectedCity === 'All' || shop.city === selectedCity;
+      const cityMatch = selectedCity === 'All' || selectedCity === 'India' || shop.city === selectedCity;
       const searchMatch = !searchQuery ||
         shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         shop.city.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1048,7 +1062,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     );
   }
 
-  const activeFiltersCount = (selectedCity !== 'All' ? 1 : 0);
+  const activeFiltersCount = (selectedCity !== 'All' && selectedCity !== 'India' ? 1 : 0);
 
   return (
     <View style={styles.container}>
@@ -1129,7 +1143,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
               </View>
             </View>
 
-            {selectedCity !== 'All' && (
+            {selectedCity !== 'All' && selectedCity !== 'India' && (
               <View style={styles.activeFiltersSection}>
                 <View style={styles.activeFilterChip}>
                   <Ionicons name="location-outline" size={12} color={colors.primary} />
