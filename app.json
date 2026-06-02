@@ -26,10 +26,10 @@
       "package": "com.anazk.bookmycuts",
       "googleServicesFile": "./google-services.json",
       "permissions": [
-      "RECORD_AUDIO",
-      "android.permission.RECEIVE_BOOT_COMPLETED",
-      "android.permission.POST_NOTIFICATIONS"
-    ]
+        "RECORD_AUDIO",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -38,7 +38,7 @@
     },
     "plugins": [
       "expo-router",
-      [ 
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/scissors_icon.png",
@@ -64,7 +64,8 @@
           "color": "#00aaff",
           "defaultChannel": "payment"
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,0 +1,27 @@
+appId: com.anazk.bookmycuts
+---
+- launchApp:
+    clearState: true
+- tapOn: "Get Started"
+- tapOn: "English"
+- tapOn: "Continue"
+- tapOn: "Yes, Register Shop"
+- tapOn: "Continue"
+- assertVisible: "Create Your Shop"
+
+# Go to Login Screen
+- tapOn: "Already registered? Login"
+- assertVisible: "Grow your salon business"
+
+# Enter Shop Owner Credentials
+- tapOn: "Enter your email"
+- inputText: "shopowner@example.com"
+- tapOn: "Enter your password"
+- inputText: "password123"
+- hideKeyboard
+
+# Submit Login Form
+- tapOn: "Sign In"
+
+# Assert Redirect to Dashboard
+- assertVisible: "Welcome back,"

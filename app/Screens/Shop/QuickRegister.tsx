@@ -82,7 +82,7 @@ export default function QuickRegister() {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_SIGNIN_WEB_CLIENT_ID,
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });

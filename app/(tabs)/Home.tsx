@@ -46,6 +46,17 @@ import { useAppTheme } from '../context/ThemeContext';
 import { useLocation } from '../context/LocationContext';
 import ShopCard from '../Screens/User/ShopCard';
 import ShopCarousel from '../Screens/User/ShopCarousel';
+import { useAppDispatch } from '../store/hooks';
+import { fetchShopsThunk } from '../store/shopsSlice';
+import { prefetchServicesAndBarbers, prefetchSlotsForDates } from '../store/bookingPrefetchSlice';
+
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: any = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 const { width } = Dimensions.get('window');
 
@@ -54,6 +65,39 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
   const brandColor = category === 'womens' ? '#E11D48' : category === 'kids' ? '#D97706' : '#3B82F6';
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const dispatch = useAppDispatch();
+
+  // Debounced prefetch function to avoid spamming the backend while scrolling fast
+  const debouncedPrefetch = React.useMemo(
+    () =>
+      debounce((shopId: string) => {
+        dispatch(prefetchServicesAndBarbers(shopId));
+
+        // Generate today & tomorrow dates in YYYY-MM-DD format
+        const dates: string[] = [];
+        for (let i = 0; i < 2; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          dates.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          );
+        }
+        dispatch(prefetchSlotsForDates({ shopId, dates }));
+      }, 400),
+    [dispatch]
+  );
+
+  const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    viewableItems.forEach((viewableItem) => {
+      if (viewableItem.isViewable && viewableItem.item?.id) {
+        debouncedPrefetch(viewableItem.item.id);
+      }
+    });
+  }).current;
+
+  const viewabilityConfig = React.useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   useEffect(() => {
     if (!shops || shops.length === 0) return;
@@ -84,8 +128,20 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
         renderItem={({ item }) => (
           <TouchableOpacity
             style={{ alignItems: 'center' }}
+            onPressIn={() => {
+              dispatch(prefetchServicesAndBarbers(item.id));
+            }}
             onPress={() =>
-              router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })
+              router.push({
+                pathname: '/Screens/User/BarberShopFeed',
+                params: {
+                  shop_id: item.id,
+                  shop_name: item.name,
+                  shop_image: item.image,
+                  shop_city: item.city || '',
+                  shop_timing: item.timing || '',
+                }
+              })
             }
           >
             <View
@@ -229,6 +285,7 @@ const SectionHeader = ({
 
 // ─── Main Home Screen ──────────────────────────────────────────────────────────
 const Home = () => {
+  const dispatch = useAppDispatch();
   const { category, setCategory, theme: rawTheme } = useAppTheme();
   const theme = {
     ...rawTheme,
@@ -474,6 +531,13 @@ const Home = () => {
     if (coordinates.latitude !== 0 && coordinates.longitude !== 0) {
       findNearestShopApi(1, false);
       getProfile();
+      dispatch(fetchShopsThunk({
+        page: 1,
+        limit: 10,
+        lat: coordinates.latitude,
+        lng: coordinates.longitude,
+        isSilent: true,
+      }));
     }
   }, [coordinates]);
 
@@ -838,7 +902,19 @@ const Home = () => {
                         borderWidth: 1,
                         borderColor: '#EEF2FF'
                       }}
-                      onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })}
+                      onPressIn={() => {
+                        dispatch(prefetchServicesAndBarbers(item._id));
+                      }}
+                      onPress={() => router.push({
+                        pathname: '/Screens/User/BarberShopFeed',
+                        params: {
+                          shop_id: item._id,
+                          shop_name: shopName,
+                          shop_image: displayImage,
+                          shop_city: item.City || '',
+                          shop_timing: item.Timing || '',
+                        }
+                      })}
                       activeOpacity={0.8}
                     >
                       <View style={{ width: 85, height: 85, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F8FAFC' }}>

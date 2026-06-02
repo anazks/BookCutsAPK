@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { router, useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -11,6 +12,29 @@ import {
 
 export default function ConfirmBooking() {
   const params = useLocalSearchParams();
+  const player = useAudioPlayer(require('../../../assets/notification/booking_success_sound.mp3'));
+
+  useEffect(() => {
+    // Enable audio playback in silent mode
+    setAudioModeAsync({
+      playsInSilentMode: true,
+    }).catch(err => {
+      console.warn('[Audio] Failed to set audio mode:', err);
+    });
+
+    console.log('[Audio] ConfirmBooking mounted, player loaded:', !!player);
+
+    if (player) {
+      try {
+        player.volume = 1.0; // Ensure full volume
+        player.play();
+        console.log('[Audio] player.play() initiated');
+      } catch (err) {
+        console.error('[Audio] Error calling player.play():', err);
+      }
+    }
+  }, [player]);
+
   const {
     bookingId,
     paymentId,
@@ -22,6 +46,7 @@ export default function ConfirmBooking() {
     timeSlot,
     serviceName,
     serviceDuration,
+    totalPrice,
   } = params;
 
   const formatAmount = (amt: string | string[]) => {

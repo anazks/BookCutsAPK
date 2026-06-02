@@ -25,11 +25,21 @@ import Reanimated, {
   withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAllShops } from '../api/Service/Shop';
 import { getCustomization } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 import { useLocation } from '../context/LocationContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchShopsThunk } from '../store/shopsSlice';
+import { prefetchServicesAndBarbers, prefetchSlotsForDates } from '../store/bookingPrefetchSlice';
+
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: any = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_MARGIN = 16;
@@ -39,7 +49,7 @@ const CARD_WIDTH = (screenWidth - (CARD_MARGIN * 2) - CARD_SPACING) / 2;
 // calculateDistance removed because backend provides distanceText
 
 // Animated Card Component
-const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: { item: any; index?: number; onPress: () => void; onBook: (item: any) => void; colors: any; styles: any }) => {
+const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles, onPrefetch }: { item: any; index?: number; onPress: () => void; onBook: (item: any) => void; colors: any; styles: any; onPrefetch?: (id: string) => void }) => {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -68,7 +78,10 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
           style={styles.shopCard}
           activeOpacity={1}
           onPress={onPress}
-          onPressIn={handlePressIn}
+          onPressIn={() => {
+            handlePressIn();
+            if (onPrefetch) onPrefetch(item.id);
+          }}
           onPressOut={handlePressOut}
         >
           <View style={styles.shopImageContainer}>
@@ -109,6 +122,10 @@ const AnimatedShopCard = ({ item, index = 0, onPress, onBook, colors, styles }: 
               <View />
               <TouchableOpacity
                 style={[styles.bookButton, { backgroundColor: colors.primary }]}
+                onPressIn={(e) => {
+                  e.stopPropagation();
+                  if (onPrefetch) onPrefetch(item.id);
+                }}
                 onPress={(e) => {
                   e.stopPropagation();
                   onBook(item);
@@ -653,26 +670,30 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     },
   });
 
+  const dispatch = useAppDispatch();
+  const {
+    allShops,
+    citiesList,
+    hasMore,
+    loading,
+    loadingMore,
+    error,
+    page,
+    isPrefetched,
+  } = useAppSelector((state) => state.shops);
+
   const {
     location: userLocation,
-    selectedCity,
-    setSelectedCity,
     loading: locationLoading,
   } = useLocation();
-  const [citiesList, setCitiesList] = useState<string[]>(['All']);
+  const [selectedCity, setSelectedCity] = useState<string>('All');
   const [selectedKmRange, setSelectedKmRange] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('distance');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [allShops, setAllShops] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [backgroundCustomization, setBackgroundCustomization] = useState<any>(null);
 
   const fetchCustomization = async () => {
@@ -704,107 +725,100 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     }
   }, [selectedCategory, selectedCity, allShops]);
 
+  const handlePrefetch = React.useCallback(
+    (shopId: string) => {
+      dispatch(prefetchServicesAndBarbers(shopId));
+
+      // Generate today & tomorrow dates in YYYY-MM-DD format
+      const dates: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        dates.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        );
+      }
+      dispatch(prefetchSlotsForDates({ shopId, dates }));
+    },
+    [dispatch]
+  );
+
+  // Debounced prefetch function to avoid spamming the backend while scrolling fast
+  const debouncedPrefetch = React.useMemo(
+    () =>
+      debounce((shopId: string) => {
+        handlePrefetch(shopId);
+      }, 400),
+    [handlePrefetch]
+  );
+
+  const debouncedPrefetchRef = React.useRef(debouncedPrefetch);
+  useEffect(() => {
+    debouncedPrefetchRef.current = debouncedPrefetch;
+  }, [debouncedPrefetch]);
+
+  const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    viewableItems.forEach((viewableItem) => {
+      if (viewableItem.isViewable && viewableItem.item?.id) {
+        debouncedPrefetchRef.current(viewableItem.item.id);
+      }
+    });
+  }).current;
+
+  const viewabilityConfig = React.useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
+
   const handleCardPress = (shop: any) => {
     router.push({
       pathname: '/Screens/User/BarberShopFeed',
-      params: { shop_id: shop.id }
+      params: {
+        shop_id: shop.id,
+        shop_name: shop.name,
+        shop_image: shop.image,
+        shop_city: shop.city,
+        shop_timing: shop.timing,
+      }
     });
   };
 
   const handleBooking = (shop: any) => {
     router.push({
       pathname: '/Screens/User/BookNow',
-      params: { shop_id: shop.id }
-    });
-  };
-
-  const transformShopData = (apiData: any[]) => {
-    return apiData.map((shop: any, index: number) => {
-      const shopName = shop.ShopName || `${shop.firstName} ${shop.lastName}` || 'Unknown Shop';
-      const city = shop.City || shop.city || 'Unknown City';
-      const mobile = shop.Mobile || shop.mobileNo || 'N/A';
-      const timing = shop.Timing || '9:00 AM - 8:00 PM';
-      const website = shop.website || '';
-
-      return {
-        id: shop._id,
-        name: shopName,
-        city: city,
-        mobile: mobile,
-        timing: timing,
-        website: website,
-        price: '₹500-1500',
-        coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
-        image: shop.ProfileImage || `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
-        isOpen: Math.random() > 0.3,
-        serviceType: ['Haircut', 'Beard Trim', 'Facial', 'Massage', 'Hair Color'][Math.floor(Math.random() * 5)],
-        distanceText: shop.distanceText,
-        distanceKm: shop.distance,
-      };
+      params: {
+        shop_id: shop.id,
+        shop_name: shop.name,
+        shop_timing: shop.timing,
+        shop_address: shop.address || `${shop.city || ''} • ${shop.mobile || ''}`,
+      }
     });
   };
 
   const fetchShops = async (pageNum = 1, isRefreshing = false, isBackground = false) => {
+    if (isRefreshing) {
+      setRefreshing(true);
+    }
+
+    const params: any = {
+      page: pageNum,
+      limit: 10,
+      sort: sortBy === 'name' ? 'name' : undefined,
+      order: 'asc',
+      isSilent: isBackground || isRefreshing,
+    };
+    if (selectedCity !== 'All' && selectedCity !== 'India') {
+      params.city = selectedCity;
+    }
+    if (userLocation) {
+      params.lat = userLocation.coords.latitude;
+      params.lng = userLocation.coords.longitude;
+    }
+
     try {
-      if (isRefreshing) {
-        setRefreshing(true);
-      } else if (pageNum === 1) {
-        if (!isBackground) {
-          setLoading(true);
-        }
-      } else {
-        setLoadingMore(true);
-      }
-      setError(null);
-
-      const params: any = {
-        page: pageNum,
-        limit: 10,
-        sort: sortBy === 'name' ? 'name' : undefined,
-        order: 'asc',
-      };
-      if (selectedCity !== 'All' && selectedCity !== 'India') {
-        params.city = selectedCity;
-      }
-      if (userLocation) {
-        params.lat = userLocation.coords.latitude;
-        params.lng = userLocation.coords.longitude;
-      }
-
-      const result = await getAllShops(params);
-
-      if (result && result.success) {
-        const transformedData = result.data ? transformShopData(result.data) : [];
-        if (pageNum === 1) {
-          setAllShops(transformedData);
-        } else {
-          setAllShops(prev => [...prev, ...transformedData]);
-        }
-
-        if (result.cities) {
-          setCitiesList(['All', ...result.cities]);
-        }
-
-        if (result.pagination) {
-          setHasMore(result.pagination.hasNextPage);
-        } else {
-          setHasMore(transformedData.length === 10);
-        }
-        setPage(pageNum);
-      } else {
-        if (pageNum === 1) setError(result.message || 'Failed to fetch shops');
-      }
-    } catch (error: any) {
-      if (error?.message === 'No shops found') {
-        if (pageNum === 1) setAllShops([]);
-        setHasMore(false);
-        setError(null);
-      } else {
-        if (pageNum === 1) setError(error?.message || 'Network error occurred');
-      }
+      await dispatch(fetchShopsThunk(params)).unwrap();
+    } catch (err) {
+      console.error('Error in fetchShops:', err);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
       setRefreshing(false);
     }
   };
@@ -832,9 +846,9 @@ const BookNow = ({ navigation }: { navigation: any }) => {
     hasLoadedRef.current = true;
 
     // Determine if we should show a full-screen loading state.
-    // We only show it for initial load, manual city change, or manual sort change.
+    // We only show it for initial load (if not prefetched), manual city change, or manual sort change.
     // Silent background updates are used for background location updates to prevent flashing.
-    const showLoader = isInitialLoad || isCityChange || isSortChange;
+    const showLoader = (isInitialLoad && !isPrefetched) || isCityChange || isSortChange;
 
     fetchShops(1, false, !showLoader);
   }, [selectedCity, sortBy, userLocation, locationLoading]);
@@ -1069,6 +1083,8 @@ const BookNow = ({ navigation }: { navigation: any }) => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
 
       <Reanimated.FlatList
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         ListHeaderComponent={
           <View style={styles.listHeaderContainer}>
             <FlatList
@@ -1186,6 +1202,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
             onBook={handleBooking}
             colors={colors}
             styles={styles}
+            onPrefetch={handlePrefetch}
           />
         )}
         keyExtractor={(item) => item.id}

@@ -1,0 +1,37 @@
+appId: com.anazk.bookmycuts
+---
+- runFlow: 2_user_login.yaml
+
+# Navigate to Book Tab
+- tapOn: "Book"
+
+# Click Book button on the first salon card in the list
+- tapOn: "Book"
+
+# Booking Step 1: Select Services
+- assertVisible: "Select Services"
+- tapOn: "Haircut"
+- tapOn: "Next"
+
+# Booking Step 2: Select Date
+- assertVisible: "Select Date"
+- tapOn: "Tap to select date"
+- tapOn: "27"
+- tapOn: "Next"
+
+# Booking Step 3: Choose Barber & Slot
+# (Any Barber and first slot are preselected)
+- assertVisible: "Choose Your Barber"
+- tapOn: "Next"
+
+# Booking Step 4: Summary
+- assertVisible: "Almost done!"
+- tapOn: "Book Appointment"
+
+# Booking Step 5: Appointment Details Confirmation Modal
+- assertVisible: "Appointment Details"
+- tapOn: "Continue"
+
+# Booking Step 6: Handle Confirm Alert dialog & assert redirection to checkout screen
+- tapOn: "Continue to Payment"
+- assertVisible: "Checkout"

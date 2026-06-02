@@ -41,6 +41,7 @@ export default function BookNow() {
   const {
     shopDetails,
     loading,
+    loadingDetails,
     error,
     allServices,
     barberOptions,
@@ -202,6 +203,7 @@ return (
               services={allServices}
               selectedServices={selectedServices}
               onToggleService={toggleService}
+              loading={loadingDetails}
             />
             {hasDiscount && <DiscountBanner discountAmount={discountAmount} />}
           </>

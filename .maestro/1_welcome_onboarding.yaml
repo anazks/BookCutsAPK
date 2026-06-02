@@ -1,0 +1,22 @@
+appId: com.anazk.bookmycuts
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Get Started"
+- tapOn: "Get Started"
+- assertVisible: "English"
+- tapOn: "English"
+- tapOn: "Continue"
+- assertVisible: "What would you like to do?"
+
+# Test "Register as User" path
+- tapOn: "No, Register as User"
+- tapOn: "Continue"
+- assertVisible: "Ready for a fresh look?"
+- back
+
+# Test "Register Shop" path
+- assertVisible: "What would you like to do?"
+- tapOn: "Yes, Register Shop"
+- tapOn: "Continue"
+- assertVisible: "Create Your Shop"

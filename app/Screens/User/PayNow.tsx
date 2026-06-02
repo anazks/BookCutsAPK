@@ -188,6 +188,7 @@ export default function PayNow() {
               paymentId: razorpay_payment_id,
               paymentType,
               amount: paymentType === 'advance' ? advanceAmount : totalPrice,
+              totalPrice: totalPrice,
               verified: 'true',
               barberName,
               bookingDate,

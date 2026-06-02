@@ -12,6 +12,8 @@ import { getmyProfile } from '../api/Service/User';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 import TransparentInfoCard from '../Components/Home/TransparentInfoCard';
+import { useAppDispatch } from '../store/hooks';
+import { prefetchBookings } from '../store/bookingPrefetchSlice';
 
 
 interface UserData {
@@ -28,6 +30,12 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation<any>();
+  const dispatch = useAppDispatch();
+
+  // Prefetch bookings in background on component mount to make Bookings screen load instantly
+  useEffect(() => {
+    dispatch(prefetchBookings());
+  }, [dispatch]);
 
   const { tabBarOffset } = useTabBar();
   const lastScrollY = useSharedValue(0);
@@ -48,20 +56,26 @@ export default function Profile() {
     },
   });
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       // getmyProfile might need a token or something, but usually it takes it from AsyncStorage in the service
       const response = await getmyProfile();
       console.log("profile data:", JSON.stringify(response, null, 2));
       if (response && response.success) {
         setUserData(response.user);
-      } else {
+        await AsyncStorage.setItem('cachedProfile', JSON.stringify(response.user));
+        setError(null);
+      } else if (!isBackground) {
         setError(response?.message || 'Failed to load profile');
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
-      setError('Network error. Please try again.');
+      if (!isBackground) {
+        setError('Network error. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -87,11 +101,11 @@ export default function Profile() {
                 if (googleErr.code !== 'SIGN_IN_REQUIRED') console.log('Google sign-out failed:', googleErr);
               }
             }
-            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider', 'cachedProfile']);
             router.replace('/');
           } catch (error) {
             console.error('Logout Error:', error);
-            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider']);
+            await AsyncStorage.multiRemove(['accessToken', 'shopId', 'authProvider', 'cachedProfile']);
             router.replace('/');
           }
         },
@@ -100,7 +114,22 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    fetchProfile();
+    const loadCachedProfile = async () => {
+      try {
+        const cached = await AsyncStorage.getItem('cachedProfile');
+        if (cached) {
+          setUserData(JSON.parse(cached));
+          setLoading(false);
+          // fetch fresh details in background
+          fetchProfile(true);
+        } else {
+          fetchProfile(false);
+        }
+      } catch (e) {
+        fetchProfile(false);
+      }
+    };
+    loadCachedProfile();
   }, []);
 
   if (loading) {

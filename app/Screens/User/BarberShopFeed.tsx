@@ -17,39 +17,77 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getShopById, getShopOffers, Offer } from '../../api/Service/Shop';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { prefetchSlotsForDates } from '../../store/bookingPrefetchSlice';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const BarberShopFeed = () => {
-  const { shop_id } = useLocalSearchParams();
+  const { shop_id, shop_name, shop_image, shop_city, shop_timing } = useLocalSearchParams();
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [shopData, setShopData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [shopData, setShopData] = useState<any>(() => {
+    if (shop_id && shop_name) {
+      return {
+        _id: shop_id,
+        ShopName: shop_name,
+        ProfileImage: shop_image || '',
+        City: shop_city || '',
+        Timing: shop_timing || '',
+        ExactLocation: shop_city || '',
+      };
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    return !(shop_id && shop_name);
+  });
   const [error, setError] = useState<string | null>(null);
   const offerScrollRef = useRef<any>(null);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
 
   const [shopOffers, setShopOffers] = useState<Offer[]>([]);
+  const dispatch = useAppDispatch();
+
+  // Prefetch slots in background while user is viewing the shop details
+  useEffect(() => {
+    if (shop_id) {
+      const dates: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        dates.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        );
+      }
+      dispatch(prefetchSlotsForDates({ shopId: shop_id as string, dates }));
+    }
+  }, [shop_id, dispatch]);
 
 
-  const fetchShopData = async () => {
+  const cachedPrefetch = useAppSelector(
+    (state) => state.bookingPrefetch.servicesAndBarbers[shop_id as string]
+  );
+
+  const fetchShopData = async (isBackground = false) => {
     if (!shop_id) {
       setError('Shop ID not provided');
       setLoading(false);
       return;
     }
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       const [shopRes, offersRes] = await Promise.all([
         getShopById(shop_id as string),
-        getShopOffers(shop_id as string)
+        getShopOffers(shop_id as string).catch(() => ({ success: true, data: [] }))
       ]);
 
       if (shopRes && shopRes.success && shopRes.data && shopRes.data.length > 0) {
         setShopData(shopRes.data[0]);
         setError(null);
-      } else {
+      } else if (!isBackground) {
         setError('Failed to fetch shop data');
       }
 
@@ -58,9 +96,13 @@ const BarberShopFeed = () => {
       }
     } catch (error) {
       console.error('Error fetching shop data:', error);
-      setError('Failed to load shop information');
+      if (!isBackground) {
+        setError('Failed to load shop information');
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
   };
 
@@ -87,8 +129,30 @@ const BarberShopFeed = () => {
 
   // Fetch shop data on component mount
   useEffect(() => {
-    fetchShopData();
-  }, [shop_id]);
+    if (cachedPrefetch) {
+      if (cachedPrefetch.loading) {
+        // Redux is loading, only show spinner if we don't already have shopData
+        if (!shopData) {
+          setLoading(true);
+          setError(null);
+        }
+      } else if (cachedPrefetch.details) {
+        // ⚡ Load instantly from Redux prefetch cache!
+        setShopData(cachedPrefetch.details);
+        setShopOffers(cachedPrefetch.offers || []);
+        setLoading(false);
+        setError(null);
+        // Silently refresh in the background to ensure details are up-to-date
+        fetchShopData(true);
+      } else {
+        // Cache exists but details are empty/failed, fallback to normal fetch
+        fetchShopData(shopData ? true : false);
+      }
+    } else {
+      // Normal load with spinner
+      fetchShopData(shopData ? true : false);
+    }
+  }, [shop_id, cachedPrefetch]);
 
   const handleMediaPress = (media) => {
     setSelectedMedia(media);
@@ -116,7 +180,12 @@ const BarberShopFeed = () => {
     console.log('Book Now pressed for:', shopData?.ShopName || 'Unknown Shop');
     router.push({
       pathname: '/Screens/User/BookNow',
-      params: { shop_id: shop_id }
+      params: {
+        shop_id: shop_id as string,
+        shop_name: shopData?.ShopName || '',
+        shop_timing: shopData?.Timing || '',
+        shop_address: shopData?.ExactLocation || `${shopData?.City || ''} • ${shopData?.Mobile || ''}`,
+      }
     })
   };
 

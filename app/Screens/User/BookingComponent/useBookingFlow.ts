@@ -10,6 +10,8 @@ import {
 } from '../../../api/Service/Booking';
 import { getmyBarbers, getShopById, getShopServices } from '../../../api/Service/Shop';
 import { getmyProfile } from '../../../api/Service/User';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { prefetchSlotsForDates } from '../../../store/bookingPrefetchSlice';
 
 // ── Types (expand as needed) ──
 type Service = {
@@ -83,11 +85,80 @@ const formatLocalDate = (date: Date): string => {
 };
 
 export const useBookingFlow = () => {
-  const { shop_id } = useLocalSearchParams<{ shop_id: string }>();
+  const { shop_id, shop_name, shop_timing, shop_address } = useLocalSearchParams<{
+    shop_id: string;
+    shop_name?: string;
+    shop_timing?: string;
+    shop_address?: string;
+  }>();
+
+  // ── Redux prefetch cache selector ──
+  const cachedPrefetch = useAppSelector(
+    (state) => state.bookingPrefetch.servicesAndBarbers[shop_id as string]
+  );
 
   // ── Core states ──
-  const [shopDetails, setShopDetails] = useState<Shop | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [shopDetails, setShopDetails] = useState<Shop | null>(() => {
+    if (cachedPrefetch && cachedPrefetch.details && !cachedPrefetch.loading) {
+      const shopData = cachedPrefetch.details;
+      const times = (shopData.Timing || '').split('-').map((t: string) => t.trim()).filter(Boolean);
+      const openingTime = times[0] ? parseTime(times[0]) : '09:00';
+      const closingTime = times[1] ? parseTime(times[1]) : '21:00';
+
+      const services = cachedPrefetch.services.map((service: any) => ({
+        id: service._id,
+        name: service.ServiceName,
+        price: parseInt(service.Rate, 10) || 0,
+        duration: service.duration || 30,
+      }));
+
+      const barbers = cachedPrefetch.barbers.map((barber: any) => ({
+        id: barber._id,
+        name: barber.BarberName,
+        nativePlace: barber.From,
+      }));
+
+      return {
+        id: shopData._id,
+        name: shopData.ShopName,
+        address: `${shopData.City || ''} • ${shopData.Mobile || ''}`,
+        openingTime,
+        closingTime,
+        services,
+        barbers,
+        Timing: shopData.Timing,
+      };
+    }
+
+    if (shop_id && shop_name) {
+      const times = (shop_timing || '').split('-').map((t: string) => t.trim()).filter(Boolean);
+      const openingTime = times[0] ? parseTime(times[0]) : '09:00';
+      const closingTime = times[1] ? parseTime(times[1]) : '21:00';
+      return {
+        id: shop_id,
+        name: shop_name,
+        address: shop_address || '',
+        openingTime,
+        closingTime,
+        services: [],
+        barbers: [],
+        Timing: shop_timing || '',
+      };
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (cachedPrefetch && cachedPrefetch.details && !cachedPrefetch.loading) {
+      return false;
+    }
+    return !(shop_id && shop_name);
+  });
+
+  const [loadingDetails, setLoadingDetails] = useState(() => {
+    return !(cachedPrefetch && cachedPrefetch.details && !cachedPrefetch.loading);
+  });
+
   const [error, setError] = useState<string | null>(null);
 
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
@@ -95,6 +166,11 @@ export const useBookingFlow = () => {
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
+
+  const selectedDateStr = selectedDate ? formatLocalDate(selectedDate) : '';
+  const cachedSlots = useAppSelector(
+    (state) => state.bookingPrefetch.slotsCache[`${shop_id}_${selectedDateStr}`]
+  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -109,6 +185,23 @@ export const useBookingFlow = () => {
     };
     fetchUser();
   }, []);
+
+  const dispatch = useAppDispatch();
+
+  // Prefetch slots in the background on booking initialization (if not already cached)
+  useEffect(() => {
+    if (shop_id) {
+      const dates: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        dates.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        );
+      }
+      dispatch(prefetchSlotsForDates({ shopId: shop_id, dates }));
+    }
+  }, [shop_id, dispatch]);
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
@@ -327,9 +420,14 @@ export const useBookingFlow = () => {
       return;
     }
 
-    const fetchShopData = async () => {
-      setLoading(true);
-      setError(null);
+    const fetchShopData = async (isSilent = false) => {
+      if (!isSilent) {
+        setLoading(true);
+        setError(null);
+      }
+      if (!isSilent || !shopDetails || !shopDetails.services || shopDetails.services.length === 0) {
+        setLoadingDetails(true);
+      }
       setApiErrors({ services: false, barbers: false });
 
       try {
@@ -388,14 +486,67 @@ export const useBookingFlow = () => {
           Timing: shopData.Timing,
         });
       } catch (err: any) {
-        setError(err.message || 'Failed to load shop details');
+        if (!isSilent) {
+          setError(err.message || 'Failed to load shop details');
+        }
       } finally {
         setLoading(false);
+        setLoadingDetails(false);
       }
     };
 
-    fetchShopData();
-  }, [shop_id]);
+    if (cachedPrefetch) {
+      if (cachedPrefetch.loading) {
+        // ⚡ Redux is already loading in background, only show spinner if no basic details!
+        if (!shopDetails) {
+          setLoading(true);
+          setError(null);
+        }
+        setLoadingDetails(true);
+      } else if (cachedPrefetch.details) {
+        // ⚡ Load instantly from prefetch cache!
+        const shopData = cachedPrefetch.details;
+        const times = (shopData.Timing || '').split('-').map((t: string) => t.trim()).filter(Boolean);
+        const openingTime = times[0] ? parseTime(times[0]) : '09:00';
+        const closingTime = times[1] ? parseTime(times[1]) : '21:00';
+
+        const services = cachedPrefetch.services.map((service: any) => ({
+          id: service._id,
+          name: service.ServiceName,
+          price: parseInt(service.Rate, 10) || 0,
+          duration: service.duration || 30,
+        }));
+
+        const barbers = cachedPrefetch.barbers.map((barber: any) => ({
+          id: barber._id,
+          name: barber.BarberName,
+          nativePlace: barber.From,
+        }));
+
+        setShopDetails({
+          id: shopData._id,
+          name: shopData.ShopName,
+          address: `${shopData.City || ''} • ${shopData.Mobile || ''}`,
+          openingTime,
+          closingTime,
+          services,
+          barbers,
+          Timing: shopData.Timing,
+        });
+        setLoading(false);
+        setLoadingDetails(false);
+        setError(null);
+        // Silently refresh in the background
+        fetchShopData(true);
+      } else {
+        // Cache entry exists but details are missing (e.g. failed/empty), fallback to normal API fetch
+        fetchShopData(shopDetails ? true : false);
+      }
+    } else {
+      // Normal load with spinner if not cached at all
+      fetchShopData(shopDetails ? true : false);
+    }
+  }, [shop_id, cachedPrefetch]);
 
   // ── Fetch barber-specific or any-barber slots when date or barber changes ──
   const fetchFreeTimes = useCallback(async () => {
@@ -411,6 +562,11 @@ export const useBookingFlow = () => {
       const response = await getBarberFreeTime(selectedBarber.id, dateStr, shop_id);
       if (response?.success && response?.availableHours?.success) {
         const apiSchedule = response.availableHours.schedule;
+        
+        if (apiSchedule?.isBlocked) {
+          Alert.alert("Shop Closed", apiSchedule.message || "The shop is closed on this date due to an urgent situation. Please choose a different date.");
+        }
+
         const schedule: ScheduleData = {
           workHours: {
             from: apiSchedule.workHours?.from || '09:00',
@@ -460,13 +616,53 @@ export const useBookingFlow = () => {
       return;
     }
 
-    setLoadingSlots(true);
     const dateStr = formatLocalDate(selectedDate);
+
+    // ⚡ Check slots cache first
+    if (cachedSlots) {
+      if (cachedSlots.loading) {
+        // Redux is loading in the background, set loading flag and wait
+        setLoadingSlots(true);
+        return;
+      } else {
+        const freeSlots = cachedSlots.slots || [];
+        setFreeGaps({
+          workHours: { from: '09:00', to: '21:00' },
+          breaks: [],
+          bookings: [],
+          freeSlots: freeSlots.map((slot: any) => ({
+            from: slot.from,
+            to: slot.to,
+            minutes: slot.minutes,
+          })),
+        });
+
+        const startTimes = freeSlots
+          .map((slot: any) => slot.from)
+          .sort((a: string, b: string) => timeToMinutes(a) - timeToMinutes(b));
+
+        if (startTimes.length > 0) {
+          setSelectedStartTime(prev => prev || startTimes[0]);
+        } else {
+          setSelectedStartTime(null);
+        }
+        setLoadingSlots(false);
+        return;
+      }
+    }
+
+    setLoadingSlots(true);
 
     try {
       const response = await fetchAllAvailableTimeSlots(shop_id, dateStr);
       if (response?.success && response?.availableSlots?.success) {
-        const freeSlots = response.availableSlots.schedule?.freeSlots || [];
+        const apiSchedule = response.availableSlots.schedule;
+        
+        if (apiSchedule?.isBlocked) {
+          Alert.alert("Shop Closed", apiSchedule.message || "The shop is closed on this date due to an urgent situation.Please choose a different date.");
+        }
+
+        const freeSlots = apiSchedule?.freeSlots || [];
         setFreeGaps({
           workHours: { from: '09:00', to: '21:00' },
           breaks: [],
@@ -498,7 +694,7 @@ export const useBookingFlow = () => {
     } finally {
       setLoadingSlots(false);
     }
-  }, [selectedDate, selectedBarber?.id, shop_id]);
+  }, [selectedDate, selectedBarber?.id, shop_id, cachedSlots]);
 
   // Auto-fetch slots when date or barber changes
   useEffect(() => {
@@ -519,6 +715,7 @@ export const useBookingFlow = () => {
   return {
     shopDetails,
     loading,
+    loadingDetails,
     error,
     apiErrors,
     allServices,

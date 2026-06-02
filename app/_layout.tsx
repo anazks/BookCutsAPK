@@ -11,6 +11,8 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform, Alert } from 'react-native';
 import { savePushToken } from './api/Service/User';
+import { Provider } from 'react-redux';
+import { store } from './store/store';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeContext';
@@ -199,12 +201,14 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppThemeProvider>
-        <LocationProvider>
-          <InnerGradientLayout colorScheme={colorScheme ?? 'light'} />
-        </LocationProvider>
-      </AppThemeProvider>
-    </GestureHandlerRootView>
+    <Provider store={store}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AppThemeProvider>
+          <LocationProvider>
+            <InnerGradientLayout colorScheme={colorScheme ?? 'light'} />
+          </LocationProvider>
+        </AppThemeProvider>
+      </GestureHandlerRootView>
+    </Provider>
   );
 }

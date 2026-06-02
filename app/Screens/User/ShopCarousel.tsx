@@ -11,6 +11,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAppDispatch } from '../../store/hooks';
+import { prefetchServicesAndBarbers, prefetchSlotsForDates } from '../../store/bookingPrefetchSlice';
+
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: any = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 const { width } = Dimensions.get('window');
 
@@ -54,11 +64,50 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const onEndReachedCalled = useRef(false);
+  const dispatch = useAppDispatch();
+
+  // Debounced prefetch function to avoid spamming the backend while scrolling fast
+  const debouncedPrefetch = React.useMemo(
+    () =>
+      debounce((shopId: string) => {
+        dispatch(prefetchServicesAndBarbers(shopId));
+
+        // Generate today & tomorrow dates in YYYY-MM-DD format
+        const dates: string[] = [];
+        for (let i = 0; i < 2; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          dates.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          );
+        }
+        dispatch(prefetchSlotsForDates({ shopId, dates }));
+      }, 400),
+    [dispatch]
+  );
+
+  const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    viewableItems.forEach((viewableItem) => {
+      if (viewableItem.isViewable && viewableItem.item?.id) {
+        debouncedPrefetch(viewableItem.item.id);
+      }
+    });
+  }).current;
+
+  const viewabilityConfig = React.useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   const handleShopPress = (shop: ShopItem) => {
     router.push({
       pathname: '/Screens/User/BarberShopFeed',
-      params: { shop_id: shop.id },
+      params: {
+        shop_id: shop.id,
+        shop_name: shop.name,
+        shop_image: shop.image,
+        shop_city: shop.city || '',
+        shop_timing: shop.timing || '',
+      },
     });
   };
 
@@ -83,6 +132,9 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: '#E2E8F0',
+        }}
+        onPressIn={() => {
+          dispatch(prefetchServicesAndBarbers(item.id));
         }}
         onPress={() => handleShopPress(item)}
         activeOpacity={0.82}
@@ -221,6 +273,9 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
 
           {/* Book button */}
           <TouchableOpacity
+            onPressIn={() => {
+              dispatch(prefetchServicesAndBarbers(item.id));
+            }}
             onPress={() => handleShopPress(item)}
             activeOpacity={0.85}
             style={{ borderRadius: 10, overflow: 'hidden' }}

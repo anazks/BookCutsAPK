@@ -2,6 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,12 +22,14 @@ type ServicesSelectorProps = {
   services: Service[];
   selectedServices: Service[];
   onToggleService: (service: Service) => void;
+  loading?: boolean;
 };
 
 export const ServicesSelector = ({
   services,
   selectedServices,
   onToggleService,
+  loading = false,
 }: ServicesSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -85,58 +88,65 @@ export const ServicesSelector = ({
       )}
 
       {/* Services List - Vertical */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContentVertical}
-      >
-        {filteredServices.map((service) => {
-          const isSelected = selectedServices.some((s) => s.id === service.id);
+      {loading ? (
+        <View style={{ paddingVertical: 40, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="small" color="#2563EB" />
+          <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>Loading services...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContentVertical}
+        >
+          {filteredServices.map((service) => {
+            const isSelected = selectedServices.some((s) => s.id === service.id);
 
-          return (
-            <TouchableOpacity
-              key={service.id ?? service.name}
-              style={[styles.serviceCard, isSelected && styles.selectedCard]}
-              onPress={() => onToggleService(service)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.cardContent}>
-                <Text style={styles.serviceName} numberOfLines={1}>
-                  {service.name}
-                </Text>
-                <View style={styles.priceRow}>
-                  <Text style={[styles.price, isSelected && styles.selectedPrice]}>
-                    {formatPrice(service.price)}
+            return (
+              <TouchableOpacity
+                key={service.id ?? service.name}
+                style={[styles.serviceCard, isSelected && styles.selectedCard]}
+                onPress={() => onToggleService(service)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <Text style={styles.serviceName} numberOfLines={1}>
+                    {service.name}
                   </Text>
-                  <View style={[styles.duration, isSelected && styles.selectedDuration]}>
-                    <Ionicons 
-                      name="time-outline" 
-                      size={8} 
-                      color={isSelected ? "#FFFFFF" : "#6B7280"} 
-                    />
-                    <Text style={[styles.durationText, isSelected && styles.selectedDurationText]}>
-                      {service.duration}
+                  <View style={styles.priceRow}>
+                    <Text style={[styles.price, isSelected && styles.selectedPrice]}>
+                      {formatPrice(service.price)}
                     </Text>
+                    <View style={[styles.duration, isSelected && styles.selectedDuration]}>
+                      <Ionicons 
+                        name="time-outline" 
+                        size={8} 
+                        color={isSelected ? "#FFFFFF" : "#6B7280"} 
+                      />
+                      <Text style={[styles.durationText, isSelected && styles.selectedDurationText]}>
+                        {service.duration}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-              
-              <View style={[styles.plusButton, isSelected && styles.plusButtonSelected]}>
-                <Ionicons 
-                  name={isSelected ? "checkmark" : "add"} 
-                  size={14} 
-                  color={isSelected ? "#FFFFFF" : "#2563EB"} 
-                />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                
+                <View style={[styles.plusButton, isSelected && styles.plusButtonSelected]}>
+                  <Ionicons 
+                    name={isSelected ? "checkmark" : "add"} 
+                    size={14} 
+                    color={isSelected ? "#FFFFFF" : "#2563EB"} 
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
 
-        {filteredServices.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No services found</Text>
-          </View>
-        )}
-      </ScrollView>
+          {filteredServices.length === 0 && (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No services found</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };

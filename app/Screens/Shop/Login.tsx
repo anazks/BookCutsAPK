@@ -40,7 +40,7 @@ export default function Login() {
   useEffect(() => {
     GoogleSignin.configure({
       // Production ID: 
-      webClientId: '805182446508-gvphqj7e7kigpreinncsi480u4dficea.apps.googleusercontent.com',
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_SIGNIN_WEB_CLIENT_ID,
       // Development ID:
       // webClientId: '293758521018-en9762n993a249rik4r3snavhblsa7s7.apps.googleusercontent.com',
       offlineAccess: true,

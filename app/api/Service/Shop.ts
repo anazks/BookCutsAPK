@@ -571,3 +571,12 @@ export const uploadShopProfileImage = async (shopId: string, formData: FormData)
     }
   }
 };
+
+export const updateShop = async (shopId: string, data: any) => {
+  try {
+    const response = await Axios.put(`/shop/shop/${shopId}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data || { message: "Failed to update shop details" };
+  }
+};

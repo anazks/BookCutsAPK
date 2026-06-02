@@ -1,0 +1,23 @@
+appId: com.anazk.bookmycuts
+---
+- launchApp:
+    clearState: true
+- tapOn: "Get Started"
+- tapOn: "English"
+- tapOn: "Continue"
+- tapOn: "No, Register as User"
+- tapOn: "Continue"
+- assertVisible: "Ready for a fresh look?"
+
+# Input Client Credentials
+- tapOn: "Enter your email"
+- inputText: "user@example.com"
+- tapOn: "Enter your password"
+- inputText: "password123"
+- hideKeyboard
+
+# Submit Login Form
+- tapOn: "Sign In"
+
+# Assert Successful Redirect to Home Feed
+- assertVisible: "style match ✂️"

@@ -13,7 +13,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { updateWorkinghours, getWorkingHours, addWorkingHours } from '@/app/api/Service/Shop';
+import { updateWorkinghours, getWorkingHours, addWorkingHours, viewMyShop, updateShop } from '@/app/api/Service/Shop';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -23,6 +23,8 @@ const WorkingHoursManager = () => {
   const [isNewUser, setIsNewUser] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
   const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [workingHours, setWorkingHours] = useState(
     DAYS.map((_, index) => ({
@@ -51,6 +53,7 @@ const WorkingHoursManager = () => {
       setShopId(id);
 
       if (id) {
+        // Fetch working hours
         const response = await getWorkingHours(id);
         console.log('API Response:', response);
 
@@ -63,6 +66,12 @@ const WorkingHoursManager = () => {
         } else {
           console.log('No working hours found, treating as new user');
           setIsNewUser(true);
+        }
+
+        // Fetch shop details to get blockedDates
+        const shopResponse = await viewMyShop();
+        if (shopResponse?.success && shopResponse?.data) {
+          setBlockedDates(shopResponse.data.blockedDates || []);
         }
       }
     } catch (error) {
@@ -193,6 +202,88 @@ const WorkingHoursManager = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleBlockedDateSelected = async (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (!selectedDate || event.type === 'dismissed') {
+      return;
+    }
+
+    // Convert selectedDate to YYYY-MM-DD in local time zone
+    const offset = selectedDate.getTimezoneOffset();
+    const localDate = new Date(selectedDate.getTime() - (offset * 60 * 1000));
+    const dateStr = localDate.toISOString().split('T')[0];
+
+    if (blockedDates.includes(dateStr)) {
+      Alert.alert('Info', 'This date is already blocked.');
+      return;
+    }
+
+    Alert.alert(
+      'Block Date',
+      `Blocking this date will automatically cancel any existing bookings on this day. Are you sure you want to block ${selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block Date',
+          onPress: async () => {
+            const updatedDates = [...blockedDates, dateStr].sort();
+            setSaving(true);
+            try {
+              const res = await updateShop(shopId!, { blockedDates: updatedDates });
+              setBlockedDates(updatedDates);
+              
+              if (res?.cancelledBookingsCount > 0) {
+                Alert.alert('Success', `Date blocked successfully. ${res.cancelledBookingsCount} active booking(s) on this date were automatically cancelled.`);
+              } else {
+                Alert.alert('Success', 'Date blocked successfully.');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'Failed to block date.');
+              console.error(error);
+            } finally {
+              setSaving(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRemoveBlockedDate = async (dateStr: string) => {
+    // Format display date
+    const displayDate = new Date(dateStr).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    Alert.alert(
+      'Unblock Date',
+      `Are you sure you want to unblock ${displayDate}? Customers will be able to book slots on this date again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          style: 'destructive',
+          onPress: async () => {
+            const updatedDates = blockedDates.filter(d => d !== dateStr);
+            setSaving(true);
+            try {
+              await updateShop(shopId!, { blockedDates: updatedDates });
+              setBlockedDates(updatedDates);
+              Alert.alert('Success', 'Date unblocked successfully.');
+            } catch (error: any) {
+              Alert.alert('Error', error?.message || 'Failed to unblock date.');
+              console.error(error);
+            } finally {
+              setSaving(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const canEdit = (index: number) => isNewUser || editingDay === index;
@@ -399,6 +490,68 @@ const WorkingHoursManager = () => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {workingHours.map((day, index) => renderDayCard(day, index))}
+
+        {/* Urgent Closures (Blocked Dates) Section */}
+        {!isNewUser && (
+          <View style={styles.dayCard}>
+            <View style={[styles.dayHeader, { backgroundColor: '#FEE2E2', borderBottomColor: '#FCA5A5' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="warning-outline" size={22} color="#DC2626" />
+                <Text style={[styles.dayName, { color: '#DC2626' }]}>Temporary & Urgent Closures</Text>
+              </View>
+            </View>
+            <View style={styles.dayContent}>
+              <Text style={{ fontSize: 14, color: '#4B5563', marginBottom: 16, lineHeight: 20 }}>
+                Need to close the shop for an emergency, holiday, or personal reason? Block specific dates here. Users won't be able to book slots on blocked dates, and any existing bookings on those dates will be automatically cancelled.
+              </Text>
+
+              {blockedDates.length > 0 ? (
+                <View style={{ marginBottom: 16 }}>
+                  {blockedDates.map((dateStr) => {
+                    const formatted = new Date(dateStr).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    });
+                    return (
+                      <View key={dateStr} style={styles.blockedDateRow}>
+                        <Text style={styles.blockedDateText}>{formatted}</Text>
+                        <TouchableOpacity
+                          style={styles.removeBlockedDateBtn}
+                          onPress={() => handleRemoveBlockedDate(dateStr)}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                          <Text style={styles.removeBlockedDateText}>Unblock</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <Text style={styles.noBlockedDatesText}>No temporary closures scheduled</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.addBlockedDateBtn}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={20} color="#fff" />
+                <Text style={styles.addBlockedDateBtnText}>Block a Date</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Date Picker Modal for Urgent Closures */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={new Date()}
+            mode="date"
+            minimumDate={new Date()} // Only current or future dates can be blocked
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, date) => handleBlockedDateSelected(event, date)}
+          />
+        )}
 
         {isNewUser && (
           <TouchableOpacity
@@ -647,6 +800,66 @@ const styles = StyleSheet.create({
   saveAllButtonText: {
     color: '#fff',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  blockedDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  blockedDateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  removeBlockedDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+  },
+  removeBlockedDateText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noBlockedDatesText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  addBlockedDateBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#EF4444',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addBlockedDateBtnText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   bottomPadding: {

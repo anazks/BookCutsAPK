@@ -16,14 +16,16 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { fetchPayoutAccounts, savePayoutAccounts } from '../../api/Service/Shop';
 
 // ── Design Tokens ───────────────────────────────────────
 const COLORS = {
-  background: '#F8FAFC', // Lighter slate background
+  background: '#F8FAFC',
   white: '#FFFFFF',
-  primary: '#2563EB', // Professional Blue
+  primary: '#2563EB',
   primaryLight: '#EBF2FF',
   secondary: '#475569',
   textMain: '#1E293B',
@@ -31,7 +33,7 @@ const COLORS = {
   border: '#E2E8F0',
   success: '#10B981',
   error: '#EF4444',
-  cardGradient: ['#1E293B', '#334155'], // Dark Slate Professional look
+  cardGradient: ['#1E293B', '#334155'],
 };
 
 const BORDER_RADIUS = 16;
@@ -84,23 +86,16 @@ export default function BankDetailsComponent() {
       setLoading(true);
       setError(null);
 
-      // Fetch shopOwnerId from storage
       const storedShopOwnerId = await AsyncStorage.getItem('shopOwnerId');
-      console.log('[BankDetails] Stored shopOwnerId:', storedShopOwnerId);
 
       const res = await fetchPayoutAccounts();
 
       let item = null;
-      if (res?.account) {
-        item = res.account;
-      } else if (res?.data?.account) {
-        item = res.data.account;
-      } else if (res?.data) {
-        item = Array.isArray(res.data) ? res.data[0] : res.data;
-      }
+      if (res?.account) item = res.account;
+      else if (res?.data?.account) item = res.data.account;
+      else if (res?.data) item = Array.isArray(res.data) ? res.data[0] : res.data;
 
       if (item && (item.accountNumber || item.AccountNumber)) {
-        console.log('[BankDetails] Raw account number from API:', item.accountNumber || item.AccountNumber);
         const normalized: BankDetails = {
           shopOwnerId: item.shopOwnerId || item.ShopOwnerId || '',
           accountHolderName: item.accountHolderName || item.AccountHolderName || '',
@@ -144,39 +139,27 @@ export default function BankDetailsComponent() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.accountHolderName.trim()) {
-      newErrors.accountHolderName = 'Account holder name is required';
-    }
-
-    if (!form.accountNumber) {
-      newErrors.accountNumber = 'Account number is required';
-    } else if (form.accountNumber.length < 9 || form.accountNumber.length > 18) {
+    if (!form.accountHolderName.trim()) newErrors.accountHolderName = 'Account holder name is required';
+    if (!form.accountNumber) newErrors.accountNumber = 'Account number is required';
+    else if (form.accountNumber.length < 9 || form.accountNumber.length > 18) {
       newErrors.accountNumber = 'Invalid account number (9-18 digits)';
     }
-
     if (form.accountNumber !== confirmAccountNumber) {
       newErrors.confirmAccountNumber = 'Account numbers do not match';
     }
 
     const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-    if (!form.ifsc) {
-      newErrors.ifsc = 'IFSC code is required';
-    } else if (!ifscRegex.test(form.ifsc)) {
-      newErrors.ifsc = 'Invalid IFSC format (e.g. SBIN0001234)';
-    }
+    if (!form.ifsc) newErrors.ifsc = 'IFSC code is required';
+    else if (!ifscRegex.test(form.ifsc)) newErrors.ifsc = 'Invalid IFSC format (e.g. SBIN0001234)';
 
     if (form.user?.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.user.email)) {
-        newErrors.email = 'Invalid email address';
-      }
+      if (!emailRegex.test(form.user.email)) newErrors.email = 'Invalid email address';
     }
 
     if (form.user?.mobileNo) {
       const mobileRegex = /^[0-9]{10}$/;
-      if (!mobileRegex.test(form.user.mobileNo)) {
-        newErrors.mobileNo = 'Invalid 10-digit mobile number';
-      }
+      if (!mobileRegex.test(form.user.mobileNo)) newErrors.mobileNo = 'Invalid 10-digit mobile number';
     }
 
     setErrors(newErrors);
@@ -184,23 +167,17 @@ export default function BankDetailsComponent() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setSubmitting(true);
       
-      // Safety check: Fetch shopOwnerId again if missing in state
       let submissionData = { ...form };
       if (!submissionData.shopOwnerId) {
         const storedId = await AsyncStorage.getItem('shopOwnerId');
-        if (storedId) {
-          submissionData.shopOwnerId = storedId;
-        }
+        if (storedId) submissionData.shopOwnerId = storedId;
       }
 
-      console.log('[BankDetails] Submitting form with payload:', JSON.stringify(submissionData, null, 2));
       const res = await savePayoutAccounts(submissionData);
       if (res?.account || res?.message) {
         Alert.alert(
@@ -211,16 +188,10 @@ export default function BankDetailsComponent() {
       }
     } catch (err: any) {
       console.log('[savePayoutAccounts] Error:', err);
-      
-      // Handle the specific backend error format provided by user
       if (err.response?.data?.field) {
         const backendField = err.response.data.field;
         const backendDesc = err.response.data.description;
-        
-        setErrors(prev => ({
-          ...prev,
-          [backendField]: backendDesc
-        }));
+        setErrors(prev => ({ ...prev, [backendField]: backendDesc }));
       } else {
         Alert.alert('Update Failed', err.message || 'We could not save your details. Please try again.');
       }
@@ -238,7 +209,8 @@ export default function BankDetailsComponent() {
     errorKey?: string,
     secure: boolean = false,
     onToggleSecure?: () => void,
-    isSecureVisible?: boolean
+    isSecureVisible?: boolean,
+    maxLength?: number
   ) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
@@ -262,6 +234,7 @@ export default function BankDetailsComponent() {
           keyboardType={keyType}
           secureTextEntry={secure && !isSecureVisible}
           autoCapitalize={label === 'IFSC Code' ? 'characters' : 'none'}
+          maxLength={maxLength}
         />
         {secure && (
           <TouchableOpacity onPress={onToggleSecure} style={styles.eyeIcon}>
@@ -301,202 +274,221 @@ export default function BankDetailsComponent() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}
+        enableOnAndroid={true}
       >
-        {bankData && !isEditing ? (
-          <View>
-            {/* Professional Bank Card Display */}
-            <View style={styles.bankCard}>
-              <View style={styles.cardTop}>
-                <View>
-                  <Text style={styles.cardBrand}>PRIMARY ACCOUNT</Text>
-                  <Text style={styles.cardHolderName}>{bankData.accountHolderName}</Text>
-                </View>
-                <FontAwesome name="bank" size={24} color={COLORS.white} opacity={0.8} />
-              </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {bankData && !isEditing ? (
+              <View>
+                {/* Bank Card */}
+                <View style={styles.bankCard}>
+                  <View style={styles.cardTop}>
+                    <View>
+                      <Text style={styles.cardBrand}>PRIMARY ACCOUNT</Text>
+                      <Text style={styles.cardHolderName}>{bankData.accountHolderName}</Text>
+                    </View>
+                    <FontAwesome name="bank" size={24} color={COLORS.white} opacity={0.8} />
+                  </View>
 
-              <View style={styles.cardMiddle}>
-                <Text style={styles.cardLabel}>ACCOUNT NUMBER</Text>
-                <Text
-                  style={styles.cardAccountNumber}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {showAccountNumber
-                    ? bankData.accountNumber
-                    : `•••• •••• •••• ${bankData.accountNumber.toString().slice(-4)}`
-                  }
-                </Text>
-              </View>
+                  <View style={styles.cardMiddle}>
+                    <Text style={styles.cardLabel}>ACCOUNT NUMBER</Text>
+                    <Text
+                      style={styles.cardAccountNumber}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {showAccountNumber
+                        ? bankData.accountNumber
+                        : `•••• •••• •••• ${bankData.accountNumber.toString().slice(-4)}`
+                      }
+                    </Text>
+                  </View>
 
-              <View style={styles.cardBottom}>
-                <View>
-                  <Text style={styles.cardLabel}>IFSC CODE</Text>
-                  <Text style={styles.cardValue}>{bankData.ifsc}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setShowAccountNumber(!showAccountNumber)}
-                  style={styles.eyeBtnSmall}
-                >
-                  <Ionicons
-                    name={showAccountNumber ? "eye-off" : "eye"}
-                    size={16}
-                    color={COLORS.white}
-                  />
-                  <Text style={styles.eyeBtnText}>{showAccountNumber ? 'Hide' : 'Show'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Account Details Checklist */}
-            <View style={styles.detailsSection}>
-              <Text style={styles.sectionHeader}>Account Details</Text>
-
-              <View style={styles.detailItem}>
-                <MaterialIcons name="alternate-email" size={20} color={COLORS.textMuted} />
-                <View style={styles.detailTextContainer}>
-                  <Text style={styles.detailLabel}>Email Address</Text>
-                  <Text style={styles.detailValue}>{bankData.user?.email || 'Not linkded'}</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailItem}>
-                <MaterialIcons name="phone-android" size={20} color={COLORS.textMuted} />
-                <View style={styles.detailTextContainer}>
-                  <Text style={styles.detailLabel}>Mobile Number</Text>
-                  <Text style={styles.detailValue}>{bankData.user?.mobileNo || 'Not linked'}</Text>
-                </View>
-              </View>
-
-              {bankData.razorpayContactId && (
-                <View style={styles.detailItem}>
-                  <MaterialIcons name="verified-user" size={20} color={COLORS.success} />
-                  <View style={styles.detailTextContainer}>
-                    <Text style={styles.detailLabel}>Gateway ID</Text>
-                    <Text style={styles.detailValue}>{bankData.razorpayContactId}</Text>
+                  <View style={styles.cardBottom}>
+                    <View>
+                      <Text style={styles.cardLabel}>IFSC CODE</Text>
+                      <Text style={styles.cardValue}>{bankData.ifsc}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setShowAccountNumber(!showAccountNumber)}
+                      style={styles.eyeBtnSmall}
+                    >
+                      <Ionicons
+                        name={showAccountNumber ? "eye-off" : "eye"}
+                        size={16}
+                        color={COLORS.white}
+                      />
+                      <Text style={styles.eyeBtnText}>{showAccountNumber ? 'Hide' : 'Show'}</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            </View>
 
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => setIsEditing(true)}
-            >
-              <MaterialIcons name="security" size={20} color={COLORS.white} />
-              <Text style={styles.editBtnText}>Manage Account Details</Text>
-            </TouchableOpacity>
+                {/* Account Details */}
+                <View style={styles.detailsSection}>
+                  <Text style={styles.sectionHeader}>Account Details</Text>
 
-            <View style={styles.securityHint}>
-              <Ionicons name="lock-closed" size={14} color={COLORS.textMuted} />
-              <Text style={styles.securityHintText}>
-                Your data is encrypted and used only for automated payouts.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <View style={styles.formCard}>
-              <View style={styles.formHeader}>
-                <Text style={styles.formTitle}>
-                  {bankData ? 'Update Account' : 'Secure Integration'}
-                </Text>
-                <Text style={styles.formSubtitle}>
-                  Ensure details match your passbook to avoid payout failures.
-                </Text>
-              </View>
+                  <View style={styles.detailItem}>
+                    <MaterialIcons name="alternate-email" size={20} color={COLORS.textMuted} />
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Email Address</Text>
+                      <Text style={styles.detailValue}>{bankData.user?.email || 'Not linked'}</Text>
+                    </View>
+                  </View>
 
-              {renderInputField(
-                "Account Holder Name",
-                form.accountHolderName,
-                (t) => setForm({ ...form, accountHolderName: t }),
-                "As per bank records",
-                "default",
-                "accountHolderName"
-              )}
+                  <View style={styles.detailItem}>
+                    <MaterialIcons name="phone-android" size={20} color={COLORS.textMuted} />
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Mobile Number</Text>
+                      <Text style={styles.detailValue}>{bankData.user?.mobileNo || 'Not linked'}</Text>
+                    </View>
+                  </View>
 
-              {renderInputField(
-                "Account Number",
-                form.accountNumber,
-                (t) => setForm({ ...form, accountNumber: t }),
-                "11-16 digit bank number",
-                "numeric",
-                "accountNumber",
-                true,
-                () => setShowAccountNumber(!showAccountNumber),
-                showAccountNumber
-              )}
-
-              {renderInputField(
-                "Confirm Account Number",
-                confirmAccountNumber,
-                (t) => setConfirmAccountNumber(t),
-                "Re-enter account number",
-                "numeric",
-                "confirmAccountNumber",
-                true,
-                () => setShowConfirmAccountNumber(!showConfirmAccountNumber),
-                showConfirmAccountNumber
-              )}
-
-              {renderInputField(
-                "IFSC Code",
-                form.ifsc,
-                (t) => setForm({ ...form, ifsc: t.toUpperCase() }),
-                "e.g. SBIN0001234",
-                "default",
-                "ifsc"
-              )}
-
-              <View style={styles.horizontalDivider} />
-              <Text style={styles.sectionHeaderSmall}>Contact Verification</Text>
-
-              {renderInputField(
-                "Email Address",
-                form.user?.email || '',
-                (t) => setForm({ ...form, user: { ...form.user!, email: t } }),
-                "For payout notifications",
-                "default",
-                "email"
-              )}
-
-              {renderInputField(
-                "Mobile Number",
-                form.user?.mobileNo || '',
-                (t) => setForm({ ...form, user: { ...form.user!, mobileNo: t } }),
-                "10-digit primary mobile",
-                "numeric",
-                "mobileNo"
-              )}
-
-              <View style={styles.actionRow}>
-                {isEditing && (
-                  <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => setIsEditing(false)}
-                  >
-                    <Text style={styles.cancelBtnText}>Back</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.saveBtn, submitting && { opacity: 0.7 }]}
-                  onPress={handleSubmit}
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Verify & Save</Text>
+                  {bankData.razorpayContactId && (
+                    <View style={styles.detailItem}>
+                      <MaterialIcons name="verified-user" size={20} color={COLORS.success} />
+                      <View style={styles.detailTextContainer}>
+                        <Text style={styles.detailLabel}>Gateway ID</Text>
+                        <Text style={styles.detailValue}>{bankData.razorpayContactId}</Text>
+                      </View>
+                    </View>
                   )}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => setIsEditing(true)}
+                >
+                  <MaterialIcons name="security" size={20} color={COLORS.white} />
+                  <Text style={styles.editBtnText}>Manage Account Details</Text>
                 </TouchableOpacity>
+
+                <View style={styles.securityHint}>
+                  <Ionicons name="lock-closed" size={14} color={COLORS.textMuted} />
+                  <Text style={styles.securityHintText}>
+                    Your data is encrypted and used only for automated payouts.
+                  </Text>
+                </View>
               </View>
-            </View>
-          </KeyboardAvoidingView>
-        )}
-      </ScrollView>
+            ) : (
+              <View style={styles.formCard}>
+                <View style={styles.formInputsContainer}>
+                  <View style={styles.formHeader}>
+                    <Text style={styles.formTitle}>
+                      {bankData ? 'Update Account' : 'Secure Integration'}
+                    </Text>
+                    <Text style={styles.formSubtitle}>
+                      Ensure details match your passbook to avoid payout failures.
+                    </Text>
+                  </View>
+
+                  {renderInputField(
+                    "Account Holder Name",
+                    form.accountHolderName,
+                    (t) => setForm({ ...form, accountHolderName: t }),
+                    "As per bank records",
+                    "default",
+                    "accountHolderName"
+                  )}
+
+                  {renderInputField(
+                    "Account Number",
+                    form.accountNumber,
+                    (t) => setForm({ ...form, accountNumber: t.replace(/[^0-9]/g, '') }),
+                    "11-18 digit bank number",
+                    "numeric",
+                    "accountNumber",
+                    true,
+                    () => setShowAccountNumber(!showAccountNumber),
+                    showAccountNumber,
+                    18
+                  )}
+
+                  {renderInputField(
+                    "Confirm Account Number",
+                    confirmAccountNumber,
+                    (t) => setConfirmAccountNumber(t.replace(/[^0-9]/g, '')),
+                    "Re-enter account number",
+                    "numeric",
+                    "confirmAccountNumber",
+                    true,
+                    () => setShowConfirmAccountNumber(!showConfirmAccountNumber),
+                    showConfirmAccountNumber,
+                    18
+                  )}
+
+                  {renderInputField(
+                    "IFSC Code",
+                    form.ifsc,
+                    (t) => setForm({ ...form, ifsc: t.toUpperCase().replace(/[^A-Z0-9]/g, '') }),
+                    "e.g. SBIN0001234",
+                    "default",
+                    "ifsc",
+                    false,
+                    undefined,
+                    undefined,
+                    11
+                  )}
+
+                  <View style={styles.horizontalDivider} />
+                  <Text style={styles.sectionHeaderSmall}>Contact Verification</Text>
+
+                  {renderInputField(
+                    "Email Address",
+                    form.user?.email || '',
+                    (t) => setForm({ ...form, user: { ...form.user!, email: t } }),
+                    "For payout notifications",
+                    "default",
+                    "email"
+                  )}
+
+                  {renderInputField(
+                    "Mobile Number",
+                    form.user?.mobileNo || '',
+                    (t) => setForm({ ...form, user: { ...form.user!, mobileNo: t.replace(/[^0-9]/g, '') } }),
+                    "10-digit primary mobile",
+                    "numeric",
+                    "mobileNo",
+                    false,
+                    undefined,
+                    undefined,
+                    10
+                  )}
+                </View>
+
+                <View style={styles.actionRow}>
+                  {isEditing && (
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => setIsEditing(false)}
+                    >
+                      <Text style={styles.cancelBtnText}>Back</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[styles.saveBtn, submitting && { opacity: 0.7 }]}
+                    onPress={handleSubmit}
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <Text style={styles.saveBtnText}>Verify & Save</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -540,11 +532,12 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: COLORS.background,
     flexGrow: 1,
+    paddingBottom: 80, // Extra space for keyboard
   },
 
-  // Bank Card UI
+  // Bank Card
   bankCard: {
-    backgroundColor: '#0F172A', // Deep navy/slate
+    backgroundColor: '#0F172A',
     borderRadius: 24,
     padding: 24,
     height: 220,
@@ -591,7 +584,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     minHeight: 30,
-    width: '100%',
   },
   cardBottom: {
     flexDirection: 'row',
@@ -684,18 +676,15 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  // Form UI
+  // Form Styles
   formCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    flex: 1,
+  },
+  formInputsContainer: {
+    flex: 1,
   },
   formHeader: {
     marginBottom: 24,

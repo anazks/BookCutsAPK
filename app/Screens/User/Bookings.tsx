@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { myBookings } from '../../api/Service/Booking';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { prefetchBookings, prefetchServicesAndBarbers, prefetchSlotsForDates } from '../../store/bookingPrefetchSlice';
 
 // Enable smooth animations on Android
 if (Platform.OS === 'android') {
@@ -36,10 +38,55 @@ export default function Bookings() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  // Initial load
+  const dispatch = useAppDispatch();
+  const cachedPrefetch = useAppSelector((state) => state.bookingPrefetch.bookings);
+
+  // Initial load utilizing Redux prefetch cache
   useEffect(() => {
-    fetchBookings(true);
+    if (cachedPrefetch && cachedPrefetch.bookings.length > 0) {
+      // ⚡ Load instantly from Redux prefetch cache!
+      setBookings(cachedPrefetch.bookings);
+      setNextCursor(cachedPrefetch.nextCursor);
+      setHasMore(!!cachedPrefetch.nextCursor && cachedPrefetch.bookings.length === ITEMS_PER_PAGE);
+      setLoading(false);
+      setError(null);
+      // Silently refresh in the background to ensure details are up-to-date
+      fetchBookings(false);
+    } else {
+      // Normal load with spinner
+      fetchBookings(true);
+    }
   }, []);
+
+  // Prefetch services and slots for all shops in the bookings list
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      // Get unique shop IDs from the bookings
+      const shopIds = Array.from(
+        new Set(
+          bookings
+            .map((b) => b.shopId?._id || b.shopId)
+            .filter((id) => typeof id === 'string')
+        )
+      ) as string[];
+
+      // For each unique shop, prefetch details/services and slots
+      shopIds.forEach((shopId) => {
+        dispatch(prefetchServicesAndBarbers(shopId));
+
+        // Prefetch slots for today & tomorrow
+        const dates: string[] = [];
+        for (let i = 0; i < 2; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          dates.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          );
+        }
+        dispatch(prefetchSlotsForDates({ shopId, dates }));
+      });
+    }
+  }, [bookings, dispatch]);
 
   const fetchBookings = async (initialLoad = false, cursor: string | null = null) => {
     try {
@@ -63,7 +110,7 @@ export default function Bookings() {
           (a, b) => new Date(b.bookingTimestamp) - new Date(a.bookingTimestamp)
         );
         
-        if (initialLoad) {
+        if (initialLoad || !cursor) {
           setBookings(sortedBookings);
         } else {
           // Filter out duplicates that might come from overlapping cursor dates
@@ -81,7 +128,9 @@ export default function Bookings() {
         }
       }
     } catch (err) {
-      setError('Failed to load bookings. Please try again.');
+      if (initialLoad) {
+        setError('Failed to load bookings. Please try again.');
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -94,8 +143,10 @@ export default function Bookings() {
     setRefreshing(true);
     setNextCursor(null);
     setHasMore(true);
+    // Refresh the Redux cache as well
+    dispatch(prefetchBookings());
     fetchBookings(true);
-  }, []);
+  }, [dispatch]);
 
   const handleLoadMore = useCallback(() => {
     if (!loadingMore && hasMore && nextCursor) {
