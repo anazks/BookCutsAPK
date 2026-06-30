@@ -240,8 +240,8 @@ export const useBookingFlow = () => {
   const { baseTotal, discountAmount, finalTotal, hasDiscount } = priceDetails;
 
   const barberOptions = useMemo<Barber[]>(() => {
-    if (!shopDetails?.barbers) return [{ id: null, name: 'Any Barber' }];
-    return [{ id: null, name: 'Any Barber' }, ...shopDetails.barbers];
+    if (!shopDetails?.barbers) return [{ id: null, name: 'Any Staff' }];
+    return [{ id: null, name: 'Any Staff' }, ...shopDetails.barbers];
   }, [shopDetails?.barbers]);
 
   const allServices = useMemo<Service[]>(() => {
@@ -292,7 +292,7 @@ export const useBookingFlow = () => {
 
     const serviceIds = selectedServices.map((s) => s.id).filter(Boolean);
 
-    const advanceAmount = Math.min(20, finalTotal);
+    const advanceAmount = Math.min(5, finalTotal); // TEMP TESTING: Changed to 5. Revert back to 20 later.
     const remainingAmount = finalTotal - advanceAmount;
 
     return {
@@ -362,7 +362,7 @@ export const useBookingFlow = () => {
                     bookingId,
                     advanceAmount: bookingData.amountToPay,
                     totalPrice: finalTotal,
-                    barberName: selectedBarber?.name || 'Any Barber',
+                    barberName: selectedBarber?.name || 'Any staff',
                     bookingDate: selectedDate?.toLocaleDateString(),
                     timeSlot: `${selectedStartTime} - ${endTimeStr}`,
                   },

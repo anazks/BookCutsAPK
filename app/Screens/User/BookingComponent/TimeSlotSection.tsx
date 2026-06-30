@@ -128,6 +128,7 @@ export const TimeSlotsSection = memo(
                 month: 'long',
                 day: 'numeric',
               })}
+              selectedDate={selectedDate}
               onTimeSelect={memoizedHandleTimeSelect}
             />
             
@@ -148,7 +149,7 @@ export const TimeSlotsSection = memo(
             <Text style={styles.noSlotsText}>
               {selectedBarber?.name
                 ? `${selectedBarber.name} doesn't have any available slots on ${formatFriendlyDate(selectedDate)}`
-                : 'No barbers have available slots on this date'}
+                : 'No staff have available slots on this date'}
             </Text>
             
             {/* Suggestions */}

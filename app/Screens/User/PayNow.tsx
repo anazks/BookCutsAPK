@@ -78,6 +78,7 @@ export default function PayNow() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
+  const [userData, setUserData] = useState<any>(null);
 
   const {
     bookingData: bookingDataString,
@@ -111,6 +112,20 @@ export default function PayNow() {
 
     loadBookingData();
   }, [bookingDataString, router]);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const cached = await AsyncStorage.getItem('cachedProfile');
+        if (cached) {
+          setUserData(JSON.parse(cached));
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    };
+    loadUserData();
+  }, []);
 
   const getBookingId = () => {
     if (bookingId) return bookingId;
@@ -231,6 +246,10 @@ export default function PayNow() {
 
       console.log('Creating order with booking ID:', finalBookingId);
 
+      const finalCustomerName = userData?.name || customerName;
+      const finalCustomerEmail = userData?.email || customerEmail;
+      const finalCustomerPhone = userData?.mobileNo || userData?.phone || customerPhone;
+
       // Backend expects the amount in Rupees and multiples by 100 internally
       const orderResponse = await createOrder({
         amount: amount,
@@ -238,7 +257,7 @@ export default function PayNow() {
         bookingId: finalBookingId,
         paymentType,
         services: bookingData?.services,
-        customerDetails: { name: customerName, email: customerEmail, phone: customerPhone },
+        customerDetails: { name: finalCustomerName, email: finalCustomerEmail, phone: finalCustomerPhone },
       });
 
       if (!orderResponse?.id) throw new Error(orderResponse?.message || 'Failed to create payment order');
@@ -252,7 +271,7 @@ export default function PayNow() {
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
         amount: Math.round(amount * 100),
         currency: 'INR',
-        prefill: { name: customerName, email: customerEmail, contact: customerPhone },
+        prefill: { name: finalCustomerName, email: finalCustomerEmail, contact: finalCustomerPhone },
         theme: { color: '#1877F2' },
         notes: {
           bookingId: finalBookingId,

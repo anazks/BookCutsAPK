@@ -19,6 +19,9 @@ import {
   UIManager,
 } from 'react-native';
 import { getShopBookings, confirmArrival, completeBooking } from '../../api/Service/Shop';
+import { suggestReschedule, respondReschedule } from '../../api/Service/Booking';
+import { RescheduleModal } from './RescheduleModal';
+
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -82,6 +85,28 @@ export default function Bookings() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [enquiringId, setEnquiringId] = useState<string | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  // Reschedule modal state and handlers
+  const [isRescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+
+  const openRescheduleModal = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId) || null;
+    setSelectedBookingId(bookingId);
+    setSelectedBooking(booking);
+    setRescheduleModalVisible(true);
+  };
+
+  const closeRescheduleModal = () => {
+    setRescheduleModalVisible(false);
+    setSelectedBookingId(null);
+  };
+
+  const onRescheduleSuccess = () => {
+    // refresh list after suggestion sent
+    fetchBookings(1, true);
+    closeRescheduleModal();
+  };
 
   const [summary, setSummary] = useState({
     total: 0,
@@ -118,6 +143,9 @@ export default function Bookings() {
 
     return {
       id: b._id,
+      shopId: b.shopId?._id || b.shopId,
+      barberId: b.barberId?._id || b.barberId,
+      barberDetails: { name: staff },
       userId: b.userId?._id,
       customer,
       customerPhone: b.userId?.mobileNo || b.userDetails?.mobileNo || 'N/A',
@@ -143,6 +171,8 @@ export default function Bookings() {
       paymentStatus: b.paymentStatus?.toLowerCase() || 'pending',
       paymentType: b.paymentType || 'full',
       collectedBy: b.collectedBy || 'online',
+      rescheduleStatus: b.rescheduleStatus || 'none',
+      isPast: b.timeSlot?.startingTime ? new Date(b.timeSlot.startingTime).getTime() < Date.now() : false,
       bookingTimestamp: new Date(b.bookingTimestamp || b.createdAt),
     };
   };
@@ -239,6 +269,21 @@ export default function Bookings() {
       Alert.alert('Error', err.message || 'Failed to complete booking');
     } finally {
       setCompletingId(null);
+    }
+  };
+
+  const handleSuggestReschedule = async (bookingId: string) => {
+    try {
+      const suggestedTime = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // +1 hour
+      const res = await suggestReschedule({ bookingId, suggestedTime, reason: 'Shop proposes new time' });
+      if (res?.success) {
+        Alert.alert('Success', 'Reschedule suggestion sent');
+        fetchBookings(1, true);
+      } else {
+        Alert.alert('Error', res?.message || 'Failed to suggest reschedule');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Reschedule suggestion error');
     }
   };
 
@@ -498,6 +543,23 @@ export default function Bookings() {
                   </TouchableOpacity>
                 )}
 
+                {item.status === 'confirmed' && !item.isPast && (
+                  <TouchableOpacity 
+                    style={[
+                      styles.actionBtnComplete, 
+                      item.rescheduleStatus === 'suggested' && { backgroundColor: COLORS.textMuted }
+                    ]} 
+                    onPress={() => openRescheduleModal(item.id)}
+                    disabled={item.rescheduleStatus === 'suggested'}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name={item.rescheduleStatus === 'suggested' ? "pending-actions" : "schedule"} size={17} color={COLORS.white} />
+                    <Text style={styles.actionBtnTextComplete}>
+                      {item.rescheduleStatus === 'suggested' ? 'Reschedule Pending' : 'Suggest Reschedule'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {item.customerPhone !== 'N/A' && (
                   <TouchableOpacity style={styles.actionBtnCall} onPress={() => handleCall(item.customerPhone)} activeOpacity={0.8}>
                     <MaterialIcons name="call" size={17} color={COLORS.white} />
@@ -611,6 +673,15 @@ export default function Bookings() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
         }
       />
+      {isRescheduleModalVisible && (
+        <RescheduleModal
+          visible={isRescheduleModalVisible}
+          onClose={closeRescheduleModal}
+          bookingId={selectedBookingId}
+          booking={selectedBooking}
+          onSuccess={onRescheduleSuccess}
+        />
+      )}
     </SafeAreaView>
   );
 }

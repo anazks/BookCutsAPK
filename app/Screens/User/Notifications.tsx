@@ -12,8 +12,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  Alert,
 } from 'react-native';
 import { getNotifications } from '../../api/Service/User';
+import { respondReschedule } from '../../api/Service/Booking';
 
 const COLORS = {
   bg: '#F8FAFC',
@@ -56,6 +59,11 @@ export default function Notifications() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal State
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
@@ -83,6 +91,50 @@ export default function Notifications() {
     fetchData(true);
   }, [fetchData]);
 
+  const handleRespond = async (action: 'accept' | 'decline') => {
+    if (!selectedNotification?.data?.bookingId) {
+      Alert.alert('Error', 'Missing booking information');
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const res = await respondReschedule({
+        bookingId: selectedNotification.data.bookingId,
+        notificationId: selectedNotification._id,
+        action,
+      });
+      if (res?.success) {
+        Alert.alert('Success', `Reschedule ${action}ed successfully.`);
+        // Optimistically update local state so the buttons disappear instantly
+        setNotifications(prev => prev.map(n => 
+          n._id === selectedNotification._id 
+            ? { ...n, type: 'reschedule_proposal_actioned' } 
+            : n
+        ));
+        setModalVisible(false);
+        setSelectedNotification(null);
+        fetchData(); // Refresh list
+      } else {
+        Alert.alert('Notice', res?.message || 'Failed to respond');
+        if (res?.message?.includes('already') || res?.message?.includes('no longer active')) {
+          setNotifications(prev => prev.map(n => 
+            n._id === selectedNotification._id 
+              ? { ...n, type: 'reschedule_proposal_actioned' } 
+              : n
+          ));
+          setModalVisible(false);
+          setSelectedNotification(null);
+          fetchData();
+        }
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Something went wrong');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // ── Header ────────────────────────────────────────────
   const renderHeader = () => (
     <View style={styles.header}>
@@ -100,7 +152,14 @@ export default function Notifications() {
     const isUnread = !item.isRead;
 
     return (
-      <View style={[styles.card, isUnread && styles.cardUnread]}>
+      <TouchableOpacity 
+        style={[styles.card, isUnread && styles.cardUnread]}
+        onPress={() => {
+          setSelectedNotification(item);
+          setModalVisible(true);
+        }}
+        activeOpacity={0.7}
+      >
         {/* Icon */}
         <View style={[styles.iconCircle, { backgroundColor: iconCfg.bg }]}>
           <Ionicons name={iconCfg.name as any} size={22} color={iconCfg.color} />
@@ -121,7 +180,7 @@ export default function Notifications() {
             {item.body}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -189,6 +248,52 @@ export default function Notifications() {
           />
         }
       />
+
+      {/* Notification Details Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => !actionLoading && setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedNotification && (
+              <>
+                <View style={[styles.iconCircle, { backgroundColor: (NOTIF_ICONS[selectedNotification.type] || NOTIF_ICONS.DEFAULT).bg, alignSelf: 'center', marginBottom: 16, width: 60, height: 60, borderRadius: 30 }]}>
+                  <Ionicons name={(NOTIF_ICONS[selectedNotification.type] || NOTIF_ICONS.DEFAULT).name as any} size={30} color={(NOTIF_ICONS[selectedNotification.type] || NOTIF_ICONS.DEFAULT).color} />
+                </View>
+                <Text style={styles.modalTitle}>{selectedNotification.title}</Text>
+                <Text style={styles.modalTime}>{timeAgo(selectedNotification.createdAt)}</Text>
+                <Text style={styles.modalBody}>{selectedNotification.body}</Text>
+                
+                {selectedNotification.type === 'reschedule_proposal' && (
+                  <View style={styles.actionButtons}>
+                    {actionLoading ? (
+                      <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 20 }} />
+                    ) : (
+                      <>
+                        <TouchableOpacity style={styles.acceptBtn} onPress={() => handleRespond('accept')}>
+                          <Text style={styles.acceptBtnText}>Accept New Time</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.declineBtn} onPress={() => handleRespond('decline')}>
+                          <Text style={styles.declineBtnText}>Decline Reschedule</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
+                
+                {!actionLoading && (
+                  <TouchableOpacity style={styles.closeModalBtn} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.closeModalBtnText}>Close</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -280,6 +385,83 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center',
     marginBottom: 14, borderWidth: 1, borderColor: COLORS.border,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  emptyText: { fontSize: 13, color: COLORS.textMuted, marginTop: 4 },
+  emptyTitle: {
+    fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15, color: COLORS.textSecondary, textAlign: 'center',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalTime: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginBottom: 16,
+  },
+  modalBody: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  actionButtons: {
+    width: '100%',
+    gap: 12,
+    marginBottom: 16,
+  },
+  acceptBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  acceptBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  declineBtn: {
+    backgroundColor: '#FFF0F0',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+  },
+  declineBtnText: {
+    color: COLORS.danger,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  closeModalBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  closeModalBtnText: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

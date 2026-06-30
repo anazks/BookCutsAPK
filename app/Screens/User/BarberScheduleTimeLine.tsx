@@ -20,6 +20,7 @@ const BarberScheduleTimeLine = ({
   } as any,
   totalDuration = 60 as number,
   onTimeSelect,
+  selectedDate,
 }: any) => {
 
   console.log('Schedule Data Received:', scheduleData);
@@ -61,6 +62,14 @@ console.log('Total Duration:', totalDuration);
   const generateTimeSlots = useMemo(() => {
     const slots: any[] = [];
     
+    // Check if selected date is today to filter out past slots
+    const now = new Date();
+    const isToday = selectedDate && 
+      selectedDate.getDate() === now.getDate() && 
+      selectedDate.getMonth() === now.getMonth() && 
+      selectedDate.getFullYear() === now.getFullYear();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
     (scheduleData.freeSlots || []).forEach((freeSlot: any) => {
       const startMin = timeToMinutes(freeSlot.from);
       const endMin = timeToMinutes(freeSlot.to);
@@ -71,6 +80,11 @@ console.log('Total Duration:', totalDuration);
       for (let i = 0; i < numSlots; i++) {
         const slotStartMin = startMin + (i * totalDuration);
         const slotEndMin = slotStartMin + totalDuration;
+        
+        // Skip slot if it's today and the slot's start time is in the past
+        if (isToday && slotStartMin <= currentMinutes) {
+          continue;
+        }
         
         const isAvailable = !isSlotBlocked(slotStartMin, slotEndMin);
         

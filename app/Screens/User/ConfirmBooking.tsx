@@ -88,7 +88,7 @@ export default function ConfirmBooking() {
 
           <View style={styles.summaryRow}>
             <Ionicons name="person-outline" size={20} color="#64748B" />
-            <Text style={styles.summaryLabel}>Barber</Text>
+            <Text style={styles.summaryLabel}>Staff</Text>
             <Text style={styles.summaryValue}>{barberName || 'Unknown'}</Text>
           </View>
 

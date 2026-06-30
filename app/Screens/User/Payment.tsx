@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   SafeAreaView,
@@ -15,6 +16,21 @@ export default function Payment({ route }) {
   const { amount = 0, bookingId = '' } = {};
   const [selectedMethod, setSelectedMethod] = useState('razorpay');
   const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const cached = await AsyncStorage.getItem('cachedProfile');
+        if (cached) {
+          setUserData(JSON.parse(cached));
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    };
+    loadUserData();
+  }, []);
 
   // Payment methods with image URLs
   const paymentMethods = [
@@ -51,9 +67,9 @@ export default function Payment({ route }) {
       amount: amount * 100, // Convert to paise
       name: 'Bookmycuts',
       prefill: {
-        email: 'user@example.com',
-        contact: '9999999999',
-        name: 'User Name'
+        email: userData?.email || 'user@example.com',
+        contact: userData?.mobileNo || userData?.phone || '9999999999',
+        name: userData?.name || 'User Name'
       },
       theme: { color: '#FF6B6B' },
     };

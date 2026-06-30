@@ -20,7 +20,7 @@ export const getMyProfile = async () => {
     }
 }
 
-export const getDashBoardIncome = async () => {
+export const  getDashBoardIncome = async () => {
   try {
       const response = await Axios.get('/booking/dashboardIncome/')
       console.log("Response from dashboardIncome",response)

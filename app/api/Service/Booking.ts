@@ -170,3 +170,23 @@ export const requestWithdrawal = async (data: { amount: number }) => {
     throw error?.response?.data || { message: "Withdrawal request failed" };
   }
 }
+
+export const  suggestReschedule = async (data: { bookingId: string; suggestedTime: string; reason?: string }) => {
+  try {
+    const response = await Axios.post('/booking/suggestReschedule', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('suggestReschedule API error:', error?.response?.data || error.message);
+    throw error?.response?.data || { message: 'Reschedule suggestion failed' };
+  }
+};
+
+export const respondReschedule = async (data: { bookingId: string; action: 'accept' | 'decline' }) => {
+  try {
+    const response = await Axios.post('/booking/respondReschedule', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('respondReschedule API error:', error?.response?.data || error.message);
+    throw error?.response?.data || { message: 'Reschedule response failed' };
+  }
+};

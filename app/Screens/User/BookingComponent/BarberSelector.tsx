@@ -33,8 +33,8 @@ export const BarberSelector = memo(
     return (
       <View style={styles.section}>
         <View style={styles.header}>
-          <Text style={styles.title}>Choose Your Barber</Text>
-          <Text style={styles.subtitle}>Select preferred barber (or any available)</Text>
+          <Text style={styles.title}>Choose Your Staff</Text>
+          <Text style={styles.subtitle}>Select preferred staff member (or any available)</Text>
         </View>
 
         <ScrollView

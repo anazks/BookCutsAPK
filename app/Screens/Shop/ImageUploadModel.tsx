@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { uploadShopMedia } from '../../api/Service/Shop';
 
 const { width, height } = Dimensions.get('window');
-const PRIMARY_COLOR = '#FF6B6B';
+const PRIMARY_COLOR = '#1877F2';
 
 interface ImageUploadModalProps {
   visible: boolean;
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     borderColor: PRIMARY_COLOR,
     borderStyle: 'dashed',
     borderRadius: 15,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#EFF6FF',
   },
   uploadText: {
     marginTop: 15,

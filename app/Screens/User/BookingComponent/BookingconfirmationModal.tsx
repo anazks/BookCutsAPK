@@ -86,7 +86,8 @@ export const BookingConfirmationModal = ({
 
             <View style={styles.summaryRow}>
               <Ionicons name="person-outline" size={18} color="#4B5563" />
-              <Text style={styles.label}>Barber</Text>
+              <Text style={styles.label}>Staff
+              </Text>
               <Text style={styles.value}>
                 {selectedBarber?.name || 'Any Available'}
               </Text>

@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 const BASE_URL = 'http://192.168.29.81:5000/api';
   // const BASE_URL = "https://bookmycutsapp-1s3p.onrender.com/api"
 //      
-
+  
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 120000,

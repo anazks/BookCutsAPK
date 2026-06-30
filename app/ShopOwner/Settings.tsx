@@ -750,7 +750,7 @@ const becomeBarber = async () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Barber</Text>
+              <Text style={styles.modalTitle}>Add Staff</Text>
               <TouchableOpacity onPress={() => {
                 setBarberName('');
                 setFrom('');
@@ -762,7 +762,7 @@ const becomeBarber = async () => {
 
             <View style={styles.form}>
               <View style={styles.field}>
-                <Text style={styles.label}>Barber Name</Text>
+                <Text style={styles.label}>Staff Name</Text>
                 <TextInput
                   style={styles.input}
                   value={barberName}

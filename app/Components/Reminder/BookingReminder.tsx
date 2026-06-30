@@ -374,7 +374,7 @@ export default function BookingReminder() {
                   <DetailRow
                     icon={<FontAwesome5 name="user" size={16} color="#4F46E5" />}
                     title="Barber"
-                    value={bookingData?.barber?.name || 'Any Barber'}
+                    value={bookingData?.barber?.name || 'Any Staff'}
                   />
                   <DetailRow
                     icon={<Ionicons name="calendar" size={16} color="#4F46E5" />}
