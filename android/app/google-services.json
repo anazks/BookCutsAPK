@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "910221205469",
+    "firebase_url": "https://bookmycuts-b8e1d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bookmycuts-b8e1d",
+    "storage_bucket": "bookmycuts-b8e1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910221205469:android:ce7f16c8ef068acab5a034",
+        "android_client_info": {
+          "package_name": "com.anazk.bookmycuts"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi1m3zKBalqGPE6NZFgozC4d3e5iGc8zg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
