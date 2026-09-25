@@ -22,8 +22,8 @@ const kidsServices = [
     desc: 'Sharp & stylish',
     tag: 'Popular',
     image: 'https://i.pinimg.com/originals/c5/95/63/c59563084990b7ce2e6697fb64f6ea8d.jpg',
-    accent: '#2563EB',
-    lightBg: '#EFF6FF',
+    accent: '#D97706',
+    lightBg: '#FFFBEB',
   },
   {
     id: '2',
@@ -80,10 +80,7 @@ export default function KidsCorner({
 
       {/* ── Section header ── */}
       <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerDot} />
-          <Text style={styles.headerTitle}>Kids Corner</Text>
-        </View>
+        <Text style={styles.headerTitle}>Kids Corner</Text>
         <Text style={styles.headerSub}>Ages 2–12</Text>
       </View>
 
@@ -103,7 +100,7 @@ export default function KidsCorner({
               style={[
                 styles.chip,
                 isSelected
-                  ? { backgroundColor: s.accent, borderColor: s.accent }
+                  ? { backgroundColor: '#0F172A', borderColor: '#0F172A' }
                   : { backgroundColor: '#FFF', borderColor: '#E2E8F0' },
               ]}
             >

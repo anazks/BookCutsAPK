@@ -107,7 +107,7 @@ export default function Dashboard({
                 description: 'Premium Subscription',
                 image: 'https://cdn.iconscout.com/icon/free/png-512/razorpay-1649771-1399875.png',
                 currency: 'INR',
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TXY6OCxDs3opwn',
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TfO8oD2HUrmEMb',
                 amount: orderResponse.order.amount,
                 name: 'BookMyCuts Premium',
                 order_id: orderResponse.order.id,

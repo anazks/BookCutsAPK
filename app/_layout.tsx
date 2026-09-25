@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,13 +9,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, View } from 'react-native';
 import { savePushToken } from './api/Service/User';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { View } from 'react-native';
 
 const InnerGradientLayout = ({ colorScheme }: { colorScheme: 'light' | 'dark' }) => {
   const { theme, category } = useAppTheme();
@@ -88,10 +87,7 @@ export default function RootLayout() {
   });
 
   // ─── Get & Log Expo Push Token ───────────────────────────────────────────
- // Don't forget to import your API function at the top of the file!
-// import { savePushToken } from '../path-to-your-api-file';
-
- useEffect(() => {
+  useEffect(() => {
     const registerForPushNotifications = async () => {
       // 1. Only run on physical devices
       if (!Device.isDevice) {

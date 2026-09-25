@@ -22,7 +22,7 @@ const serviceConfig: Record<string, {
   accent: string;
   lightBg: string;
 }> = {
-  All: { icon: 'apps-outline', accent: '#2563EB', lightBg: '#EFF6FF' },
+  All: { icon: 'apps-outline', accent: '#0F172A', lightBg: '#F1F5F9' },
   Haircut: { icon: 'cut-outline', accent: '#DB2777', lightBg: '#FDF2F8' },
   Spa: { icon: 'leaf-outline', accent: '#059669', lightBg: '#ECFDF5' },
   CarWash: { icon: 'car-outline', accent: '#D97706', lightBg: '#FFFBEB' },
@@ -108,14 +108,14 @@ export default function ServiceFilter({
               style={[
                 styles.chip,
                 isSelected
-                  ? { backgroundColor: service.accent, borderColor: service.accent }
+                  ? { backgroundColor: '#0F172A', borderColor: '#0F172A' }
                   : { backgroundColor: '#FFF', borderColor: '#E2E8F0' },
               ]}
             >
               <Ionicons
                 name={service.icon}
                 size={13}
-                color={isSelected ? '#FFF' : service.accent}
+                color={isSelected ? '#FFF' : '#475569'}
               />
               <Text style={[styles.chipText, { color: isSelected ? '#FFF' : '#374151' }]}>
                 {service.name}
@@ -130,11 +130,11 @@ export default function ServiceFilter({
 
       {/* ── Active filter banner ── */}
       {selectedItem && selectedItem.id !== 'all' && (
-        <View style={[styles.banner, { borderColor: selectedItem.lightBg }]}>
-          <View style={[styles.bannerDot, { backgroundColor: selectedItem.accent }]} />
+        <View style={[styles.banner, { borderColor: '#E2E8F0' }]}>
+          <View style={[styles.bannerDot, { backgroundColor: '#0F172A' }]} />
           <Text style={styles.bannerText}>
             Filtering by{' '}
-            <Text style={[styles.bannerBold, { color: selectedItem.accent }]}>
+            <Text style={[styles.bannerBold, { color: '#0F172A' }]}>
               {selectedItem.name}
             </Text>
           </Text>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 16,
     borderRadius: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0F172A',
   },
   headerTitle: {
     fontSize: 15,

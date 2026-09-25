@@ -82,7 +82,12 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           borderRadius: 16,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: '#E2E8F0',
+          borderColor: '#F1F5F9',
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          elevation: 2,
         }}
         onPress={() => handleShopPress(item)}
         activeOpacity={0.82}
@@ -108,7 +113,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
                 position: 'absolute',
                 top: 9,
                 left: 9,
-                backgroundColor: '#2563EB',
+                backgroundColor: '#EF4444',
                 paddingHorizontal: 7,
                 paddingVertical: 3,
                 borderRadius: 6,
@@ -226,7 +231,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
             style={{ borderRadius: 10, overflow: 'hidden' }}
           >
             <LinearGradient
-              colors={['#3B82F6', '#1D4ED8']}
+              colors={['#1E293B', '#0F172A']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
@@ -282,39 +287,27 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingHorizontal: 14,
+          paddingHorizontal: 16,
           marginBottom: 12,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View
-            style={{
-              width: 3,
-              height: 16,
-              backgroundColor: '#2563EB',
-              borderRadius: 2,
-            }}
-          />
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', letterSpacing: -0.3 }}>
-            {title}
-          </Text>
-        </View>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 }}>
+          {title}
+        </Text>
 
         {onViewAll && (
           <TouchableOpacity
             onPress={onViewAll}
+            activeOpacity={0.7}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 3,
-              backgroundColor: '#EFF6FF',
-              paddingHorizontal: 9,
+              gap: 2,
               paddingVertical: 4,
-              borderRadius: 8,
             }}
           >
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#2563EB' }}>See All</Text>
-            <Ionicons name="arrow-forward" size={11} color="#2563EB" />
+            <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#64748B' }}>See All</Text>
+            <Ionicons name="chevron-forward" size={13} color="#94A3B8" />
           </TouchableOpacity>
         )}
       </View>

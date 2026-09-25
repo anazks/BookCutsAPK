@@ -34,13 +34,13 @@ import Animated, {
 import { filterShopsByService, findNearestShops, search } from '../api/Service/Shop';
 import { getCustomization, getmyProfile, getNearbyCitiesFallback } from '../api/Service/User';
 import KidsCorner from '../Components/Filters/KidsCorner';
-import PaisAdd from '../Components/Filters/PaisAdd';
 import ServiceFilter from '../Components/Filters/ServiceFilter';
 import WomensServices from '../Components/Filters/WomensServices';
+import CategoryInteractiveSelector from '../Components/Home/CategoryInteractiveSelector';
+import InteractiveHomeBanner from '../Components/Home/InteractiveHomeBanner';
 import TransparentInfoCard from '../Components/Home/TransparentInfoCard';
 import HomeSkeleton from '../Components/Loading/HomeSkeleton';
 import BookingReminder from '../Components/Reminder/BookingReminder';
-import WeatherOverlay from '../Components/WeatherOverlay';
 import { useTabBar } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 import ShopCard from '../Screens/User/ShopCard';
@@ -89,23 +89,24 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
           >
             <View
               style={{
-                width: 62,
-                height: 62,
-                borderRadius: 31,
-                backgroundColor: '#F1F5F9',
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#FFFFFF',
                 justifyContent: 'center',
                 alignItems: 'center',
                 overflow: 'hidden',
-                borderWidth: 2,
-                borderColor: brandColor,
-                shadowColor: brandColor,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.18,
-                shadowRadius: 6,
-                elevation: 4,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+                shadowColor: '#0F172A',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 5,
+                elevation: 2,
+                padding: 2,
               }}
             >
-              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', borderRadius: 30 }} resizeMode="cover" />
             </View>
             <Text
               style={{
@@ -132,59 +133,141 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
   );
 };
 
-// ─── Trending Styles ───────────────────────────────────────────────────────────
-const TrendingStyles = ({ styles }: { styles: any[] }) => {
-  if (!styles || styles.length === 0) return null;
+// ─── Platform Smart Perks & Highlights ──────────────────────────────────────
+const PlatformHighlights = () => {
+  const perks = [
+    {
+      id: '1',
+      title: 'Zero Queue Wait',
+      subtitle: 'Instant chair ready right on arrival',
+      badge: '0-Min Wait',
+      icon: 'flash-outline' as const,
+      color: '#059669',
+      bg: '#ECFDF5',
+    },
+    {
+      id: '2',
+      title: 'Verified Stylists',
+      subtitle: 'Certified & top-rated professionals',
+      badge: 'Top Rated',
+      icon: 'shield-checkmark-outline' as const,
+      color: '#7C3AED',
+      bg: '#F5F3FF',
+    },
+    {
+      id: '3',
+      title: 'Honest Pricing',
+      subtitle: 'Clear rates with zero hidden charges',
+      badge: 'Best Value',
+      icon: 'pricetag-outline' as const,
+      color: '#D97706',
+      bg: '#FFFBEB',
+    },
+    {
+      id: '4',
+      title: 'Easy Reschedule',
+      subtitle: '1-tap slot adjustment anytime',
+      badge: 'Flexible',
+      icon: 'repeat-outline' as const,
+      color: '#E11D48',
+      bg: '#FFF1F2',
+    },
+  ];
+
   return (
     <View style={{ marginBottom: 20 }}>
-      <SectionHeader title="Trending Now 🔥" />
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          marginBottom: 12,
+        }}
+      >
+        <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 }}>
+          Why BookMyCuts
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#F1F5F9',
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 12,
+            gap: 4,
+          }}
+        >
+          <Ionicons name="sparkles" size={11} color="#059669" />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Smart Perks</Text>
+        </View>
+      </View>
+
       <FlatList
-        data={styles}
+        data={perks}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 14, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.88}>
-            <View
-              style={{
-                width: 126,
-                height: 168,
-                borderRadius: 16,
-                overflow: 'hidden',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
-            >
-              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.78)']}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 80,
-                  justifyContent: 'flex-end',
-                  padding: 10,
-                }}
-              >
-                <Text
-                  style={{ color: '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: -0.2 }}
-                  numberOfLines={1}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => router.push('/(tabs)/BookNow')}
+            style={{
+              width: 162,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: '#F1F5F9',
+              shadowColor: '#0F172A',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.04,
+              shadowRadius: 6,
+              elevation: 2,
+              justifyContent: 'space-between',
+            }}
+          >
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: item.bg,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
                 >
-                  {item.name}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 3 }}>
-                  <Ionicons name="flame-outline" size={10} color="#FFA500" />
-                  <Text style={{ color: '#CBD5E1', fontSize: 10, fontWeight: '500' }}>
-                    {item.popularity} like this
+                  <Ionicons name={item.icon} size={19} color={item.color} />
+                </View>
+                <View
+                  style={{
+                    backgroundColor: item.bg,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2.5,
+                    borderRadius: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 9.5, fontWeight: '700', color: item.color, letterSpacing: 0.2 }}>
+                    {item.badge}
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
+
+              <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#0F172A', marginBottom: 4 }} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 15 }} numberOfLines={2}>
+                {item.subtitle}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F8FAFC' }}>
+              <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#64748B' }}>Book with perk</Text>
+              <Ionicons name="arrow-forward" size={10} color="#94A3B8" />
             </View>
           </TouchableOpacity>
         )}
@@ -197,7 +280,7 @@ const TrendingStyles = ({ styles }: { styles: any[] }) => {
 const SectionHeader = ({
   title,
   onSeeAll,
-  seeAllLabel = 'See All →',
+  seeAllLabel = 'See All',
 }: {
   title: string;
   onSeeAll?: () => void;
@@ -208,16 +291,22 @@ const SectionHeader = ({
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: 14,
+      paddingHorizontal: 16,
       marginBottom: 12,
+      marginTop: 6,
     }}
   >
-    <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', letterSpacing: -0.3 }}>
+    <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 }}>
       {title}
     </Text>
     {onSeeAll && (
-      <TouchableOpacity onPress={onSeeAll}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#3B82F6' }}>{seeAllLabel}</Text>
+      <TouchableOpacity
+        onPress={onSeeAll}
+        activeOpacity={0.7}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 }}
+      >
+        <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#64748B' }}>{seeAllLabel}</Text>
+        <Ionicons name="chevron-forward" size={13} color="#94A3B8" />
       </TouchableOpacity>
     )}
   </View>
@@ -244,7 +333,7 @@ const Home = () => {
   const scrollY = useSharedValue(0);
   const isTabBarHidden = useSharedValue(false);
 
-  const HEADER_HEIGHT = 268;
+  const HEADER_HEIGHT = 142;
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -266,9 +355,9 @@ const Home = () => {
   });
 
   const animatedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, 120], [1, 0], Extrapolate.CLAMP),
+    opacity: interpolate(scrollY.value, [0, 80], [1, 0], Extrapolate.CLAMP),
     transform: [
-      { translateY: interpolate(scrollY.value, [0, 180], [0, -HEADER_HEIGHT], Extrapolate.CLAMP) },
+      { translateY: interpolate(scrollY.value, [0, 100], [0, -HEADER_HEIGHT], Extrapolate.CLAMP) },
     ],
     position: 'absolute',
     top: 0,
@@ -607,11 +696,7 @@ const Home = () => {
   const getPopularShops = () =>
     transformShopData([...activeShops].sort((a, b) => (a.distance || 999999) - (b.distance || 999999)));
 
-  const trendingDesigns = [
-    { id: '1', name: 'Fade Cut', popularity: '92%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
-    { id: '2', name: 'Pompadour', popularity: '87%', image: 'https://images.unsplash.com/photo-1594910344569-a542a5f4bdff?fm=jpg&q=60&w=500' },
-    { id: '3', name: 'Undercut', popularity: '89%', image: 'https://plus.unsplash.com/premium_photo-1741585389812-0a38dc258c62?fm=jpg&q=60&w=500' },
-  ];
+
   const categoryConfig = {
     men: { activeBg: '#EFF6FF', text: '#2563EB', icon: 'man' as const },
     womens: { activeBg: '#FFF1F2', text: '#E11D48', icon: 'woman' as const },
@@ -628,56 +713,52 @@ const Home = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* ── Animated Header ── */}
+      {/* ── Animated Header (Clean White Design) ── */}
       <Animated.View
         style={[
           animatedHeaderStyle,
-          { height: HEADER_HEIGHT, overflow: 'hidden', borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+          {
+            height: HEADER_HEIGHT,
+            backgroundColor: '#FFFFFF',
+            overflow: 'hidden',
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: '#F1F5F9',
+            shadowColor: '#0F172A',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.04,
+            shadowRadius: 10,
+            elevation: 4,
+          },
         ]}
       >
-        {showOffers && customization.backgroundImage ? (
-          <Image
-            source={{ uri: customization.backgroundImage }}
-            style={{ position: 'absolute', width: '100%', height: '100%', resizeMode: 'cover' }}
-          />
-        ) : (
-          <LinearGradient
-            colors={headerColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ position: 'absolute', width: '100%', height: '100%' }}
-          />
-        )}
-
-        {/* Decorative blobs */}
-        <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -50 }} />
-        <View style={{ position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -30, left: 20 }} />
-
-        <View style={{ flex: 1, paddingTop: 46, paddingHorizontal: 16 }}>
-          {/* Top Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+        <View style={{ flex: 1, paddingTop: 40, paddingHorizontal: 16, justifyContent: 'space-between', paddingBottom: 12 }}>
+          {/* Top Row: Location & Actions */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Location pill */}
             <TouchableOpacity
               onPress={() => setShowCityDropdown(true)}
+              activeOpacity={0.8}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: 'rgba(255,255,255,0.16)',
+                backgroundColor: '#F8FAFC',
                 paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingVertical: 6,
                 borderRadius: 20,
                 gap: 5,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.22)',
+                borderColor: '#E2E8F0',
               }}
             >
-              <Ionicons name="location-outline" size={14} color="#FFF" />
-              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
+              <Ionicons name="location-sharp" size={14} color="#EF4444" />
+              <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
                 {selectedCity}
               </Text>
-              <Ionicons name="chevron-down" size={13} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="chevron-down" size={12} color="#64748B" />
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -686,78 +767,111 @@ const Home = () => {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  backgroundColor: '#F8FAFC',
                   paddingHorizontal: 8,
-                  paddingVertical: 4,
+                  paddingVertical: 3,
                   borderRadius: 18,
                   gap: 4,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderColor: '#E2E8F0',
                 }}
               >
-                <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '600' }}>Offers</Text>
+                <Text style={{ color: '#475569', fontSize: 11, fontWeight: '700' }}>Offers</Text>
                 <Switch
                   value={showOffers}
                   onValueChange={setShowOffers}
-                  trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.5)' }}
+                  trackColor={{ false: '#E2E8F0', true: '#10B981' }}
                   thumbColor="#FFF"
-                  style={{ transform: [{ scale: 0.72 }] }}
+                  style={{ transform: [{ scale: 0.68 }] }}
                 />
               </View>
 
               {/* Logout */}
               <TouchableOpacity
                 onPress={handleLogout}
+                activeOpacity={0.8}
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.14)',
-                  padding: 8,
+                  backgroundColor: '#F8FAFC',
+                  padding: 7,
                   borderRadius: 18,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderColor: '#E2E8F0',
                 }}
               >
-                <Ionicons name="log-out-outline" size={16} color="#FFF" />
+                <Ionicons name="log-out-outline" size={15} color="#64748B" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Headline */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)', fontWeight: '500', letterSpacing: 0.2 }}>
-              Find your perfect
-            </Text>
-            <Text style={{ fontSize: 26, color: '#FFF', fontWeight: '800', marginTop: 1, letterSpacing: -0.5 }}>
-              style match ✂️
-            </Text>
-          </View>
-
-          {/* Search bar */}
+          {/* Premium Modern Search Bar */}
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#FFF',
-              borderRadius: 28,
-              paddingHorizontal: 14,
+              backgroundColor: '#F8FAFC',
+              borderRadius: 14,
+              paddingHorizontal: 10,
               height: 46,
-              shadowColor: '#0F172A',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.12,
-              shadowRadius: 10,
-              elevation: 6,
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
             }}
           >
-            <Ionicons name="search-outline" size={18} color="#3B82F6" style={{ marginRight: 9 }} />
+            {/* Search Icon in Clean Pill */}
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                backgroundColor: '#FFFFFF',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 10,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              }}
+            >
+              <Ionicons name="search" size={15} color="#64748B" />
+            </View>
+
             <TextInput
-              style={{ flex: 1, fontSize: 14, color: '#0F172A', paddingVertical: 0, fontWeight: '500' }}
+              style={{
+                flex: 1,
+                fontSize: 13.5,
+                color: '#0F172A',
+                paddingVertical: 0,
+                fontWeight: '600',
+              }}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search salons, services..."
+              placeholder="Search salons, haircuts, facial..."
               placeholderTextColor="#94A3B8"
+              returnKeyType="search"
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchData([]); }}>
-                <Ionicons name="close-circle" size={18} color="#CBD5E1" />
+
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setSearchQuery('');
+                  setSearchData([]);
+                }}
+                style={{ padding: 6 }}
+              >
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/BookNow')}
+                activeOpacity={0.8}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  backgroundColor: '#0F172A',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons name="options-outline" size={15} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -790,17 +904,22 @@ const Home = () => {
               elevation: 12,
             }}
           >
-            <LinearGradient
-              colors={['#2563EB', '#1D4ED8']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                backgroundColor: '#FFFFFF',
+                borderBottomWidth: 1,
+                borderBottomColor: '#F1F5F9',
+              }}
             >
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF' }}>Select Location</Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowCityDropdown(false)}>
-                <Ionicons name="close" size={20} color="#FFF" />
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {cities.map((city, i) => (
@@ -813,28 +932,28 @@ const Home = () => {
                     paddingHorizontal: 16,
                     borderBottomWidth: 1,
                     borderBottomColor: '#F1F5F9',
-                    backgroundColor: selectedCity === city.name ? '#EFF6FF' : '#FFF',
+                    backgroundColor: selectedCity === city.name ? '#F8FAFC' : '#FFF',
                   }}
                   onPress={() => handleCitySelect(city)}
                 >
                   <Ionicons
                     name="location-outline"
                     size={18}
-                    color={selectedCity === city.name ? '#2563EB' : '#94A3B8'}
+                    color={selectedCity === city.name ? '#0F172A' : '#94A3B8'}
                   />
                   <Text
                     style={{
                       flex: 1,
                       marginLeft: 12,
                       fontSize: 14,
-                      color: selectedCity === city.name ? '#1D4ED8' : '#374151',
-                      fontWeight: selectedCity === city.name ? '600' : '400',
+                      color: selectedCity === city.name ? '#0F172A' : '#374151',
+                      fontWeight: selectedCity === city.name ? '700' : '400',
                     }}
                   >
                     {city.name}
                   </Text>
                   {selectedCity === city.name && (
-                    <Ionicons name="checkmark-circle" size={18} color="#2563EB" />
+                    <Ionicons name="checkmark-circle" size={18} color="#0F172A" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -865,8 +984,8 @@ const Home = () => {
           <>
             {isSearching ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#1877F2" />
-                <Text style={{ marginTop: 16, color: '#1877F2', fontWeight: '500' }}>Searching salons...</Text>
+                <ActivityIndicator size="large" color="#0F172A" />
+                <Text style={{ marginTop: 16, color: '#0F172A', fontWeight: '600' }}>Searching salons...</Text>
               </View>
             ) : (
               <FlatList
@@ -900,7 +1019,7 @@ const Home = () => {
                         shadowRadius: 10,
                         elevation: 3,
                         borderWidth: 1,
-                        borderColor: '#EEF2FF'
+                        borderColor: '#F1F5F9'
                       }}
                       onPress={() => router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item._id } })}
                       activeOpacity={0.8}
@@ -961,63 +1080,17 @@ const Home = () => {
         </>
       ) : (
           <>
-            <WeatherOverlay />
 
-            {/* Category Tabs */}
-            <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 14, paddingHorizontal: 14 }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  backgroundColor: '#FFF',
-                  borderRadius: 24,
-                  padding: 4,
-                  borderWidth: 1,
-                  borderColor: '#E2E8F0',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
-              >
-                {(['men', 'womens', 'kids'] as const).map((cat) => {
-                  const isSelected = category === cat;
-                  const cfg = categoryConfig[cat];
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => setCategory(cat)}
-                      activeOpacity={0.75}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        borderRadius: 20,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 6,
-                        backgroundColor: isSelected ? cfg.activeBg : 'transparent',
-                      }}
-                    >
-                      <Ionicons
-                        name={cfg.icon}
-                        size={15}
-                        color={isSelected ? cfg.text : '#94A3B8'}
-                      />
-                      <Text
-                        style={{
-                          color: isSelected ? cfg.text : '#94A3B8',
-                          fontSize: 13,
-                          fontWeight: isSelected ? '700' : '500',
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {cat === 'womens' ? 'Women' : cat === 'men' ? 'Men' : 'Kids'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
+            {/* Interactive Modern Category Cards & Quick Tags */}
+            <CategoryInteractiveSelector
+              selectedCategory={category}
+              onSelectCategory={(cat) => setCategory(cat)}
+              selectedQuickFilter={selectedService}
+              onSelectQuickFilter={handleServiceChange}
+            />
+
+            {/* Modern Interactive Hero Banner */}
+            <InteractiveHomeBanner category={category} />
 
             {/* Service Filters */}
             <View style={{ marginBottom: 10 }}>
@@ -1055,9 +1128,7 @@ const Home = () => {
                   />
                 )}
 
-                <PaisAdd />
-
-                <TrendingStyles styles={trendingDesigns} />
+                <PlatformHighlights />
 
                 {showOffers && (
                   <PlatformOffers />
