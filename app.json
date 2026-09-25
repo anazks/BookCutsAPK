@@ -7,7 +7,6 @@
     "icon": "./assets/images/scissors_icon.png",
     "scheme": "bookmycuts",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anazk.bookmycuts"
@@ -17,12 +16,6 @@
         "foregroundImage": "./assets/images/scissors_icon.png",
         "backgroundColor": "#1877F2"
       },
-      "splash": {
-        "image": "./assets/images/scissors_icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#1877F2"
-      },
-      "edgeToEdgeEnabled": true,
       "package": "com.anazk.bookmycuts",
       "versionCode": 69,
       "googleServicesFile": "./google-services.json",
@@ -76,7 +69,8 @@
           "defaultChannel": "payment"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
