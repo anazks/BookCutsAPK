@@ -7,10 +7,6 @@
     "icon": "./assets/images/scissors_icon.png",
     "scheme": "bookmycuts",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anazk.bookmycuts"
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/scissors_icon.png",
