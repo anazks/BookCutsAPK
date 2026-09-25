@@ -1,5 +1,4 @@
 import { fetchUniqueServices } from '@/app/api/Service/User';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -12,22 +11,6 @@ import {
 type ServiceItem = {
   id: string;
   name: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  accent: string;
-  lightBg: string;
-};
-
-const serviceConfig: Record<string, {
-  icon: keyof typeof Ionicons.glyphMap;
-  accent: string;
-  lightBg: string;
-}> = {
-  All: { icon: 'apps-outline', accent: '#0F172A', lightBg: '#F1F5F9' },
-  Haircut: { icon: 'cut-outline', accent: '#DB2777', lightBg: '#FDF2F8' },
-  Spa: { icon: 'leaf-outline', accent: '#059669', lightBg: '#ECFDF5' },
-  CarWash: { icon: 'car-outline', accent: '#D97706', lightBg: '#FFFBEB' },
-  Repair: { icon: 'construct-outline', accent: '#7C3AED', lightBg: '#F5F3FF' },
-  default: { icon: 'grid-outline', accent: '#0891B2', lightBg: '#ECFEFF' },
 };
 
 export default function ServiceFilter({
@@ -35,7 +18,15 @@ export default function ServiceFilter({
 }: {
   onServiceChange?: (name: string) => void;
 }) {
-  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([
+    { id: 'all', name: 'All' },
+    { id: '1', name: 'Haircut' },
+    { id: '2', name: 'Beard Trim' },
+    { id: '3', name: 'Spa' },
+    { id: '4', name: 'Facial' },
+    { id: '5', name: 'Massage' },
+    { id: '6', name: 'Hair Color' },
+  ]);
   const [selectedId, setSelectedId] = useState('all');
 
   useEffect(() => {
@@ -46,21 +37,13 @@ export default function ServiceFilter({
     try {
       const response = await fetchUniqueServices();
 
-      if (response?.success && response?.service) {
+      if (response?.success && response?.service && response.service.length > 0) {
         const formatted: ServiceItem[] = [
-          {
-            id: 'all',
-            name: 'All',
-            ...serviceConfig['All'],
-          },
-          ...response.service.map((name: string, index: number) => {
-            const cfg = serviceConfig[name] ?? serviceConfig['default'];
-            return {
-              id: index.toString(),
-              name,
-              ...cfg,
-            };
-          }),
+          { id: 'all', name: 'All' },
+          ...response.service.map((name: string, index: number) => ({
+            id: (index + 1).toString(),
+            name,
+          })),
         ];
         setServices(formatted);
       }
@@ -70,33 +53,21 @@ export default function ServiceFilter({
   };
 
   const handlePress = (service: ServiceItem) => {
-    setSelectedId(service.id);
-    onServiceChange?.(service.name);
+    if (selectedId === service.id && service.id !== 'all') {
+      setSelectedId('all');
+      onServiceChange?.('All');
+    } else {
+      setSelectedId(service.id);
+      onServiceChange?.(service.name);
+    }
   };
 
-  const selectedItem = services.find((s) => s.id === selectedId);
-
   return (
-    <View style={styles.wrapper}>
-
-      {/* ── Section header ── */}
-      <View style={styles.headerRow}>
-        {/* <View style={styles.headerLeft}>
-          <View style={styles.headerDot} />
-          <Text style={styles.headerTitle}>Services</Text>
-        </View> */}
-        {selectedItem && selectedItem.id !== 'all' && (
-          <Text style={[styles.headerSub, { color: selectedItem.accent }]}>
-            {selectedItem.name}
-          </Text>
-        )}
-      </View>
-
-      {/* ── Chips ── */}
+    <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipScroll}
+        contentContainerStyle={styles.scrollList}
       >
         {services.map((service) => {
           const isSelected = selectedId === service.id;
@@ -104,155 +75,70 @@ export default function ServiceFilter({
             <TouchableOpacity
               key={service.id}
               onPress={() => handlePress(service)}
-              activeOpacity={0.78}
+              activeOpacity={0.7}
               style={[
                 styles.chip,
-                isSelected
-                  ? { backgroundColor: '#0F172A', borderColor: '#0F172A' }
-                  : { backgroundColor: '#FFF', borderColor: '#E2E8F0' },
+                isSelected ? styles.chipActive : styles.chipInactive,
               ]}
             >
-              <Ionicons
-                name={service.icon}
-                size={13}
-                color={isSelected ? '#FFF' : '#475569'}
-              />
-              <Text style={[styles.chipText, { color: isSelected ? '#FFF' : '#374151' }]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  isSelected ? styles.chipTextActive : styles.chipTextInactive,
+                ]}
+              >
                 {service.name}
               </Text>
-              {isSelected && (
-                <Ionicons name="checkmark-circle" size={12} color="rgba(255,255,255,0.85)" />
-              )}
             </TouchableOpacity>
           );
         })}
       </ScrollView>
-
-      {/* ── Active filter banner ── */}
-      {selectedItem && selectedItem.id !== 'all' && (
-        <View style={[styles.banner, { borderColor: '#E2E8F0' }]}>
-          <View style={[styles.bannerDot, { backgroundColor: '#0F172A' }]} />
-          <Text style={styles.bannerText}>
-            Filtering by{' '}
-            <Text style={[styles.bannerBold, { color: '#0F172A' }]}>
-              {selectedItem.name}
-            </Text>
-          </Text>
-          <TouchableOpacity
-            onPress={() => {
-              const allItem = services.find((s) => s.id === 'all');
-              if (allItem) handlePress(allItem);
-            }}
-            style={styles.clearBtn}
-          >
-            <Ionicons name="close" size={11} color="#64748B" />
-            <Text style={styles.clearText}>Clear</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
+  container: {
     marginBottom: 8,
   },
-
-  // Header
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  scrollList: {
+    paddingHorizontal: 16,
     gap: 8,
-  },
-  headerDot: {
-    width: 3,
-    height: 16,
-    borderRadius: 2,
-    backgroundColor: '#0F172A',
-  },
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.3,
-  },
-  headerSub: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  // Chips
-  chipScroll: {
-    paddingHorizontal: 14,
-    gap: 8,
+    alignItems: 'center',
+    paddingVertical: 2,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipInactive: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    shadowColor: '#000',
+    borderColor: '#E2E8F0',
+  },
+  chipActive: {
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#0F172A',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: -0.1,
+    fontSize: 12.5,
+    letterSpacing: -0.2,
   },
-
-  // Banner
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    marginHorizontal: 14,
-    marginTop: 12,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    borderWidth: 1,
-  },
-  bannerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  bannerText: {
-    flex: 1,
-    fontSize: 11,
+  chipTextInactive: {
     color: '#475569',
-    fontWeight: '500',
-  },
-  bannerBold: {
-    fontWeight: '700',
-  },
-  clearBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  clearText: {
-    fontSize: 10,
-    color: '#64748B',
     fontWeight: '600',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

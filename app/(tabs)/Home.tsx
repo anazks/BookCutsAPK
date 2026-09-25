@@ -48,9 +48,8 @@ import ShopCarousel from '../Screens/User/ShopCarousel';
 
 const { width } = Dimensions.get('window');
 
-// ─── Top Brands Carousel ───────────────────────────────────────────────────────
+// ─── Top Brands Showcase (Elite Salon Lounges) ────────────────────────────────
 const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string }) => {
-  const brandColor = category === 'womens' ? '#E11D48' : category === 'kids' ? '#D97706' : '#3B82F6';
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -64,63 +63,156 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
         } catch { }
         return nextIndex;
       });
-    }, 3000);
+    }, 3500);
     return () => clearInterval(interval);
   }, [shops]);
 
   if (!shops || shops.length === 0) return null;
 
   return (
-    <View style={{ marginBottom: 20 }}>
-      <SectionHeader title="Top Brands" onSeeAll={() => router.push('/(tabs)/BookNow')} />
+    <View style={{ marginBottom: 22 }}>
+      <SectionHeader title="Top Brands" onSeeAll={() => router.push('/(tabs)/BookNow')} seeAllLabel="Explore All →" />
       <FlatList
         ref={flatListRef}
         data={shops}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, idx) => item.id || idx.toString()}
-        contentContainerStyle={{ paddingHorizontal: 14, gap: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={{ alignItems: 'center' }}
+            activeOpacity={0.88}
             onPress={() =>
               router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })
             }
+            style={{
+              width: 156,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: '#F1F5F9',
+              overflow: 'hidden',
+              shadowColor: '#0F172A',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 2,
+            }}
           >
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: '#FFFFFF',
-                justifyContent: 'center',
-                alignItems: 'center',
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: '#E2E8F0',
-                shadowColor: '#0F172A',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 5,
-                elevation: 2,
-                padding: 2,
-              }}
-            >
-              <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', borderRadius: 30 }} resizeMode="cover" />
+            {/* Top Cover Banner */}
+            <View style={{ width: '100%', height: 86, backgroundColor: '#E2E8F0', position: 'relative' }}>
+              <Image
+                source={{ uri: item.image }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(15,23,42,0.05)', 'rgba(15,23,42,0.65)']}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              />
+
+              {/* Floating Rating Pill */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 7,
+                  right: 7,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2.5,
+                  borderRadius: 10,
+                  gap: 3,
+                }}
+              >
+                <Ionicons name="star" size={10} color="#FBBF24" />
+                <Text style={{ color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' }}>
+                  {item.rating || '4.8'}
+                </Text>
+              </View>
+
+              {/* Overlapping Brand Logo Badge */}
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: -14,
+                  left: 10,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: '#FFFFFF',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 3,
+                  elevation: 3,
+                  overflow: 'hidden',
+                }}
+              >
+                <Image
+                  source={{ uri: item.image }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              </View>
             </View>
-            <Text
-              style={{
-                marginTop: 7,
-                fontSize: 11,
-                fontWeight: '600',
-                color: '#1E293B',
-                maxWidth: 66,
-                textAlign: 'center',
-              }}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
+
+            {/* Brand Info Area */}
+            <View style={{ paddingTop: 18, paddingHorizontal: 10, paddingBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: '700',
+                    color: '#0F172A',
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <Ionicons name="checkmark-circle" size={13} color="#2563EB" />
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 }}>
+                <Ionicons name="location-outline" size={11} color="#64748B" />
+                <Text
+                  style={{
+                    fontSize: 10.5,
+                    color: '#64748B',
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.city || item.distance || 'Featured'}
+                </Text>
+              </View>
+
+              {/* Mini Action Chip */}
+              <View
+                style={{
+                  marginTop: 8,
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: 8,
+                  paddingVertical: 4,
+                  paddingHorizontal: 6,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  borderWidth: 1,
+                  borderColor: '#F1F5F9',
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '700', color: '#334155' }}>Book Salon</Text>
+                <Ionicons name="chevron-forward" size={10} color="#64748B" />
+              </View>
+            </View>
           </TouchableOpacity>
         )}
         onScrollToIndexFailed={(info) => {
@@ -133,7 +225,7 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
   );
 };
 
-// ─── Platform Smart Perks & Highlights ──────────────────────────────────────
+// ─── Platform Smart Perks & Highlights (Why BookMyCuts) ──────────────────────
 const PlatformHighlights = () => {
   const perks = [
     {
@@ -175,7 +267,8 @@ const PlatformHighlights = () => {
   ];
 
   return (
-    <View style={{ marginBottom: 20 }}>
+    <View style={{ marginBottom: 24, marginTop: 10 }}>
+      {/* Header */}
       <View
         style={{
           flexDirection: 'row',
@@ -185,25 +278,31 @@ const PlatformHighlights = () => {
           marginBottom: 12,
         }}
       >
-        <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 }}>
-          Why BookMyCuts
-        </Text>
+        <View>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 }}>
+            Why BookMyCuts
+          </Text>
+          <Text style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+            Guaranteed peace of mind with every booking
+          </Text>
+        </View>
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: '#F1F5F9',
             paddingHorizontal: 8,
-            paddingVertical: 3,
+            paddingVertical: 4,
             borderRadius: 12,
             gap: 4,
           }}
         >
-          <Ionicons name="sparkles" size={11} color="#059669" />
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Smart Perks</Text>
+          <Ionicons name="shield-checkmark" size={12} color="#059669" />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Promise</Text>
         </View>
       </View>
 
+      {/* Perks Cards Slider */}
       <FlatList
         data={perks}
         horizontal
@@ -215,7 +314,7 @@ const PlatformHighlights = () => {
             activeOpacity={0.88}
             onPress={() => router.push('/(tabs)/BookNow')}
             style={{
-              width: 162,
+              width: 164,
               backgroundColor: '#FFFFFF',
               borderRadius: 16,
               padding: 14,
@@ -265,13 +364,36 @@ const PlatformHighlights = () => {
               </Text>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F8FAFC' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F8FAFC' }}>
               <Text style={{ fontSize: 10.5, fontWeight: '600', color: '#64748B' }}>Book with perk</Text>
               <Ionicons name="arrow-forward" size={10} color="#94A3B8" />
             </View>
           </TouchableOpacity>
         )}
       />
+
+      {/* Trust reassurance strip */}
+      <View
+        style={{
+          marginHorizontal: 16,
+          marginTop: 14,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          paddingVertical: 9,
+          paddingHorizontal: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          borderWidth: 1,
+          borderColor: '#F1F5F9',
+        }}
+      >
+        <Ionicons name="shield-checkmark" size={14} color="#059669" />
+        <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>
+          100% Verified Salons • Instant Confirmation • Zero Hidden Fees
+        </Text>
+      </View>
     </View>
   );
 };
@@ -1128,8 +1250,6 @@ const Home = () => {
                   />
                 )}
 
-                <PlatformHighlights />
-
                 {showOffers && (
                   <PlatformOffers />
                 )}
@@ -1141,6 +1261,9 @@ const Home = () => {
                     onViewAll={() => router.push('/(tabs)/BookNow')}
                   />
                 )}
+
+                {/* Why BookMyCuts smart perks placed at bottom */}
+                <PlatformHighlights />
 
                 <TransparentInfoCard />
               </>
