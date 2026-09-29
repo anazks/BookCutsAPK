@@ -27,7 +27,7 @@ export interface ShopCardProps {
 
 const ShopCard: React.FC<ShopCardProps> = ({ shop, onPress, onBook }) => {
   const cleanImageUrl = (url?: string) => {
-    if (!url) return 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=80';
+    if (!url) return 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg';
     return url.replace(/^<|>$/g, '').trim();
   };
 

@@ -95,7 +95,7 @@ const ShopCarousel: React.FC<ShopCarouselProps> = ({
         {/* Image */}
         <View style={{ height: 118, position: 'relative' }}>
           <Image
-            source={{ uri: item.image }}
+            source={{ uri: item.image || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />

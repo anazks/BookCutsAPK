@@ -102,7 +102,7 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
             {/* Top Cover Banner */}
             <View style={{ width: '100%', height: 86, backgroundColor: '#E2E8F0', position: 'relative' }}>
               <Image
-                source={{ uri: item.image }}
+                source={{ uri: item.image || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
                 style={{ width: '100%', height: '100%' }}
                 resizeMode="cover"
               />
@@ -155,7 +155,7 @@ const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string
                 }}
               >
                 <Image
-                  source={{ uri: item.image }}
+                  source={{ uri: item.image || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
                   style={{ width: '100%', height: '100%' }}
                   resizeMode="cover"
                 />
@@ -793,7 +793,7 @@ const Home = () => {
         city: shop.City || 'Unknown City',
         timing: shop.Timing || '9am – 8pm',
         mobile: shop.Mobile || '',
-        image: imageUrl || 'https://via.placeholder.com/300x200/F1F5F9/64748B?text=Shop',
+        image: imageUrl || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg',
         rating: shop.rating || 4.5,
         isPremium: shop.IsPremium || false,
       };
@@ -1124,7 +1124,7 @@ const Home = () => {
                     const first = item.media[0];
                     imageUrl = typeof first === 'string' ? first : first?.url;
                   }
-                  const displayImage = imageUrl || 'https://via.placeholder.com/300x200/F1F5F9/94A3B8?text=Shop';
+                  const displayImage = imageUrl || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg';
                   
                   return (
                     <TouchableOpacity 

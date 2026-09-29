@@ -84,7 +84,7 @@ const AnimatedShopCard = ({
 
   const cleanImage =
     item.image ||
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=400&q=80';
+    'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg';
   const rating = item.rating || (4.6 + ((index % 4) * 0.1)).toFixed(1);
 
   return (
@@ -305,7 +305,7 @@ const BookNow = ({ navigation }: { navigation: any }) => {
         coordinates: shop.ExactLocationCoord ? shop.ExactLocationCoord.coordinates : null,
         image:
           shop.ProfileImage ||
-          `https://images.unsplash.com/photo-${1580618672591 + index}-eb180b1a973f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60`,
+          'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg',
         isOpen: true,
         serviceType: ['Haircut', 'Beard Trim', 'Facial', 'Massage', 'Hair Color'][
           index % 5
