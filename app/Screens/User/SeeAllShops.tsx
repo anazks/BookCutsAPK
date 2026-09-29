@@ -166,7 +166,7 @@ const SeeAllShops = () => {
   };
 
   const renderShopCard = ({ item, index }) => {
-    const profileImageUrl = item.ProfileImage || 'https://via.placeholder.com/150';
+    const profileImageUrl = item.ProfileImage || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg';
 
     return (
       <TouchableOpacity 

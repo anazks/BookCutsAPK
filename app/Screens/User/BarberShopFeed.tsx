@@ -249,11 +249,11 @@ const BarberShopFeed = () => {
 
     return (
       <View style={styles.headerHeroSection}>
-        {shopData?.ProfileImage ? (
-          <Image source={{ uri: shopData.ProfileImage }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-        ) : (
-          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#1877F2' }]} />
-        )}
+        <Image
+          source={{ uri: shopData?.ProfileImage || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFillObject} />
 
         <TouchableOpacity style={styles.heroBackButton} onPress={() => router.back()}>
