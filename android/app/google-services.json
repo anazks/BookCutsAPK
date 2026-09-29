@@ -1,21 +1,34 @@
 {
   "project_info": {
-    "project_number": "494775152289",
-    "project_id": "bookmycuts-3662f",
-    "storage_bucket": "bookmycuts-3662f.firebasestorage.app"
+    "project_number": "402343626155",
+    "project_id": "gen-lang-client-0233804063",
+    "storage_bucket": "gen-lang-client-0233804063.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:494775152289:android:b24a873062660b7c23cae0",
+        "mobilesdk_app_id": "1:402343626155:android:b0c7ff27cab74186d7c1b4",
         "android_client_info": {
           "package_name": "com.anazk.bookmycuts"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "402343626155-v2p0s3obo94oucpugnha6rpgf7fn28b0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anazk.bookmycuts",
+            "certificate_hash": "a6e646f622e01ac43022d49915d8e5cd4f61c9c1"
+          }
+        },
+        {
+          "client_id": "402343626155-7pj93jpsu7li90fc66908itr9nm99t0d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyD1RG9VpGJwETl03QqDAPN2S6XtBw5tX8g"
+          "current_key": "AIzaSyC7D_Rxp-QtEwVuteLn6-xzkhmFWU27a_c"
         }
       ],
       "services": {

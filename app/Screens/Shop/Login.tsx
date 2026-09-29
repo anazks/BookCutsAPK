@@ -53,6 +53,11 @@ export default function Login() {
     setGoogleLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
+      try {
+        await GoogleSignin.signOut();
+      } catch (_) {
+        // Ignore if no active session
+      }
       const userInfo = await GoogleSignin.signIn();
 
       const idToken = userInfo.data?.idToken;

@@ -17,5 +17,20 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+import { getApps, getApp } from "firebase/app";
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+let analytics = null;
+if (typeof document !== 'undefined') {
+  try {
+    const { getAnalytics, isSupported } = require("firebase/analytics");
+    isSupported().then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+export { app, analytics };

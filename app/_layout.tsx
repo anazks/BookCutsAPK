@@ -157,8 +157,19 @@ export default function RootLayout() {
         await AsyncStorage.setItem('expoPushToken', expoPushToken);
         console.log('Token successfully saved to AsyncStorage.');
 
-      } catch (error) {
-        console.error('Failed to get push token:', error);
+      } catch (error: any) {
+        console.warn('⚠️ Push notification registration issue:', error?.message || error);
+
+        const errorMessage = error?.message || '';
+        if (errorMessage.includes('FIS_AUTH_ERROR')) {
+          Alert.alert(
+            'Push Notifications Notice',
+            'Push notification services are currently pending setup on this device. You can still log in and use the app normally.',
+            [{ text: 'Got It' }]
+          );
+        } else if (__DEV__) {
+          console.warn('Notice: Push token could not be obtained in this environment.');
+        }
       }
     };
 
