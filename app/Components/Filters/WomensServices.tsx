@@ -80,10 +80,7 @@ export default function WomensServices({
 
       {/* ── Section header ── */}
       <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerDot} />
-          <Text style={styles.headerTitle}>Exclusive For Her</Text>
-        </View>
+        <Text style={styles.headerTitle}>Exclusive For Her</Text>
         <Text style={styles.headerSub}>Premium Services</Text>
       </View>
 
@@ -103,7 +100,7 @@ export default function WomensServices({
               style={[
                 styles.chip,
                 isSelected
-                  ? { backgroundColor: s.accent, borderColor: s.accent }
+                  ? { backgroundColor: '#0F172A', borderColor: '#0F172A' }
                   : { backgroundColor: '#FFF', borderColor: '#E2E8F0' },
               ]}
             >

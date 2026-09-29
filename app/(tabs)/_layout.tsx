@@ -1,128 +1,187 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { Tabs, useNavigation } from 'expo-router';
-import React, { useEffect, useMemo } from 'react';
-import { Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Tabs } from 'expo-router';
+import React, { useMemo } from 'react';
+import {
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { TabBarContext } from '../context/TabBarContext';
 import { useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
-const TAB_BAR_WIDTH = width * 0.92;
-const TAB_COUNT = 3;
-const TAB_WIDTH = TAB_BAR_WIDTH / TAB_COUNT;
-const BAR_HEIGHT = 64;
 
 const tabConfig: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { icon: 'home', label: 'Home' },
   BookNow: { icon: 'calendar', label: 'Book' },
-  explore: { icon: 'person-circle', label: 'Explore' }
+  explore: { icon: 'person-circle', label: 'Profile' },
 };
 
-/* ─── Tab icon ───────────────────────────────────────────────────── */
-const TabIcon = ({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) => {
-  const { theme } = useAppTheme();
-  const scale = useSharedValue(focused ? 1.2 : 1);
-  const translateY = useSharedValue(focused ? -3 : 0);
+/* ─── Animated Tab Icon ─── */
+const TabIcon = ({
+  name,
+  focused,
+  color,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  focused: boolean;
+  color: string;
+}) => {
+  const scale = useSharedValue(focused ? 1.15 : 1);
 
-  useEffect(() => {
-    scale.value = withSpring(focused ? 1.2 : 1, { damping: 14, stiffness: 200 });
-    translateY.value = withSpring(focused ? -3 : 0, { damping: 14, stiffness: 200 });
+  React.useEffect(() => {
+    scale.value = withSpring(focused ? 1.15 : 1, { damping: 14, stiffness: 220 });
   }, [focused]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+    transform: [{ scale: scale.value }],
   }));
 
   return (
     <Animated.View style={animatedStyle}>
       <Ionicons
         name={name}
-        size={focused ? 24 : 22}
-        color={focused ? theme.accent : '#94A3B8'}
+        size={focused ? 22 : 22}
+        color={focused ? color : '#94A3B8'}
       />
     </Animated.View>
   );
 };
 
-/* ─── Animated label ─────────────────────────────────────────────── */
-const AnimatedLabel = ({ children, focused }: { children: string; focused: boolean }) => {
-  const { theme } = useAppTheme();
-  const opacity = useSharedValue(focused ? 1 : 0);
-  const translateY = useSharedValue(focused ? 0 : 5);
+/* ─── Fixed Custom Bottom Tab Bar ─── */
+const FixedCustomTabBar = ({ state, navigation }: any) => {
+  const insets = useSafeAreaInsets();
+  const { category, theme } = useAppTheme();
 
-  useEffect(() => {
-    opacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
-    translateY.value = withSpring(focused ? 0 : 5, { damping: 16, stiffness: 200 });
-  }, [focused]);
+  const categoryGradients: Record<string, [string, string, string]> = {
+    men: ['#1E40AF', '#2563EB', '#3B82F6'],
+    womens: ['#9D174D', '#E11D48', '#FB7185'],
+    kids: ['#B45309', '#D97706', '#F59E0B'],
+  };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+  const currentGradient = categoryGradients[category] || categoryGradients.men;
+  const accentColor = theme?.accent || '#2563EB';
 
-  if (!focused) return null;
+  const routes = useMemo(() => state.routes.slice(0, 3), [state.routes]);
+  const currentIndex = state.index < 3 ? state.index : 0;
+
+  const handleTabPress = (route: any, isFocused: boolean) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+
+    if (!isFocused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+  };
+
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 8);
 
   return (
-    <Animated.Text style={[styles.tabLabel, { color: theme.accent }, animatedStyle]}>
-      {children}
-    </Animated.Text>
-  );
-};
+    <View style={[styles.fixedBarWrapper, { paddingBottom: bottomPadding }]}>
+      <View style={styles.tabBarInner}>
+        {routes.map((route: any, index: number) => {
+          const isFocused = currentIndex === index;
+          const config = tabConfig[route.name] ?? { icon: 'ellipse' as any, label: route.name };
+          const isCenterTab = route.name === 'BookNow';
 
-/* ─── Custom Tab Bar ─── */
-const CustomTabBar = ({ state, navigation, tabBarOffset }: any) => {
-  const routes = useMemo(() => state.routes.slice(0, TAB_COUNT), [state.routes]);
-  const currentIndex = state.index < TAB_COUNT ? state.index : 0;
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: tabBarOffset.value }],
-    };
-  });
-
-  return (
-    <Animated.View style={[styles.tabBarContainer, animatedStyle]}>
-      <BlurView intensity={90} tint="light" style={styles.blurContainer}>
-        <View style={styles.tabBarItems}>
-          {routes.map((route: any, index: number) => {
-            const isFocused = currentIndex === index;
-            const config = tabConfig[route.name] ?? { icon: 'help-circle' as any, label: route.name };
-            const iconName = isFocused ? config.icon : (`${config.icon}-outline` as any);
-
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
+          if (isCenterTab) {
+            // ── Elevated Center Hero Action Button ──
             return (
-              <TouchableOpacity
-                key={route.key}
-                onPress={onPress}
-                style={styles.tabItem}
-                activeOpacity={0.7}
-              >
-                <TabIcon name={iconName} focused={isFocused} />
-                <AnimatedLabel focused={isFocused}>{config.label}</AnimatedLabel>
-              </TouchableOpacity>
+              <View key={route.key} style={styles.centerTabWrapper}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={() => handleTabPress(route, isFocused)}
+                  style={[
+                    styles.centerButtonTouchable,
+                    {
+                      shadowColor: isFocused ? accentColor : '#0F172A',
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={currentGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.centerButtonGradient}
+                  >
+                    <Ionicons
+                      name={isFocused ? 'calendar' : 'calendar-outline'}
+                      size={24}
+                      color="#FFFFFF"
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <Text
+                  style={[
+                    styles.centerTabLabel,
+                    { color: isFocused ? accentColor : '#64748B', fontWeight: isFocused ? '800' : '600' },
+                  ]}
+                >
+                  {config.label}
+                </Text>
+              </View>
             );
-          })}
-        </View>
-      </BlurView>
-    </Animated.View>
+          }
+
+          // ── Standard Side Tabs (Home & Explore) ──
+          const iconName = isFocused ? config.icon : (`${config.icon}-outline` as any);
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={() => handleTabPress(route, isFocused)}
+              style={styles.sideTabItem}
+              activeOpacity={0.75}
+            >
+              <View
+                style={[
+                  styles.sideTabPill,
+                  isFocused && {
+                    backgroundColor: `${accentColor}14`, // 8% opacity tint
+                  },
+                ]}
+              >
+                <TabIcon name={iconName} focused={isFocused} color={accentColor} />
+                <Text
+                  style={[
+                    styles.sideTabLabel,
+                    {
+                      color: isFocused ? accentColor : '#64748B',
+                      fontWeight: isFocused ? '800' : '600',
+                    },
+                  ]}
+                >
+                  {config.label}
+                </Text>
+
+                {isFocused && (
+                  <View style={[styles.activeDot, { backgroundColor: accentColor }]} />
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 };
 
@@ -132,9 +191,9 @@ export default function TabLayout() {
 
   return (
     <TabBarContext.Provider value={{ tabBarOffset }}>
-      <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
         <Tabs
-          tabBar={(props) => <CustomTabBar tabBarOffset={tabBarOffset} {...props} />}
+          tabBar={(props) => <FixedCustomTabBar {...props} />}
           screenOptions={{
             headerShown: false,
             tabBarHideOnKeyboard: true,
@@ -159,39 +218,89 @@ export default function TabLayout() {
   );
 }
 
-/* ─── Styles ─────────────────────────────────────────────────────── */
+/* ─── Styles ─── */
 const styles = StyleSheet.create({
-  tabBarContainer: {
+  fixedBarWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 30 : 20,
-    left: (width - TAB_BAR_WIDTH) / 2,
-    width: TAB_BAR_WIDTH,
-    height: BAR_HEIGHT,
-    borderRadius: BAR_HEIGHT / 2,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F1F5F9', // Minimalist border instead of shadow
-    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 16,
+    zIndex: 999,
   },
-  blurContainer: {
-    flex: 1,
-    borderRadius: BAR_HEIGHT / 2,
-  },
-  tabBarItems: {
+  tabBarInner: {
     flexDirection: 'row',
-    height: '100%',
     alignItems: 'center',
+    justifyContent: 'space-around',
+    height: 58,
+    paddingHorizontal: 16,
   },
-  tabItem: {
+  sideTabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    gap: 3,
   },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+  sideTabPill: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 16,
+    position: 'relative',
+    minWidth: 64,
+  },
+  sideTabLabel: {
+    fontSize: 10.5,
+    marginTop: 2,
+    letterSpacing: 0.2,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    position: 'absolute',
+    bottom: -1,
+  },
+  centerTabWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  centerButtonTouchable: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3.5,
+    borderColor: '#FFFFFF',
+    marginTop: -22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  centerButtonGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerTabLabel: {
+    fontSize: 10.5,
+    marginTop: 2,
     letterSpacing: 0.2,
   },
 });

@@ -106,6 +106,7 @@ const PlatformOffers = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <View style={styles.accentBar} />
         <Text style={styles.headerTitle}>Special Announcements</Text>
       </View>
       <FlatList
@@ -127,12 +128,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   header: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     marginBottom: 12,
+    gap: 7,
+  },
+  accentBar: {
+    width: 3.5,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: '#8B5CF6',
   },
   headerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
   },

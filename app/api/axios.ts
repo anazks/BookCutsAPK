@@ -4,7 +4,7 @@ import axios from 'axios';
 import { router } from 'expo-router';
 
 // const BASE_URL = 'http://192.168.29.238:5000/api';
-const BASE_URL = "https://bookmycutsapp-71an.onrender.com/api"
+const BASE_URL = "https://bookmycuts.byteboot.in/api"
 //  
 
 const axiosInstance = axios.create({
@@ -114,7 +114,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        
+
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
@@ -129,7 +129,7 @@ axiosInstance.interceptors.response.use(
         const accessToken = response.data?.accessToken || response.data?.token;
 
         if (!accessToken) {
-            throw new Error('Invalid refresh token response');
+          throw new Error('Invalid refresh token response');
         }
 
         await AsyncStorage.setItem('accessToken', accessToken);
@@ -138,20 +138,20 @@ axiosInstance.interceptors.response.use(
         }
 
         processQueue(null, accessToken);
-        
+
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
 
       } catch (refreshError) {
         console.log('❌ Refresh token failed:', refreshError);
         processQueue(refreshError, null);
-        
+
         // Log out the user by clearing storage
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user', 'role', 'shopId']);
-        
+
         // Redirect to welcome screen immediately
         router.replace('/Welcome');
-        
+
         // We reject with the original error so that the caller knows it was an auth error
         return Promise.reject(error);
       } finally {

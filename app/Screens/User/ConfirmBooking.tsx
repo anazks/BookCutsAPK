@@ -16,6 +16,7 @@ export default function ConfirmBooking() {
     paymentId,
     paymentType,
     amount,
+    totalPrice,
     verified,
     barberName,
     bookingDate,
@@ -24,9 +25,14 @@ export default function ConfirmBooking() {
     serviceDuration,
   } = params;
 
-  const formatAmount = (amt: string | string[]) => {
-    return `₹${parseFloat(amt?.toString() || '0').toLocaleString('en-IN')}`;
+  const formatAmount = (amt: string | string[] | number | undefined) => {
+    const val = typeof amt === 'number' ? amt : parseFloat(amt?.toString() || '0');
+    return `₹${(isNaN(val) ? 0 : val).toLocaleString('en-IN')}`;
   };
+
+  const totalVal = parseFloat((Array.isArray(totalPrice) ? totalPrice[0] : totalPrice) || '0');
+  const paidVal = parseFloat((Array.isArray(amount) ? amount[0] : amount) || '0');
+  const remainingBalance = Math.max(0, totalVal - paidVal);
 
   const formatPaymentType = (type: string | string[]) => {
     const t = type?.toString() || '';
@@ -117,7 +123,7 @@ export default function ConfirmBooking() {
               <View style={styles.paymentInstructionContent}>
                 <Text style={styles.paymentInstructionTitle}>Salon Payment Instructions</Text>
                 <Text style={styles.paymentInstructionBody}>
-                  You paid an advance of <Text style={{ fontWeight: '700' }}>{formatAmount(amount || '')}</Text>. Please pay the remaining balance of <Text style={{ fontWeight: '700' }}>{formatAmount(parseFloat(totalPrice || '0') - parseFloat(amount || '0'))}</Text> directly to the salon (via Cash or UPI) after your service is completed.
+                  You paid an advance of <Text style={{ fontWeight: '700' }}>{formatAmount(amount || '')}</Text>. Please pay the remaining balance of <Text style={{ fontWeight: '700' }}>{formatAmount(remainingBalance)}</Text> directly to the salon (via Cash or UPI) after your service is completed.
                 </Text>
               </View>
             </View>

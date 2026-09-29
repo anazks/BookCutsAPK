@@ -38,20 +38,27 @@ export default function Login() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   useEffect(() => {
-    GoogleSignin.configure({
-      // Production ID: 
-      webClientId: '402343626155-7pj93jpsu7li90fc66908itr9nm99t0d.apps.googleusercontent.com',
-      // Development ID:
-      // webClientId: '293758521018-en9762n993a249rik4r3snavhblsa7s7.apps.googleusercontent.com',
-      offlineAccess: true,
-      forceCodeForRefreshToken: true,
-    });
+    try {
+      if (GoogleSignin && typeof GoogleSignin.configure === 'function') {
+        GoogleSignin.configure({
+          webClientId: '402343626155-7pj93jpsu7li90fc66908itr9nm99t0d.apps.googleusercontent.com',
+          offlineAccess: true,
+          forceCodeForRefreshToken: true,
+        });
+      }
+    } catch (e) {
+      console.warn('GoogleSignin.configure warning (Expo Go detected):', e);
+    }
   }, []);
 
   // ---------------- Google Sign-In ----------------
   const handleGoogleSignin = async () => {
-    setGoogleLoading(true);
     try {
+      if (!GoogleSignin || typeof GoogleSignin.hasPlayServices !== 'function') {
+        Alert.alert('Development Build Required', 'Google Sign-In requires a standalone APK or Development Build (not supported in Expo Go).');
+        return;
+      }
+      setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
 
