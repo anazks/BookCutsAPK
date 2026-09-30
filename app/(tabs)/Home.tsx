@@ -48,177 +48,126 @@ import ShopCarousel from '../Screens/User/ShopCarousel';
 
 const { width } = Dimensions.get('window');
 
-// ─── Top Brands Showcase (Elite Salon Lounges) ────────────────────────────────
-const TopBrandsCarousel = ({ shops, category }: { shops: any[], category: string }) => {
-  const flatListRef = useRef<FlatList>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+// ─── Top Brands (Instagram Story Style Circles) ──────────────────────────────
+const STORY_RING_GRADIENTS: [string, string, string][] = [
+  ['#F58529', '#DD2A7B', '#8134AF'], // Iconic Sunset Instagram
+  ['#EC4899', '#8B5CF6', '#3B82F6'], // Pink - Purple - Royal
+  ['#F43F5E', '#FB7185', '#E11D48'], // Rose Romance
+  ['#06B6D4', '#3B82F6', '#6366F1'], // Ocean Cyan - Indigo
+  ['#F59E0B', '#EF4444', '#7C3AED'], // Neon Flame
+  ['#10B981', '#059669', '#047857'], // Emerald Lush
+];
 
-  useEffect(() => {
-    if (!shops || shops.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const nextIndex = (prev + 1) % shops.length;
-        try {
-          flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-        } catch { }
-        return nextIndex;
-      });
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [shops]);
-
+const TopBrandsCarousel = ({ shops, category }: { shops: any[]; category: string }) => {
   if (!shops || shops.length === 0) return null;
 
   return (
-    <View style={{ marginBottom: 22 }}>
+    <View style={{ marginBottom: 20 }}>
       <SectionHeader title="Top Brands" onSeeAll={() => router.push('/(tabs)/BookNow')} seeAllLabel="Explore All →" />
       <FlatList
-        ref={flatListRef}
         data={shops}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, idx) => item.id || idx.toString()}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            activeOpacity={0.88}
-            onPress={() =>
-              router.push({ pathname: '/Screens/User/BarberShopFeed', params: { shop_id: item.id } })
-            }
-            style={{
-              width: 156,
-              backgroundColor: '#FFFFFF',
-              borderRadius: 18,
-              borderWidth: 1,
-              borderColor: '#F1F5F9',
-              overflow: 'hidden',
-              shadowColor: '#0F172A',
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.05,
-              shadowRadius: 6,
-              elevation: 2,
-            }}
-          >
-            {/* Top Cover Banner */}
-            <View style={{ width: '100%', height: 86, backgroundColor: '#E2E8F0', position: 'relative' }}>
-              <Image
-                source={{ uri: item.image || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="cover"
-              />
-              <LinearGradient
-                colors={['rgba(15,23,42,0.05)', 'rgba(15,23,42,0.65)']}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-              />
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 14, paddingTop: 4, paddingBottom: 4 }}
+        renderItem={({ item, index }) => {
+          const ringGradient = STORY_RING_GRADIENTS[index % STORY_RING_GRADIENTS.length];
+          const brandImg = item.image || item.ProfileImage || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg';
+          const brandTitle = (item.name || item.ShopName || 'Top Salon').trim();
 
-              {/* Floating Rating Pill */}
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 7,
-                  right: 7,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                  paddingHorizontal: 6,
-                  paddingVertical: 2.5,
-                  borderRadius: 10,
-                  gap: 3,
-                }}
-              >
-                <Ionicons name="star" size={10} color="#FBBF24" />
-                <Text style={{ color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' }}>
-                  {item.rating || '4.8'}
-                </Text>
-              </View>
-
-              {/* Overlapping Brand Logo Badge */}
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: -14,
-                  left: 10,
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: '#FFFFFF',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderWidth: 2,
-                  borderColor: '#FFFFFF',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 3,
-                  elevation: 3,
-                  overflow: 'hidden',
-                }}
-              >
-                <Image
-                  source={{ uri: item.image || 'https://images.pexels.com/photos/12304514/pexels-photo-12304514.jpeg' }}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode="cover"
-                />
-              </View>
-            </View>
-
-            {/* Brand Info Area */}
-            <View style={{ paddingTop: 18, paddingHorizontal: 10, paddingBottom: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text
+          return (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                try {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                } catch {}
+                router.push({
+                  pathname: '/Screens/User/BarberShopFeed',
+                  params: { shop_id: item.id || item._id },
+                });
+              }}
+              style={{
+                alignItems: 'center',
+                width: 76,
+              }}
+            >
+              {/* Instagram Story Circular Ring */}
+              <View style={{ position: 'relative' }}>
+                <LinearGradient
+                  colors={ringGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={{
-                    fontSize: 12.5,
-                    fontWeight: '700',
-                    color: '#0F172A',
-                    flex: 1,
+                    width: 72,
+                    height: 72,
+                    borderRadius: 36,
+                    padding: 2.5,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    shadowColor: ringGradient[1],
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.22,
+                    shadowRadius: 5,
+                    elevation: 3,
                   }}
-                  numberOfLines={1}
                 >
-                  {item.name}
-                </Text>
-                <Ionicons name="checkmark-circle" size={13} color="#2563EB" />
-              </View>
+                  {/* Inner White Ring Spacer */}
+                  <View
+                    style={{
+                      width: 67,
+                      height: 67,
+                      borderRadius: 33.5,
+                      backgroundColor: '#FFFFFF',
+                      padding: 2,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Image
+                      source={{ uri: brandImg }}
+                      style={{ width: '100%', height: '100%', borderRadius: 31.5 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                </LinearGradient>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 }}>
-                <Ionicons name="location-outline" size={11} color="#64748B" />
-                <Text
+                {/* Verified Blue Checkmark Badge */}
+                <View
                   style={{
-                    fontSize: 10.5,
-                    color: '#64748B',
-                    flex: 1,
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 9,
+                    padding: 1.5,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 2,
+                    elevation: 2,
                   }}
-                  numberOfLines={1}
                 >
-                  {item.city || item.distance || 'Featured'}
-                </Text>
+                  <Ionicons name="checkmark-circle" size={15} color="#2563EB" />
+                </View>
               </View>
 
-              {/* Mini Action Chip */}
-              <View
+              {/* Brand Label Under Story Circle */}
+              <Text
                 style={{
-                  marginTop: 8,
-                  backgroundColor: '#F8FAFC',
-                  borderRadius: 8,
-                  paddingVertical: 4,
-                  paddingHorizontal: 6,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 3,
-                  borderWidth: 1,
-                  borderColor: '#F1F5F9',
+                  fontSize: 11.5,
+                  fontWeight: '600',
+                  color: '#1E293B',
+                  textAlign: 'center',
+                  marginTop: 6,
+                  maxWidth: 74,
                 }}
+                numberOfLines={1}
               >
-                <Text style={{ fontSize: 10, fontWeight: '700', color: '#334155' }}>Book Salon</Text>
-                <Ionicons name="chevron-forward" size={10} color="#64748B" />
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        onScrollToIndexFailed={(info) => {
-          setTimeout(() => {
-            flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
-          }, 500);
+                {brandTitle}
+              </Text>
+            </TouchableOpacity>
+          );
         }}
       />
     </View>
@@ -1151,15 +1100,9 @@ const Home = () => {
                       </View>
                       <View style={{ flex: 1, marginLeft: 16, justifyContent: 'center' }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0F172A', flex: 1, marginRight: 8 }} numberOfLines={1}>
+                          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0F172A', flex: 1 }} numberOfLines={1}>
                             {shopName}
                           </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                            <Ionicons name="star" size={12} color="#F59E0B" />
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#92400E', marginLeft: 4 }}>
-                              {item.rating || '4.5'}
-                            </Text>
-                          </View>
                         </View>
                         <Text style={{ fontSize: 13, color: '#64748B', marginTop: 4 }} numberOfLines={1}>
                           <Ionicons name="location-outline" size={12} color="#94A3B8" /> {item.ExactLocation || item.City || 'Location not specified'}

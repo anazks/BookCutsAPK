@@ -181,10 +181,6 @@ const SeeAllShops = () => {
               style={styles.shopImage}
               resizeMode="cover"
             />
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={10} color={colors.accent} />
-              <Text style={styles.ratingText}>4.5</Text>
-            </View>
           </View>
 
           <View style={styles.shopInfo}>

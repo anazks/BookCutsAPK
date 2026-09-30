@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +19,7 @@ import { fetchPremiumShops } from '../../api/Service/User';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 28;
-const CARD_HEIGHT = 176;
+const CARD_HEIGHT = 186;
 
 export interface BannerItem {
   id: string;
@@ -131,7 +132,22 @@ const DEFAULT_BANNER_DATA: Record<string, BannerItem[]> = {
       discount: 'KID COMBO OFFER',
       imageUrl: 'https://images.unsplash.com/photo-1595475207225-428b62bda831?w=800&auto=format&fit=crop&q=80',
       actionType: 'book',
-      tags: ['Gaming Chairs', 'Gentle Care'],
+      tags: ['Gaming Chairs', 'Patient Stylists'],
+    },
+    {
+      id: 'default-kids-2',
+      title: 'Little Champions Salon',
+      subtitle: 'Tear-Free Kid Styling',
+      tagline: 'Fun cartoon seats, candy rewards & first haircut diplomas',
+      badge: 'POPULAR CHOICE',
+      badgeIcon: 'sparkles',
+      rating: '4.9',
+      location: 'Kids Zone',
+      timing: 'Open Now',
+      discount: 'FREE TOY GIFT',
+      imageUrl: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800&auto=format&fit=crop&q=80',
+      actionType: 'book',
+      tags: ['Tear-Free', 'First Haircut'],
     },
   ],
 };
@@ -352,93 +368,139 @@ export default function InteractiveHomeBanner({
           onPress={() => handlePressBanner(item)}
           style={styles.touchableCard}
         >
-          {/* Creative Clean Gradient Background - NO Background Image */}
+          {/* 1. High-Resolution Lifestyle Photography */}
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={styles.bannerImageBackground}
+            resizeMode="cover"
+          />
+
+          {/* 2. Primary Multi-Stop Gradient Scrim (Heavy dark left to transparent right) */}
           <LinearGradient
-            colors={slideGradients}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            colors={[
+              '#050811',
+              'rgba(5, 8, 17, 0.94)',
+              'rgba(8, 13, 26, 0.78)',
+              'rgba(10, 16, 32, 0.45)',
+              'rgba(10, 16, 32, 0.20)',
+            ]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFillObject}
           />
 
-          {/* Decorative geometric translucent shapes */}
-          <View style={styles.decorativeOrb1} />
-          <View style={styles.decorativeOrb2} />
-          <View style={styles.decorativeOrb3} />
+          {/* 3. Subtle Bottom-Up Vignette for Deep Contrast */}
+          <LinearGradient
+            colors={['rgba(5, 8, 17, 0.90)', 'rgba(5, 8, 17, 0.35)', 'transparent']}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 0.5, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
 
-          {/* Inner Card Layout */}
+          {/* 4. Category Themed Tint Glow for Depth */}
+          <LinearGradient
+            colors={[themeColors.glow, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.7, y: 0.7 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          {/* 5. Delicate Glass Ambient Corner Glow */}
+          <View style={styles.ambientTopGlow} />
+
+          {/* 6. Card Inner Content */}
           <View style={styles.cardInner}>
-            {/* Left Content Area */}
-            <View style={styles.leftColumn}>
-              {/* Badges Row */}
-              <View style={styles.badgeRow}>
-                <View style={styles.glassBadge}>
+            {/* Top Row: Glass Badge + Discount Pill + Rating Glass Chip */}
+            <View style={styles.topRow}>
+              <View style={styles.topLeftBadges}>
+                <View style={[styles.glassBadge, { borderColor: 'rgba(255, 255, 255, 0.22)' }]}>
                   <Ionicons
                     name={orbIcon}
                     size={11}
-                    color="#FFF"
+                    color="#FFFFFF"
                     style={{ marginRight: 4 }}
                   />
                   <Text style={styles.glassBadgeText}>{item.badge}</Text>
                 </View>
 
                 {item.discount ? (
-                  <View style={styles.discountBadge}>
-                    <Text style={styles.discountBadgeText}>{item.discount}</Text>
-                  </View>
+                  <LinearGradient
+                    colors={['#FF6B00', '#FF3B30']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.discountPill}
+                  >
+                    <Ionicons name="flash" size={9} color="#FFFFFF" style={{ marginRight: 2 }} />
+                    <Text style={styles.discountPillText}>{item.discount}</Text>
+                  </LinearGradient>
                 ) : null}
               </View>
 
-              {/* Title & Tagline */}
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.taglineText} numberOfLines={2}>
-                  {item.tagline}
-                </Text>
-              </View>
-
-              {/* Bottom CTA Row */}
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => handlePressBanner(item)}
-                  style={styles.bookCtaContainer}
-                >
-                  <Text style={styles.bookCtaText}>Book Slot</Text>
-                  <Ionicons name="arrow-forward" size={11} color="#0F172A" />
-                </TouchableOpacity>
-
-                {item.location && (
-                  <View style={styles.locationChip}>
-                    <Ionicons
-                      name="location-sharp"
-                      size={10}
-                      color="rgba(255, 255, 255, 0.8)"
-                      style={{ marginRight: 3 }}
-                    />
-                    <Text style={styles.locationChipText} numberOfLines={1}>
-                      {item.location}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Right Column Graphic: Glowing Glass Orb & Floating Rating */}
-            <View style={styles.rightColumn}>
-              <View style={styles.glassOrbOuter}>
-                <View style={styles.glassOrbInner}>
-                  <Ionicons name={orbIcon} size={28} color="#FFFFFF" />
-                </View>
-              </View>
-
+              {/* Floating Verified & Rating Pill */}
               {item.rating ? (
-                <View style={styles.ratingFloatingPill}>
-                  <Ionicons name="star" size={10} color="#FBBF24" />
-                  <Text style={styles.ratingFloatingText}>{item.rating}</Text>
+                <View style={styles.ratingGlassChip}>
+                  <Ionicons name="star" size={11} color="#FBBF24" />
+                  <Text style={styles.ratingGlassText}>{item.rating}</Text>
+                  <View style={styles.verifiedDot} />
                 </View>
               ) : null}
+            </View>
+
+            {/* Middle Section: Title, Tagline & Micro Tags */}
+            <View style={styles.middleSection}>
+              <Text style={styles.titleText} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={styles.taglineText} numberOfLines={2}>
+                {item.tagline}
+              </Text>
+
+              {/* Feature Micro-tags */}
+              {item.tags && item.tags.length > 0 && (
+                <View style={styles.tagRow}>
+                  {item.tags.slice(0, 2).map((tag, tIdx) => (
+                    <View key={tIdx} style={styles.microTag}>
+                      <Text style={styles.microTagDot}>✦</Text>
+                      <Text style={styles.microTagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Bottom Section: Primary Action Button + Location/Timing Info */}
+            <View style={styles.bottomRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => handlePressBanner(item)}
+                style={styles.bookCtaContainer}
+              >
+                <LinearGradient
+                  colors={['#FFFFFF', '#F1F5F9']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.bookCtaGradient}
+                >
+                  <Text style={styles.bookCtaText}>Book Now</Text>
+                  <View style={styles.arrowCircle}>
+                    <Ionicons name="arrow-forward" size={10} color="#FFFFFF" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {item.location && (
+                <View style={styles.locationChip}>
+                  <Ionicons
+                    name="location-sharp"
+                    size={11}
+                    color="rgba(255, 255, 255, 0.9)"
+                    style={{ marginRight: 3 }}
+                  />
+                  <Text style={styles.locationChipText} numberOfLines={1}>
+                    {item.location}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </TouchableOpacity>
@@ -502,7 +564,7 @@ export default function InteractiveHomeBanner({
 
 const styles = StyleSheet.create({
   mainContainer: {
-    marginVertical: 8,
+    marginVertical: 10,
   },
   loaderContainer: {
     height: CARD_HEIGHT,
@@ -516,207 +578,234 @@ const styles = StyleSheet.create({
   cardWrapper: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowColor: '#050811',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   touchableCard: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#0A0F1D',
   },
-  decorativeOrb1: {
+  bannerImageBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  ambientTopGlow: {
     position: 'absolute',
-    top: -30,
-    right: -20,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    top: -20,
+    left: '10%',
+    width: '80%',
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  decorativeOrb2: {
-    position: 'absolute',
-    bottom: -40,
-    right: 50,
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  decorativeOrb3: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   cardInner: {
     flex: 1,
-    flexDirection: 'row',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 13,
+    paddingBottom: 13,
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  leftColumn: {
-    flex: 1,
-    justifyContent: 'space-between',
-    height: '100%',
-    paddingRight: 8,
-  },
-  badgeRow: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  topLeftBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   glassBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     paddingHorizontal: 8,
     paddingVertical: 3.5,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.28)',
   },
   glassBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
-  discountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 7,
+  discountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7.5,
     paddingVertical: 3.5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
+    borderRadius: 12,
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  discountBadgeText: {
+  discountPillText: {
     color: '#FFFFFF',
     fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  ratingGlassChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 15, 29, 0.72)',
+    paddingHorizontal: 7.5,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    gap: 3.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+  },
+  ratingGlassText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  textContainer: {
+  verifiedDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#10B981',
+    marginLeft: 1,
+  },
+  middleSection: {
+    justifyContent: 'center',
+    maxWidth: '82%',
     marginVertical: 2,
   },
   titleText: {
     color: '#FFFFFF',
-    fontSize: 16.5,
-    fontWeight: '800',
+    fontSize: 17.5,
+    fontWeight: '900',
     letterSpacing: -0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   taglineText: {
-    color: 'rgba(255, 255, 255, 0.82)',
-    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.88)',
+    fontSize: 11.5,
     fontWeight: '500',
-    marginTop: 2,
-    lineHeight: 15,
+    marginTop: 2.5,
+    lineHeight: 15.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  actionRow: {
+  tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    marginTop: 6,
+  },
+  microTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 6.5,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    gap: 3,
+  },
+  microTagDot: {
+    color: '#38BDF8',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  microTagText: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 9.5,
+    fontWeight: '600',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 3,
   },
   bookCtaContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bookCtaGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 10,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: 6,
   },
   bookCtaText: {
-    color: '#0F172A',
-    fontSize: 11.5,
-    fontWeight: '700',
+    color: '#0A0F1D',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  arrowCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#0A0F1D',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 8,
-    maxWidth: 120,
+    backgroundColor: 'rgba(10, 15, 29, 0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 10,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    maxWidth: 140,
   },
   locationChipText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 10,
     fontWeight: '600',
-  },
-  rightColumn: {
-    width: 66,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  glassOrbOuter: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
-  },
-  glassOrbInner: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ratingFloatingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 2.5,
-    marginTop: -8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  ratingFloatingText: {
-    color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '800',
   },
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 9,
     gap: 5,
   },
   indicatorDot: {
-    height: 4,
-    borderRadius: 2,
+    height: 4.5,
+    borderRadius: 2.5,
   },
   indicatorInactive: {
-    width: 5,
+    width: 6,
     backgroundColor: '#CBD5E1',
   },
   indicatorActive: {
-    width: 20,
+    width: 22,
   },
 });

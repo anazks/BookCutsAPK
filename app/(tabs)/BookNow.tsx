@@ -108,11 +108,6 @@ const AnimatedShopCard = ({
               resizeMode="cover"
             />
 
-            {/* Top-Right: Rating Pill */}
-            <View style={cardStyles.ratingPill}>
-              <Ionicons name="star" size={10} color="#F59E0B" />
-              <Text style={cardStyles.ratingText}>{rating}</Text>
-            </View>
 
             {/* Top-Left: PRO / Discount Pill */}
             {item.discount ? (

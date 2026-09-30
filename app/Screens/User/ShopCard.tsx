@@ -71,15 +71,11 @@ const ShopCard: React.FC<ShopCardProps> = ({ shop, onPress, onBook }) => {
 
       {/* ── Center: Shop Details ── */}
       <View style={styles.content}>
-        {/* Top: Name & Rating */}
+        {/* Top: Name */}
         <View style={styles.headerRow}>
           <Text style={styles.shopName} numberOfLines={1}>
             {shopName}
           </Text>
-          <View style={styles.ratingPill}>
-            <Ionicons name="star" size={11} color="#F59E0B" />
-            <Text style={styles.ratingText}>{rating}</Text>
-          </View>
         </View>
 
         {/* Location with Pin */}
