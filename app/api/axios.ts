@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 // const BASE_URL = "https://bookmycutsapp-71an.onrender.com/api"
 
 const BASE_URL = "https://bookmycuts.byteboot.in/api";
-
+// const BASE_URL = "http://192.168.29.18:8000/api";
 //  
 
 const axiosInstance = axios.create({

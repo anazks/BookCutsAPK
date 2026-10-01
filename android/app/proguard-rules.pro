@@ -11,4 +11,22 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
-# Add any project specific keep options here:
+# react-native-screens & gesture-handler
+-keep class com.swmansion.rnscreens.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+
+# Razorpay
+-keepattributes *Annotation*
+-dontwarn com.razorpay.**
+-keep class com.razorpay.** {*;}
+-optimizations !class/merging/vertical*,!class/merging/horizontal*
+-keepclasseswithmembers class * {
+    public void onPayment*(...);
+}
+
+# Google Sign-In & Play Services
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-dontwarn com.google.android.gms.**
+
+# React Native Vector Icons
+-keep class com.oblador.vectoricons.** { *; }
