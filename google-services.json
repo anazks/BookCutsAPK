@@ -1,20 +1,21 @@
 {
   "project_info": {
-    "project_number": "402343626155",
-    "project_id": "gen-lang-client-0233804063",
-    "storage_bucket": "gen-lang-client-0233804063.appspot.com"
+    "project_number": "907997240413",
+    "firebase_url": "https://bookmycuts-185db-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bookmycuts-185db",
+    "storage_bucket": "bookmycuts-185db.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:402343626155:android:b0c7ff27cab74186d7c1b4",
+        "mobilesdk_app_id": "1:907997240413:android:b0c7ff27cab74186d7c1b4",
         "android_client_info": {
           "package_name": "com.anazk.bookmycuts"
         }
       },
       "oauth_client": [
         {
-          "client_id": "402343626155-v2p0s3obo94oucpugnha6rpgf7fn28b0.apps.googleusercontent.com",
+          "client_id": "907997240413-5gcrmfvol2mee1i9h41ibhem3r06jtt8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.anazk.bookmycuts",
@@ -22,7 +23,15 @@
           }
         },
         {
-          "client_id": "402343626155-7pj93jpsu7li90fc66908itr9nm99t0d.apps.googleusercontent.com",
+          "client_id": "907997240413-ur6igpb5lfhpsndsdm6bk6rkbckjonil.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anazk.bookmycuts",
+            "certificate_hash": "2f1f405b8e985ee7021150591ade5aac886bcf8e"
+          }
+        },
+        {
+          "client_id": "907997240413-t2kji4sl91auadnms3hpa8les1a3lf17.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -33,7 +42,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "907997240413-t2kji4sl91auadnms3hpa8les1a3lf17.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

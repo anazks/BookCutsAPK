@@ -49,7 +49,7 @@ export default function Login() {
     try {
       if (GoogleSignin && typeof GoogleSignin.configure === 'function') {
         GoogleSignin.configure({
-          webClientId: '402343626155-7pj93jpsu7li90fc66908itr9nm99t0d.apps.googleusercontent.com',
+          webClientId: '907997240413-t2kji4sl91auadnms3hpa8les1a3lf17.apps.googleusercontent.com',
           offlineAccess: true,
           forceCodeForRefreshToken: true,
         });
